@@ -289,11 +289,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
     min-width: 0 !important;
     min-height: 0 !important;
 }
+/* Mobile & Touch Optimizations */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #canvas-container { touch-action: none; } /* Prevents page-pull-to-refresh while dragging */
     </style>
 </head>
 
 <body class="text-gray-800">
-    <header class="bg-white border-b px-4 py-2.5 flex justify-between items-center shrink-0 shadow-sm z-30 relative flex-wrap">
+    <header class="bg-white border-b px-4 py-2.5 flex justify-between items-center shrink-0 shadow-sm z-30 relative flex-nowrap overflow-x-auto hide-scrollbar">
         <div class="flex items-center gap-3 w-1/4 min-w-[200px]">
     <div class="p-1.5 bg-blue-100 rounded text-blue-600 shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +366,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </button>
         </div>
     </header>
-    <div class="px-4 py-2 flex flex-wrap items-center gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
+    <div class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full">
         <div class="flex items-center gap-2">
             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
             <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
@@ -644,7 +648,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </details>
         </div>
     </div>
-    <div id="element-settings" class="px-4 py-2 flex flex-wrap items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative overflow-visible">
+    <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
             <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
@@ -3831,11 +3835,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     colResizer.contentEditable = "false";
                     colResizer.title = "Drag: Resize\nShift+Click: Merge Right";
                     colResizer.style.cssText = 'position: absolute; top: 0; right: calc(-4px * var(--inverse-scale)); width: calc(8px * var(--inverse-scale)); bottom: 0; cursor: col-resize; user-select: none; z-index: 10; background-color: transparent;';
-                    colResizer.onmouseover = () => colResizer.style.backgroundColor = 'rgba(96, 165, 250, 0.4)';
-                    colResizer.onmouseout = () => colResizer.style.backgroundColor = 'transparent';
+                    colResizer.onpointerover = () => colResizer.style.backgroundColor = 'rgba(96, 165, 250, 0.4)';
+                    colResizer.onpointerout = () => colResizer.style.backgroundColor = 'transparent';
                     cell.appendChild(colResizer);
 
-                    colResizer.onmousedown = function(e) {
+                    colResizer.onpointerdown = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) { mergeCells(cell, 'horizontal'); return; }
@@ -3867,13 +3871,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         };
 
                         const mouseUpHandler = () => {
-                            document.removeEventListener('mousemove', mouseMoveHandler);
-                            document.removeEventListener('mouseup', mouseUpHandler);
+                            document.removeEventListener('pointermove', mouseMoveHandler);
+                            document.removeEventListener('pointerup', mouseUpHandler);
                             if (typeof updateUILayer === 'function') updateUILayer();
                             saveState();
                         };
-                        document.addEventListener('mousemove', mouseMoveHandler);
-                        document.addEventListener('mouseup', mouseUpHandler);
+                        document.addEventListener('pointermove', mouseMoveHandler);
+                        document.addEventListener('pointerup', mouseUpHandler);
                     };
                 }
 
@@ -3883,11 +3887,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     rowResizer.contentEditable = "false";
                     rowResizer.title = "Drag: Resize\nShift+Click: Merge Down";
                     rowResizer.style.cssText = 'position: absolute; bottom: calc(-4px * var(--inverse-scale)); left: 0; right: 0; height: calc(8px * var(--inverse-scale)); cursor: row-resize; user-select: none; z-index: 10; background-color: transparent;';
-                    rowResizer.onmouseover = () => rowResizer.style.backgroundColor = 'rgba(96, 165, 250, 0.4)';
-                    rowResizer.onmouseout = () => rowResizer.style.backgroundColor = 'transparent';
+                    rowResizer.onpointerover = () => rowResizer.style.backgroundColor = 'rgba(96, 165, 250, 0.4)';
+                    rowResizer.onpointerout = () => rowResizer.style.backgroundColor = 'transparent';
                     cell.appendChild(rowResizer);
 
-                    rowResizer.onmousedown = function(e) {
+                    rowResizer.onpointerdown = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) { mergeCells(cell, 'vertical'); return; }
@@ -3919,13 +3923,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         };
 
                         const mouseUpHandler = () => {
-                            document.removeEventListener('mousemove', mouseMoveHandler);
-                            document.removeEventListener('mouseup', mouseUpHandler);
+                            document.removeEventListener('pointermove', mouseMoveHandler);
+                            document.removeEventListener('pointerup', mouseUpHandler);
                             if (typeof updateUILayer === 'function') updateUILayer();
                             saveState();
                         };
-                        document.addEventListener('mousemove', mouseMoveHandler);
-                        document.addEventListener('mouseup', mouseUpHandler);
+                        document.addEventListener('pointermove', mouseMoveHandler);
+                        document.addEventListener('pointerup', mouseUpHandler);
                     };
                 }
             });
@@ -3942,7 +3946,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         return { x: targetX, y: targetY };
     }
 
-    document.addEventListener('mousedown', (e) => {
+    document.addEventListener('pointerdown', (e) => {
         shiftDownTime = 0;
 
         // Force blur on any active input, textarea, select, or content editable if we click outside of it
@@ -4131,7 +4135,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('pointermove', (e) => {
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
 
@@ -4333,7 +4337,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         if (typeof updateUILayer === 'function') updateUILayer();
             });
 
-    document.addEventListener('mouseup', (e) => {
+    document.addEventListener('pointerup', (e) => {
         if (isPanning) {
             isPanning = false;
             document.getElementById('canvas-container').style.cursor = 'auto';
@@ -5599,7 +5603,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                             const draggers = document.querySelectorAll('.vernier-dragger');
                             
                             draggers.forEach(dragger => {
-                                dragger.addEventListener('mousedown', (e) => {
+                                dragger.addEventListener('pointerdown', (e) => {
                                     isDragging = true; grabbedDragger = dragger; document.body.style.cursor = 'grabbing';
                                     draggers.forEach(d => {
                                         d.style.cursor = 'grabbing';
@@ -5610,7 +5614,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                 });
                             });
 
-                            document.addEventListener('mousemove', (e) => {
+                            document.addEventListener('pointermove', (e) => {
                                 if (!isDragging || !grabbedDragger) return;
                                 
                                 const dx_screen = e.clientX - startX;
@@ -5638,7 +5642,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                 });
                             });
 
-                            document.addEventListener('mouseup', () => {
+                            document.addEventListener('pointerup', () => {
                                 if(isDragging) {
                                     isDragging = false; grabbedDragger = null; document.body.style.cursor = 'auto';
                                     draggers.forEach(d => d.style.cursor = 'grab');
