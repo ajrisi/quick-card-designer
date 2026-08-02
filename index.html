@@ -358,6 +358,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </svg>
                 Save Card
             </button>
+
             <button onclick="prepareAndPrint()" class="px-3 py-1.5 bg-gray-900 text-white rounded hover:bg-gray-800 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
@@ -366,141 +367,206 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </button>
         </div>
     </header>
-    <div class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full">
-        <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
-            <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
-                <option value="in">in</option>
-                <option value="mm">mm</option>
-            </select>
-        </div>
-        <div class="flex items-center gap-2 ml-1">
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
-            <select id="size-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-28" onchange="handleSizeChange()">
-                <optgroup label="Index Cards">
-                    <option value="300x500">3" x 5"</option>
-                    <option value="400x600" selected>4" x 6"</option>
-                    <option value="500x800">5" x 8"</option>
-                </optgroup>
-                <optgroup label="Small Books">
-                    <option value="425x687">4.25" x 6.87"</option>
-                    <option value="550x850">5.5" x 8.5"</option>
-                    <option value="600x900">6" x 9"</option>
-                </optgroup>
-                <optgroup label="Custom">
-                    <option value="custom">Custom...</option>
-                </optgroup>
-            </select>
-            <div id="custom-size-inputs" class="hidden">
-                <div class="flex items-center gap-1 ml-1">
-                    <input type="number" id="custom-w" step="0.125" min="0.5" value="3" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
-                    <span class="text-[10px] text-gray-400">x</span>
-                    <input type="number" id="custom-h" step="0.125" min="0.5" value="5" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+    <div class="px-4 py-2 flex items-center justify-between gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
+        
+        <!-- Mobile Swipeable Left Section -->
+        <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar py-0.5 min-w-0 flex-1">
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
+                <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
+                    <option value="in">in</option>
+                    <option value="mm">mm</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 ml-1 shrink-0">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
+                <select id="size-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-28" onchange="handleSizeChange()">
+                    <optgroup label="Index Cards">
+                        <option value="300x500">3" x 5"</option>
+                        <option value="400x600" selected>4" x 6"</option>
+                        <option value="500x800">5" x 8"</option>
+                    </optgroup>
+                    <optgroup label="Small Books">
+                        <option value="425x687">4.25" x 6.87"</option>
+                        <option value="550x850">5.5" x 8.5"</option>
+                        <option value="600x900">6" x 9"</option>
+                    </optgroup>
+                    <optgroup label="Custom">
+                        <option value="custom">Custom...</option>
+                    </optgroup>
+                </select>
+                <div id="custom-size-inputs" class="hidden">
+                    <div class="flex items-center gap-1 ml-1">
+                        <input type="number" id="custom-w" step="0.125" min="0.5" value="3" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+                        <span class="text-[10px] text-gray-400">x</span>
+                        <input type="number" id="custom-h" step="0.125" min="0.5" value="5" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="flex items-center gap-1.5 ml-1">
-            <span class="text-[9px] text-gray-500 font-bold uppercase" id="lbl-port">Port</span>
-            <button id="orientation-toggle" onclick="toggleOrientation()" class="w-11 h-6 bg-blue-600 rounded-full relative transition-colors focus:outline-none shrink-0 shadow-inner">
-                <div id="orientation-knob" class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-5 transition-all shadow-md"></div>
-            </button>
-            <span class="text-[9px] text-blue-600 font-bold uppercase" id="lbl-land">Land</span>
-        </div>
-        <div class="flex items-center gap-1 ml-2 border-l border-gray-300 pl-4">
-            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Pattern</span>
-            <select id="bg-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-24" onchange="onBgChange(this.value)">
-                <option value="bg-blank">Blank</option>
-                <option value="bg-ruled">Ruled Lines</option>
-                <option value="bg-grid">Grid</option>
-            </select>
-            <details id="bg-settings-det" class="relative group opacity-50 pointer-events-none">
-                <summary id="bg-settings-btn" class="p-1 bg-white border border-gray-300 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors" title="Background Settings">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </summary>
-                <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-52 p-3 cursor-default">
-                    <div class="flex flex-col gap-3">
-                        <div class="flex justify-between items-center">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase">Line Color</label>
-                            <input type="color" id="bg-color-input" value="#cbd5e1" class="w-14 h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateBgSettings()">
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase">Thickness <span class="text-gray-400 normal-case">(px)</span></label>
-                            <input type="number" id="bg-thick-input" min="1" max="10" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
-                        </div>
-                        
-                        <div id="bg-grid-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+            <div class="flex items-center gap-1.5 ml-1 shrink-0">
+                <span class="text-[9px] text-gray-500 font-bold uppercase" id="lbl-port">Port</span>
+                <button id="orientation-toggle" onclick="toggleOrientation()" class="w-11 h-6 bg-blue-600 rounded-full relative transition-colors focus:outline-none shrink-0 shadow-inner">
+                    <div id="orientation-knob" class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-5 transition-all shadow-md"></div>
+                </button>
+                <span class="text-[9px] text-blue-600 font-bold uppercase" id="lbl-land">Land</span>
+            </div>
+            <div class="flex items-center gap-1 ml-2 border-l border-gray-300 pl-4 shrink-0">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Pattern</span>
+                <select id="bg-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-24" onchange="onBgChange(this.value)">
+                    <option value="bg-blank">Blank</option>
+                    <option value="bg-ruled">Ruled Lines</option>
+                    <option value="bg-grid">Grid</option>
+                </select>
+                <details id="bg-settings-det" class="relative group opacity-50 pointer-events-none">
+                    <summary id="bg-settings-btn" class="p-1 bg-white border border-gray-300 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors" title="Background Settings">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </summary>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-52 p-3 cursor-default">
+                        <div class="flex flex-col gap-3">
                             <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Grid Size <span class="unit-lbl">(in)</span></label>
-                                <input type="number" id="bg-grid-size-input" step="0.125" min="0.05" value="0.25" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Line Color</label>
+                                <input type="color" id="bg-color-input" value="#cbd5e1" class="w-14 h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateBgSettings()">
                             </div>
-                        </div>
-                        
-                        <div id="bg-ruled-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
                             <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Spacing <span class="unit-lbl">(in)</span></label>
-                                <input type="number" id="bg-ruled-spacing-input" step="0.125" min="0.1" value="0.31" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Thickness <span class="text-gray-400 normal-case">(px)</span></label>
+                                <input type="number" id="bg-thick-input" min="1" max="10" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
                             </div>
-                            <div class="flex justify-between items-center" title="Empty space left at the top">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Skip Top Lines</label>
-                                <input type="number" id="bg-ruled-skip-input" step="1" min="0" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                            
+                            <div id="bg-grid-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Grid Size <span class="unit-lbl">(in)</span></label>
+                                    <input type="number" id="bg-grid-size-input" step="0.125" min="0.05" value="0.25" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                                </div>
+                            </div>
+                            
+                            <div id="bg-ruled-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Spacing <span class="unit-lbl">(in)</span></label>
+                                    <input type="number" id="bg-ruled-spacing-input" step="0.125" min="0.1" value="0.31" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                                </div>
+                                <div class="flex justify-between items-center" title="Empty space left at the top">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Skip Top Lines</label>
+                                    <input type="number" id="bg-ruled-skip-input" step="1" min="0" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </details>
-        </div>
-        <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4">
-            <label class="flex items-center gap-1 text-xs font-medium text-gray-700 cursor-pointer">
-                <input type="checkbox" id="enable-custom-back" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleCustomBack()">
-                Custom Back
-            </label>
-            <div id="side-toggles" class="flex rounded opacity-50 pointer-events-none transition-opacity duration-300 ml-1">
-                <button id="btn-edit-front" onclick="switchSide('front')" class="px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors">Front</button>
-                <button id="btn-edit-back" onclick="switchSide('back')" class="px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors">Back</button>
+                </details>
             </div>
-            <details id="ghost-settings" class="relative ml-1">
-                <summary class="text-[11px] font-semibold bg-white text-gray-600 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-50 [&::-webkit-details-marker]:hidden flex items-center gap-1 shadow-sm">
-                    Ghosting <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </summary>
-                <div class="absolute top-full left-0 mt-2 bg-white border shadow-xl p-3 rounded-lg z-50 w-56">
-                    <label id="lbl-reverse-ghost" class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
-                        <input type="checkbox" id="enable-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
-                        Show Reverse Side
-                    </label>
-                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
-                        <input type="checkbox" id="enable-data-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
-                        Show Data Ghosting
-                    </label>
-                    <div class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity" id="ghost-controls">
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase">Opacity</span>
-                            <input type="range" id="ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.2" class="w-24 accent-blue-600" oninput="if(document.getElementById('ghost-layer')) document.getElementById('ghost-layer').style.opacity = this.value">
-                        </div>
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase">Flip Mode</span>
-                            <select id="ghost-flip" class="text-xs border-gray-300 border rounded p-1 outline-none shadow-sm bg-white" onchange="updateGhostLayer()">
-                                <option value="scaleX(-1)">Horz (Book)</option>
-                                <option value="scaleY(-1)">Vert (Calendar)</option>
-                                <option value="()">None</option>
-                            </select>
+            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
+                <label class="flex items-center gap-1 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" id="enable-custom-back" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleCustomBack()">
+                    Custom Back
+                </label>
+                <div id="side-toggles" class="flex rounded opacity-50 pointer-events-none transition-opacity duration-300 ml-1">
+                    <button id="btn-edit-front" onclick="switchSide('front')" class="px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors">Front</button>
+                    <button id="btn-edit-back" onclick="switchSide('back')" class="px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors">Back</button>
+                </div>
+                <details id="ghost-settings" class="relative ml-1">
+                    <summary class="text-[11px] font-semibold bg-white text-gray-600 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-50 [&::-webkit-details-marker]:hidden flex items-center gap-1 shadow-sm">
+                        Ghosting <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </summary>
+                    <div class="absolute top-full left-0 mt-2 bg-white border shadow-xl p-3 rounded-lg z-50 w-56">
+                        <label id="lbl-reverse-ghost" class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
+                            Show Reverse Side
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-data-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
+                            Show Data Ghosting
+                        </label>
+                        <div class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity" id="ghost-controls">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">Opacity</span>
+                                <input type="range" id="ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.2" class="w-24 accent-blue-600" oninput="if(document.getElementById('ghost-layer')) document.getElementById('ghost-layer').style.opacity = this.value">
+                            </div>
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">Flip Mode</span>
+                                <select id="ghost-flip" class="text-xs border-gray-300 border rounded p-1 outline-none shadow-sm bg-white" onchange="updateGhostLayer()">
+                                    <option value="scaleX(-1)">Horz (Book)</option>
+                                    <option value="scaleY(-1)">Vert (Calendar)</option>
+                                    <option value="()">None</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- Fixed Right Section (Print & Export Options) -->
+        <div id="print-and-layout" class="ml-auto flex items-center pl-2 gap-2">
+            
+            <!-- EXPORT MENU -->
+            <details class="relative group">
+                <summary class="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-indigo-100 transition-colors [&::-webkit-details-marker]:hidden shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export
+                </summary>
+                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-72 p-4 text-gray-800 cursor-default hide-scrollbar">
+                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Raster Resolution & Export
+                    </h3>
+                    <div class="mb-3">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
+                        <select id="target-dpi" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                            <option value="96">96 DPI (Web/Screen)</option>
+                            <option value="300" selected>300 DPI (Professional Print)</option>
+                            <option value="600">600 DPI (Ultra Quality)</option>
+                        </select>
+                    </div>
+
+                    <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1 mt-4">Single Card Export</h4>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button onclick="executeExport('current')" class="py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm">
+                            Current Face
+                        </button>
+                        <button onclick="executeExport('both')" class="py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm opacity-50 pointer-events-none" id="btn-png-back">
+                            Both Faces
+                        </button>
+                    </div>
+
+                    <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1">Full Sheet Export</h4>
+                    <div class="flex items-center gap-2 mb-2">
+                        <select id="export-sheet-num" class="w-1/3 border-indigo-200 border rounded p-1.5 text-xs outline-none shadow-sm bg-indigo-50 text-indigo-700 font-medium cursor-pointer">
+                            <option value="1">Sheet 1</option>
+                        </select>
+                        <button onclick="executeExport('sheet')" class="flex-1 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-100 font-medium text-xs transition-colors text-center shadow-sm">
+                            Export Sheet
+                        </button>
+                    </div>
+                    <button onclick="executeExport('document')" class="w-full py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded hover:bg-indigo-700 font-medium text-xs transition-colors text-center shadow-sm">
+                        Export All Sheets
+                    </button>
                 </div>
             </details>
-        </div>
-        <div class="ml-auto flex items-center pl-2">
+
+            <!-- PRINT MENU -->
             <details class="relative group">
                 <summary class="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded cursor-pointer flex items-center gap-1.5 hover:bg-gray-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                     </svg>
-                    Print Layout Options
+                    Layout & Print Options
                 </summary>
-                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-80 max-h-[70vh] overflow-y-auto cursor-default p-4 text-gray-800">
-                    <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Auto-Center Geometry</h3>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-80 max-h-[75vh] overflow-y-auto cursor-default p-4 text-gray-800 hide-scrollbar">
+                    
+                    <!-- Dynamic Print Stats Bar -->
+                    <div id="print-stats-bar" class="mb-4 bg-blue-50 text-blue-700 border border-blue-200 rounded p-2 text-center text-xs shadow-sm transition-colors duration-300">
+                        <span class="font-bold uppercase tracking-wide text-[10px]">Cards Per Page:</span> 
+                        <span id="cpp-count" class="text-lg font-black ml-1">0</span> 
+                        <span class="text-[10px] block opacity-80 mt-0.5" id="cpp-grid">(0x0 grid)</span>
+                    </div>
+
+                    <!-- 1. SHEET SETUP -->
+                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        1. Sheet Setup
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Paper Size</label>
                             <select id="paper-size" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
@@ -517,6 +583,135 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             </select>
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-2 mb-5">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Column Gap <span class="unit-lbl">(in)</span></label>
+                            <input type="number" id="gap-x" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Row Gap <span class="unit-lbl">(in)</span></label>
+                            <input type="number" id="gap-y" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+                    </div>
+
+                    <!-- 2. CARD BOUNDARIES -->
+                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                        2. Card Boundaries
+                    </h3>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 mb-3">
+                        <div class="col-span-2 flex items-center justify-between mb-1">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase">Bleed <span class="unit-lbl">(in)</span></label>
+                            <label class="flex items-center gap-1.5 text-[10px] font-medium text-blue-600 cursor-pointer">
+                                <input type="checkbox" id="show-bleed-editor" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateBleedVisualization()">
+                                Show Bleed Area
+                            </label>
+                        </div>
+                        <input type="number" id="print-bleed" step="0.125" min="0" value="0" class="col-span-2 mb-2 w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateBleedVisualization()">
+                        
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Binding Margin <span class="unit-lbl">(in)</span></label>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Top</label>
+                            <input type="number" id="margin-top" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Right</label>
+                            <input type="number" id="margin-right" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Bottom</label>
+                            <input type="number" id="margin-bottom" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Left</label>
+                            <input type="number" id="margin-left" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
+                        </div>
+
+                        <!-- Internal Safe Margin -->
+                    <div class="col-span-2 mt-4">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Internal Safe Margins <span class="unit-lbl">(in)</span></label>
+                    </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Top</label>
+                            <input type="number" id="safe-margin-top" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Right</label>
+                            <input type="number" id="safe-margin-right" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Bottom</label>
+                            <input type="number" id="safe-margin-bottom" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Left</label>
+                            <input type="number" id="safe-margin-left" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
+                        </div>
+                    
+                    </div>
+
+                    <!-- 3. GUIDES & MARKS -->
+                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 mt-5 bg-gray-100 p-1.5 rounded shadow-sm">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        3. Guides & Marks
+                    </h3>
+                    
+                    <!-- Cut Edge Settings -->
+                    <div class="mb-3 border border-gray-200 rounded p-2 bg-gray-50/50">
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2">
+                            <input type="checkbox" id="print-cut-line" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                            Print Card Cut Edge
+                        </label>
+                        <div class="grid grid-cols-2 gap-2 pl-5">
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Style</label>
+                                <select id="cut-line-style" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                                    <option value="dashed">Dashed</option>
+                                    <option value="dotted">Dotted</option>
+                                    <option value="solid">Solid</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
+                                <input type="number" id="cut-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Binding Margin Settings -->
+                    <div class="mb-3 border border-gray-200 rounded p-2 bg-gray-50/50">
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2">
+                            <input type="checkbox" id="show-margin-guide" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                            Print Binding Margin Line
+                        </label>
+                        <div class="grid grid-cols-2 gap-2 pl-5">
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Style</label>
+                                <select id="binding-line-style" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                                    <option value="dashed">Dashed</option>
+                                    <option value="dotted">Dotted</option>
+                                    <option value="solid">Solid</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
+                                <input type="number" id="binding-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-5">
+                        <input type="checkbox" id="print-crop-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                        Print External Crop Marks
+                    </label>
+
+                    <!-- 4. DUPLEX & CALIBRATION -->
+                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        4. Duplex & Calibration
+                    </h3>
                     <label class="flex items-start gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 bg-gray-50 border p-2 rounded shadow-sm">
                         <input type="checkbox" id="print-duplex" class="rounded text-blue-600 mt-0.5 focus:ring-blue-500" onchange="document.getElementById('duplex-settings').style.display = this.checked ? 'block' : 'none'">
                         <span>Generate 2nd Page for Duplex <span class="block text-[10px] font-normal text-gray-500 mt-0.5">Enables double-sided printing alignments.</span></span>
@@ -547,25 +742,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             CSS Rotate 180°
                         </label>
                     </div>
-                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">Grid Gaps (Spacing)</p>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Column Gap <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="gap-x" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Row Gap <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="gap-y" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 border-dashed">
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hardware Calibration</p>
+
+                    <div class="mb-5">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hardware Drift</p>
                         <p class="text-[9px] text-gray-400 mb-2 leading-tight">Fix physical printer feed drift by shifting the grid.</p>
                         <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
                             <input type="checkbox" id="print-vernier" class="rounded text-blue-600 focus:ring-blue-500">
                             Print Vernier Caliper Scale (Duplex)
                         </label>
-                        <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">X Offset <span class="unit-lbl">(in)</span></label>
                                 <input type="number" id="print-offset-x" step="0.01" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
@@ -576,78 +761,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             </div>
                         </div>
                     </div>
-                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">Card Margins (Padding)</p>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Top <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="margin-top" step="0.125" min="0" value="0.25" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Right <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="margin-right" step="0.125" min="0" value="0.25" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bottom <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="margin-bottom" step="0.125" min="0" value="0.25" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Left <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="margin-left" step="0.125" min="0" value="0.25" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                    </div>
-                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">Bleed (Edge Extension)</p>
-                    <div class="grid grid-cols-1 gap-2 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bleed <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="print-bleed" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateBleedVisualization()">
-                        </div>
-                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
-                            <input type="checkbox" id="show-bleed-editor" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateBleedVisualization()">
-                            Show bleed area in editor
-                        </label>
-                    </div>
-                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">Raster Resolution & Export</p>
-                    <div class="grid grid-cols-1 gap-2 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
-                            <select id="target-dpi" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                                <option value="96">96 DPI (Web/Screen)</option>
-                                <option value="300" selected>300 DPI (Professional Print)</option>
-                                <option value="600">600 DPI (Ultra Quality)</option>
-                            </select>
-                        </div>
-                        <div class="flex gap-2 mt-1">
-                            <button onclick="downloadPNG('front')" class="flex-1 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm">
-                                PNG (Front)
-                            </button>
-                            <button onclick="downloadPNG('back')" class="flex-1 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm opacity-50 pointer-events-none" id="btn-png-back">
-                                PNG (Back)
-                            </button>
-                        </div>
-                    </div>
-                    <p class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">Border Thickness</p>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cut Line <span class="text-[9px] normal-case text-gray-400">(px)</span></label>
-                            <input type="number" id="cut-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Safe Line <span class="text-[9px] normal-case text-gray-400">(px)</span></label>
-                            <input type="number" id="safe-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                    </div>
-                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
-                        <input type="checkbox" id="show-margin-guide" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                        Print card margin line
-                    </label>
-                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mt-2">
-                        <input type="checkbox" id="print-crop-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                        Print external cut marks
-                    </label>
                 </div>
             </details>
         </div>
+
+
+
     </div>
+
     <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
@@ -1063,6 +1184,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
         <div id="ui-layer" class="absolute inset-0 pointer-events-none z-50 overflow-visible">
             <div id="ui-marquee" class="absolute hidden border border-blue-500 border-dashed bg-blue-500/20"></div>
+            <div id="ui-safe-zone" class="absolute hidden border border-red-400 border-dashed opacity-60"></div>
             <svg id="ui-lasers" class="absolute inset-0 w-full h-full overflow-visible" style="display: none;"></svg>
             <div id="ui-active-boxes" class="absolute inset-0 w-full h-full overflow-visible"></div>
         </div>
@@ -1153,6 +1275,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
         initialPanX = 0,
         initialPanY = 0;
     let clipboardData = [];
+    let activePointers = new Map();
+    let isPinching = false;
+    let initialPinchDist = 1;
+    let initialPinchCenter = { x: 0, y: 0 };
+    let initialPinchScale = 1;
+    let initialPinchPan = { x: 0, y: 0 };
+
 
 
     let dragSnapTargets = { x: [], y: [] };
@@ -1312,6 +1441,111 @@ function updateBgSettings() {
         document.getElementById('bg-ruled-skip-input').value = config.ruleSkip !== undefined ? config.ruleSkip : 1;
     }
 
+    function updatePrintStats() {
+        const paperSizeStr = document.getElementById('paper-size')?.value;
+        const isPaperLand = document.getElementById('paper-orientation')?.value === 'landscape';
+        
+        let paperW = 8.5, paperH = 11;
+        if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
+        else if (paperSizeStr === 'legal') { paperW = 8.5; paperH = 14; }
+        if (isPaperLand) [paperW, paperH] = [paperH, paperW];
+
+        const unitToIn = currentUnit === 'mm' ? (1 / 25.4) : 1;
+        const mtIn = (parseFloat(document.getElementById('margin-top')?.value) || 0) * unitToIn;
+        const mrIn = (parseFloat(document.getElementById('margin-right')?.value) || 0) * unitToIn;
+        const mbIn = (parseFloat(document.getElementById('margin-bottom')?.value) || 0) * unitToIn;
+        const mlIn = (parseFloat(document.getElementById('margin-left')?.value) || 0) * unitToIn;
+        const gapXIn = (parseFloat(document.getElementById('gap-x')?.value) || 0) * unitToIn;
+        const gapYIn = (parseFloat(document.getElementById('gap-y')?.value) || 0) * unitToIn;
+
+        // Base card dimensions always track internally at 100 pixels per inch
+        const baseCardWin = currentWidth / 100;
+        const baseCardHin = currentHeight / 100;
+
+        const totalCardWin = baseCardWin + mlIn + mrIn;
+        const totalCardHin = baseCardHin + mtIn + mbIn;
+
+        let cols = Math.floor((paperW + gapXIn) / (totalCardWin + gapXIn));
+        let rows = Math.floor((paperH + gapYIn) / (totalCardHin + gapYIn));
+
+        if (cols < 1) cols = Math.floor(paperW / totalCardWin);
+        if (rows < 1) rows = Math.floor(paperH / totalCardHin);
+        
+        const cpp = Math.max(0, cols * rows);
+        
+        const countEl = document.getElementById('cpp-count');
+        const gridEl = document.getElementById('cpp-grid');
+        const barEl = document.getElementById('print-stats-bar');
+        
+        if (countEl && gridEl && barEl) {
+            countEl.innerText = cpp;
+            if (cpp === 0) {
+                gridEl.innerText = "(Does not fit)";
+                barEl.className = "mb-4 bg-red-50 text-red-700 border border-red-200 rounded p-2 text-center text-xs shadow-sm transition-colors duration-300";
+            } else {
+                gridEl.innerText = `(${cols} cols × ${rows} rows)`;
+                barEl.className = "mb-4 bg-blue-50 text-blue-700 border border-blue-200 rounded p-2 text-center text-xs shadow-sm transition-colors duration-300";
+            }
+        }
+
+        // Update the Export Sheet Dropdown
+        let maxMergeRows = 0;
+        document.querySelectorAll('#card-content .element-container').forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    if (data.length > maxMergeRows) maxMergeRows = data.length;
+                } catch (e) {}
+            }
+        });
+        
+        const totalLogicalCards = maxMergeRows > 0 ? maxMergeRows : Math.max(1, cpp);
+        const sheetsNeeded = cpp > 0 ? Math.ceil(totalLogicalCards / cpp) : 1;
+
+        const sheetSelect = document.getElementById('export-sheet-num');
+        if (sheetSelect) {
+            const currentVal = sheetSelect.value;
+            sheetSelect.innerHTML = '';
+            for (let i = 1; i <= Math.max(1, sheetsNeeded); i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `Sheet ${i}`;
+                sheetSelect.appendChild(opt);
+            }
+            if (currentVal && currentVal <= sheetsNeeded) {
+                sheetSelect.value = currentVal;
+            }
+        }
+    }
+
+    function setupPWA() {
+        // Construct a dynamic Web App Manifest
+        const manifest = {
+            name: "Quick Card Designer",
+            short_name: "CardDesigner",
+            display: "standalone", // Tells mobile devices to hide the URL bar
+            start_url: location.href,
+            theme_color: "#ffffff",
+            background_color: "#f3f4f6",
+            icons: [{
+                // Reuse our existing SVG favicon code!
+                src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path stroke='%23374151' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/></svg>",
+                sizes: "any",
+                type: "image/svg+xml"
+            }]
+        };
+
+        // Convert the JSON object into a virtual file and inject it into the head
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestUrl;
+        link.onload = () => URL.revokeObjectURL(manifestUrl);
+        document.head.appendChild(link);
+    }
+
     function getAABB(el, mode = 'bbox') {
         const b = getAbsoluteBounds(el, mode);
         const rot = getRotation(el);
@@ -1390,6 +1624,30 @@ function updateBgSettings() {
             uiBleed.style.height = ((currentHeight + bleedPx * 2) * canvasScale) + 'px';
         } else {
             uiBleed.style.display = 'none';
+        }
+
+        const uiSafeZone = document.getElementById('ui-safe-zone');
+        
+        const safeT = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
+        const safeR = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
+        const safeB = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
+        const safeL = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
+
+        const safeTPx = safeT * pxPerUnit;
+        const safeRPx = safeR * pxPerUnit;
+        const safeBPx = safeB * pxPerUnit;
+        const safeLPx = safeL * pxPerUnit;
+
+        if (uiSafeZone) {
+            if (safeTPx > 0 || safeRPx > 0 || safeBPx > 0 || safeLPx > 0) {
+                uiSafeZone.style.display = 'block';
+                uiSafeZone.style.top = (panY + safeTPx * canvasScale) + 'px';
+                uiSafeZone.style.left = (panX + safeLPx * canvasScale) + 'px';
+                uiSafeZone.style.width = ((currentWidth - safeLPx - safeRPx) * canvasScale) + 'px';
+                uiSafeZone.style.height = ((currentHeight - safeTPx - safeBPx) * canvasScale) + 'px';
+            } else {
+                uiSafeZone.style.display = 'none';
+            }
         }
 
         // 2. Update Active Element Boxes
@@ -1510,6 +1768,14 @@ function updateBgSettings() {
         applyCanvasTransform();
     }
     window.onload = () => {
+        setupPWA();
+        
+        // Auto-update print stats when inputs change
+        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'gap-x', 'gap-y'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('input', updatePrintStats);
+        });
+
         if (!localStorage.getItem('qcd_has_visited')) {
             setTimeout(openInfoModal, 500); // 500ms delay so it feels smooth
             localStorage.setItem('qcd_has_visited', 'true');
@@ -1794,11 +2060,11 @@ function updateBgSettings() {
             if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
             
             // --- Auto-enable duplex printing ---
-            //const duplexCb = document.getElementById('print-duplex');
-            //if (duplexCb && !duplexCb.checked) {
-            //   const duplexSettings = document.getElementById('duplex-settings');
-            //    if (duplexSettings) duplexSettings.style.display = 'block';
-            //}
+            const duplexCb = document.getElementById('print-duplex');
+            if (duplexCb && !duplexCb.checked) {
+               const duplexSettings = document.getElementById('duplex-settings');
+                if (duplexSettings) duplexSettings.style.display = 'block';
+            }
             
         } else {
             sideToggles.classList.add('opacity-50', 'pointer-events-none');
@@ -2017,6 +2283,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         updateLayoutInputs();
         updateBleedVisualization();
+        updateSafeZone();
+        updatePrintStats();
         if (!skipCenter && typeof centerCanvas === 'function') centerCanvas();
     }
 
@@ -2055,7 +2323,12 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         if (newUnit === currentUnit) return;
         const conversion = newUnit === 'mm' ? 25.4 : (1 / 25.4);
 
-        const fields = ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'gap-x', 'gap-y', 'custom-w', 'custom-h', 'print-offset-x', 'print-offset-y', 'print-bleed', 'bg-grid-size-input', 'bg-ruled-spacing-input'];
+        const fields = [
+            'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 
+            'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left',
+            'gap-x', 'gap-y', 'custom-w', 'custom-h', 'print-offset-x', 'print-offset-y', 
+            'print-bleed', 'bg-grid-size-input', 'bg-ruled-spacing-input'
+        ];
         fields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -2071,6 +2344,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         currentUnit = newUnit;
         if (activeElement) updateLayoutInputs();
+        updatePrintStats();
         if (document.getElementById('size-select').value === 'custom') updateCanvasSettings();
     }
 
@@ -3873,11 +4147,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         const mouseUpHandler = () => {
                             document.removeEventListener('pointermove', mouseMoveHandler);
                             document.removeEventListener('pointerup', mouseUpHandler);
+                            document.removeEventListener('pointercancel', mouseUpHandler);
                             if (typeof updateUILayer === 'function') updateUILayer();
                             saveState();
                         };
                         document.addEventListener('pointermove', mouseMoveHandler);
                         document.addEventListener('pointerup', mouseUpHandler);
+                        document.addEventListener('pointercancel', mouseUpHandler);
                     };
                 }
 
@@ -3925,11 +4201,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         const mouseUpHandler = () => {
                             document.removeEventListener('pointermove', mouseMoveHandler);
                             document.removeEventListener('pointerup', mouseUpHandler);
+                            document.removeEventListener('pointercancel', mouseUpHandler);
                             if (typeof updateUILayer === 'function') updateUILayer();
                             saveState();
                         };
                         document.addEventListener('pointermove', mouseMoveHandler);
                         document.addEventListener('pointerup', mouseUpHandler);
+                        document.addEventListener('pointercancel', mouseUpHandler);
                     };
                 }
             });
@@ -3947,6 +4225,27 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     }
 
     document.addEventListener('pointerdown', (e) => {
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.size === 2) {
+            const isCanvasArea = e.target.closest('#canvas-container');
+            if (isCanvasArea) {
+                isPinching = true;
+                isDragging = false; 
+                isMarquee = false; 
+                isPanning = false; 
+                isResizingContainer = false;
+                
+                const pts = Array.from(activePointers.values());
+                initialPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+                initialPinchCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+                initialPinchScale = canvasScale;
+                initialPinchPan = { x: panX, y: panY };
+                e.preventDefault();
+                return; // Stop single-finger click/drag logic
+            }
+        }
+
         shiftDownTime = 0;
 
         // Force blur on any active input, textarea, select, or content editable if we click outside of it
@@ -4104,6 +4403,22 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             initialDragBB = getGroupBoundingBox('bbox');
             dragSnapTargets = { x: [], y: [] };
 
+            const unitMult = currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN;
+            const sTopPx = (parseFloat(document.getElementById('safe-margin-top')?.value) || 0) * unitMult;
+            const sRightPx = (parseFloat(document.getElementById('safe-margin-right')?.value) || 0) * unitMult;
+            const sBottomPx = (parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0) * unitMult;
+            const sLeftPx = (parseFloat(document.getElementById('safe-margin-left')?.value) || 0) * unitMult;
+
+            // Always snap to the absolute edges and center of the card
+            dragSnapTargets.x.push(0, currentWidth, currentWidth / 2);
+            dragSnapTargets.y.push(0, currentHeight, currentHeight / 2);
+
+            // Add magnetic snap points for the internal safe zone
+            if (sLeftPx > 0) dragSnapTargets.x.push(sLeftPx);
+            if (sRightPx > 0) dragSnapTargets.x.push(currentWidth - sRightPx);
+            if (sTopPx > 0) dragSnapTargets.y.push(sTopPx);
+            if (sBottomPx > 0) dragSnapTargets.y.push(currentHeight - sBottomPx);
+
             document.querySelectorAll('#card-content > .element-container').forEach(el => {
                 let isInsideActiveGroup = false;
                 let p = el.parentElement;
@@ -4136,6 +4451,32 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     });
 
     document.addEventListener('pointermove', (e) => {
+        if (activePointers.has(e.pointerId)) {
+            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        }
+
+        if (isPinching && activePointers.size === 2) {
+            const pts = Array.from(activePointers.values());
+            const newDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const newCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+
+            let newScale = initialPinchScale * (newDist / initialPinchDist);
+            newScale = Math.max(0.1, Math.min(newScale, 10));
+
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            
+            const targetX = (initialPinchCenter.x - containerRect.left - initialPinchPan.x) / initialPinchScale;
+            const targetY = (initialPinchCenter.y - containerRect.top - initialPinchPan.y) / initialPinchScale;
+
+            panX = (newCenter.x - containerRect.left) - (targetX * newScale);
+            panY = (newCenter.y - containerRect.top) - (targetY * newScale);
+            canvasScale = newScale;
+
+            applyCanvasTransform();
+            e.preventDefault();
+            return;
+        }
+
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
 
@@ -4338,6 +4679,12 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             });
 
     document.addEventListener('pointerup', (e) => {
+        activePointers.delete(e.pointerId);
+        if (isPinching && activePointers.size < 2) {
+            isPinching = false;
+            return; // Prevent accidental selection clicks when lifting fingers
+        }
+
         if (isPanning) {
             isPanning = false;
             document.getElementById('canvas-container').style.cursor = 'auto';
@@ -4404,6 +4751,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         dragSnapTargets = { x: [], y: [] };
         activeSnapLines = { x: null, y: null };
         if (typeof updateUILayer === 'function') updateUILayer();
+    });
+
+    document.addEventListener('pointercancel', (e) => {
+        activePointers.delete(e.pointerId);
+        isPinching = false;
     });
 
     document.addEventListener('keydown', (e) => {
@@ -4888,9 +5240,18 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 b: document.getElementById('margin-bottom').value,
                 l: document.getElementById('margin-left').value
             },
+            safeMargin: {
+                t: document.getElementById('safe-margin-top').value,
+                r: document.getElementById('safe-margin-right').value,
+                b: document.getElementById('safe-margin-bottom').value,
+                l: document.getElementById('safe-margin-left').value
+            },
             guide: document.getElementById('show-margin-guide').checked,
-            cutLineW: document.getElementById('cut-line-width').value,
-            safeLineW: document.getElementById('safe-line-width').value,
+            cutLineW: document.getElementById('cut-line-width')?.value || 1,
+            cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+            printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
+            bindingLineW: document.getElementById('binding-line-width')?.value || 1,
+            bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
             printer: {
                 paper: document.getElementById('paper-size').value,
                 orient: document.getElementById('paper-orientation').value,
@@ -4962,16 +5323,120 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         showToast("Dual-Sided SVG Downloaded!");
     }
 
-    function downloadPNG(side = 'front') {
+    // function downloadPNG(side = 'front') {
+    //     saveCurrentSideState();
+    //     const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
+    //     const scale = dpi / PX_PER_IN;
+
+    //     const width = currentWidth;
+    //     const height = currentHeight;
+    //     const canvasW = width * scale;
+    //     const canvasH = height * scale;
+
+    //     const activeBgClass = side === 'front' ? frontBgClass : backBgClass;
+    //     const rawHtml = side === 'front' ? frontContentHTML : backContentHTML;
+
+    //     let activeContent = getCleanPrintHTML(rawHtml);
+    //     let maxMergeRows = 0;
+    //     const temp = document.createElement('div');
+    //     temp.innerHTML = activeContent;
+
+    //     temp.querySelectorAll('.element-container').forEach(el => {
+    //         if (el.dataset.mergeData) {
+    //             try {
+    //                 const data = JSON.parse(el.dataset.mergeData);
+    //                 if (data.length > maxMergeRows) maxMergeRows = data.length;
+    //                 const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
+    //                 const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+    //                 if (target) {
+    //                     target.textContent = val;
+    //                     parseMarkdownInElement(target);
+    //                     target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+    //                 }
+    //             } catch (e) {}
+    //         }
+    //     });
+    //     activeContent = temp.innerHTML;
+
+    //     const customStyleTag = document.querySelector('style').innerHTML;
+
+    //     const svgContent = `
+    //             <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
+    //                 <foreignObject x="0" y="0" width="100%" height="100%">
+    //                     <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; transform: scale(${scale}); transform-origin: top left; margin: 0; padding: 0;">
+    //                         <style>
+    //                             <![CDATA[
+    //                             ${customStyleTag}
+    //                             .bg-blank { background-color: white; }
+    //                             .element-container { outline: none !important; }
+    //                             ]]>
+    //                         </style>
+    //                         <div class="${activeBgClass}" style="width: 100%; height: 100%; position: relative; overflow: hidden; background-color: white;">
+    //                             ${activeContent}
+    //                         </div>
+    //                     </div>
+    //                 </foreignObject>
+    //             </svg>
+    //         `;
+
+    //     const img = new Image();
+        
+    //     // Crucial: Tell the browser we aren't trying to steal cross-domain credentials
+    //     img.crossOrigin = 'anonymous'; 
+        
+    //     img.onload = () => {
+    //         const canvas = document.createElement('canvas');
+    //         canvas.width = canvasW;
+    //         canvas.height = canvasH;
+    //         const ctx = canvas.getContext('2d');
+            
+    //         // Fill with a white background first to prevent transparent PNG rendering issues
+    //         ctx.fillStyle = "#ffffff";
+    //         ctx.fillRect(0, 0, canvasW, canvasH);
+    //         ctx.drawImage(img, 0, 0);
+
+    //         try {
+    //             const a = document.createElement('a');
+    //             // Use the custom project name here too!
+    //             const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
+    //             a.download = `${projName}-${side}-${dpi}dpi.png`;
+    //             a.href = canvas.toDataURL('image/png');
+    //             a.click();
+    //             showToast(`Downloaded ${dpi} DPI PNG!`);
+    //         } catch (err) {
+    //             console.error(err);
+    //             showToast("Export failed: Canvas tainted by external cross-origin image.", true);
+    //         }
+    //     };
+        
+    //     // Encode the SVG as a direct data URI instead of a Blob to bypass strict origin locking
+    //     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+    // }
+
+    function renderSvgToDataUri(svgContent, width, height) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = () => reject(new Error("Canvas tainted by external cross-origin image."));
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+        });
+    }
+
+    async function downloadSingleCardPNG(side, dpi = 300) {
         saveCurrentSideState();
-        const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
-        const scale = dpi / PX_PER_IN;
-
-        const width = currentWidth;
-        const height = currentHeight;
-        const canvasW = width * scale;
-        const canvasH = height * scale;
-
+        const scale = dpi / (currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN);
+        const canvasW = currentWidth * scale;
+        const canvasH = currentHeight * scale;
         const activeBgClass = side === 'front' ? frontBgClass : backBgClass;
         const rawHtml = side === 'front' ? frontContentHTML : backContentHTML;
 
@@ -4998,58 +5463,346 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         activeContent = temp.innerHTML;
 
         const customStyleTag = document.querySelector('style').innerHTML;
-
         const svgContent = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
+                <foreignObject x="0" y="0" width="100%" height="100%">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${currentWidth}px; height: ${currentHeight}px; transform: scale(${scale}); transform-origin: top left; margin: 0; padding: 0;">
+                        <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
+                        <div class="${activeBgClass}" style="width: 100%; height: 100%; position: relative; overflow: hidden; background-color: white;">
+                            ${activeContent}
+                        </div>
+                    </div>
+                </foreignObject>
+            </svg>`;
+
+        const dataUri = await renderSvgToDataUri(svgContent, canvasW, canvasH);
+        const a = document.createElement('a');
+        const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
+        a.download = `${projName}-${side}-${dpi}dpi.png`;
+        a.href = dataUri;
+        a.click();
+    }
+
+    async function renderPagesToImages(mode, dpi) {
+        saveCurrentSideState();
+
+        const printCutLine = document.getElementById('print-cut-line')?.checked ?? true;
+        const cutLineWidth = printCutLine ? (parseFloat(document.getElementById('cut-line-width').value) || 0) : 0;
+        const cutLineStyleValue = document.getElementById('cut-line-style')?.value || 'dashed';
+
+        const showInnerGuide = document.getElementById('show-margin-guide').checked;
+        const bindingLineWidth = parseFloat(document.getElementById('binding-line-width')?.value) || 0;
+        const bindingLineStyle = document.getElementById('binding-line-style')?.value || 'dashed';
+        const printCropMarks = document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false;
+        
+        const paperSizeStr = document.getElementById('paper-size').value;
+        const isPaperLand = document.getElementById('paper-orientation').value === 'landscape';
+        const isDuplex = document.getElementById('print-duplex').checked;
+
+        const gridRevCol = document.getElementById('grid-reverse-col').checked;
+        const gridRevRow = document.getElementById('grid-reverse-row').checked;
+        const mirrorH = document.getElementById('mirror-horizontal').checked;
+        const mirrorV = document.getElementById('mirror-vertical').checked;
+        const rotate180 = document.getElementById('rotate-180').checked;
+
+        let paperW = 8.5, paperH = 11;
+        if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
+        else if (paperSizeStr === 'legal') { paperW = 8.5; paperH = 14; }
+        if (isPaperLand) [paperW, paperH] = [paperH, paperW];
+
+        const unitToIn = currentUnit === 'mm' ? (1 / 25.4) : 1;
+        const mtIn = (parseFloat(document.getElementById('margin-top').value) || 0) * unitToIn;
+        const mrIn = (parseFloat(document.getElementById('margin-right').value) || 0) * unitToIn;
+        const mbIn = (parseFloat(document.getElementById('margin-bottom').value) || 0) * unitToIn;
+        const mlIn = (parseFloat(document.getElementById('margin-left').value) || 0) * unitToIn;
+        const gapXIn = (parseFloat(document.getElementById('gap-x').value) || 0) * unitToIn;
+        const gapYIn = (parseFloat(document.getElementById('gap-y').value) || 0) * unitToIn;
+        const driftXIn = (parseFloat(document.getElementById('print-offset-x').value) || 0) * unitToIn;
+        const driftYIn = (parseFloat(document.getElementById('print-offset-y').value) || 0) * unitToIn;
+        const bleedIn = (parseFloat(document.getElementById('print-bleed').value) || 0) * unitToIn;
+
+        const baseCardWin = (currentWidth / 100);
+        const baseCardHin = (currentHeight / 100);
+
+        const totalCardWin = baseCardWin + mlIn + mrIn;
+        const totalCardHin = baseCardHin + mtIn + mbIn;
+
+        let cols = Math.floor((paperW + gapXIn) / (totalCardWin + gapXIn));
+        let rows = Math.floor((paperH + gapYIn) / (totalCardHin + gapYIn));
+
+        if (cols < 1) cols = Math.floor(paperW / totalCardWin);
+        if (rows < 1) rows = Math.floor(paperH / totalCardHin);
+
+        const cardsPerPage = cols * rows;
+        if (cardsPerPage === 0) {
+            showToast("Error: Card design is too large to fit on paper.", true);
+            return;
+        }
+
+        let maxMergeRows = 0;
+        const tempFront = document.createElement('div');
+        tempFront.innerHTML = frontContentHTML;
+        const tempBack = document.createElement('div');
+        tempBack.innerHTML = (hasCustomBack ? backContentHTML : frontContentHTML);
+
+        [...tempFront.querySelectorAll('.element-container'), ...tempBack.querySelectorAll('.element-container')].forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    if (data.length > maxMergeRows) maxMergeRows = data.length;
+                } catch (e) {}
+            }
+        });
+
+        const isDataMerge = maxMergeRows > 0;
+        const totalLogicalCards = isDataMerge ? maxMergeRows : cardsPerPage;
+        const sheetsNeeded = Math.ceil(totalLogicalCards / cardsPerPage);
+
+        const gridW = cols * totalCardWin + Math.max(0, cols - 1) * gapXIn;
+        const gridH = rows * totalCardHin + Math.max(0, rows - 1) * gapYIn;
+
+        let targetSheets = [];
+        if (mode === 'sheet') {
+            const sn = parseInt(document.getElementById('export-sheet-num').value) || 1;
+            targetSheets.push(sn - 1);
+        } else {
+            for (let i = 0; i < sheetsNeeded; i++) targetSheets.push(i);
+        }
+
+        const customStyleTag = document.querySelector('style').innerHTML;
+        const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
+        
+        showToast(`Rendering ${targetSheets.length * (isDuplex ? 2 : 1)} images... Please wait.`);
+
+        for (let sheet of targetSheets) {
+            if (sheet < 0 || sheet >= sheetsNeeded) continue;
+
+            for (let side = 0; side < (isDuplex ? 2 : 1); side++) {
+                const isBack = side === 1;
+
+                let activeDriftXIn = isBack ? -(driftXIn / 2) : (driftXIn / 2);
+                let activeDriftYIn = isBack ? -(driftYIn / 2) : (driftYIn / 2);
+
+                const printStartX = ((paperW - gridW) / 2) + activeDriftXIn;
+                const printStartY = ((paperH - gridH) / 2) + activeDriftYIn;
+
+                let pageStyle = `width: ${paperW}in; height: ${paperH}in; position: relative; background: white; overflow: hidden;`;
+                if (isBack) {
+                    let transforms = [];
+                    if (mirrorH) transforms.push("scaleX(-1)");
+                    if (mirrorV) transforms.push("scaleY(-1)");
+                    if (rotate180) transforms.push("rotate(180deg)");
+                    if (transforms.length > 0) pageStyle += ` transform: ${transforms.join(' ')}; transform-origin: center;`;
+                }
+
+                let pageContent = `<div style="${pageStyle}">`;
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cardIndex = sheet * cardsPerPage + (r * cols + c);
+
+                        let gridC = c;
+                        let gridR = r;
+                        let activeMtIn = mtIn;
+                        let activeMlIn = mlIn;
+                        let activeMrIn = mrIn;
+                        let activeMbIn = mbIn;
+
+                        if (isBack) {
+                            if (gridRevCol) {
+                                gridC = cols - 1 - c;
+                                activeMlIn = mrIn;
+                                activeMrIn = mlIn;
+                            }
+                            if (gridRevRow) {
+                                gridR = rows - 1 - r;
+                                activeMtIn = mbIn;
+                                activeMbIn = mtIn;
+                            }
+                        }
+
+                        let cellX = printStartX + (gridC * (totalCardWin + gapXIn));
+                        let cellY = printStartY + (gridR * (totalCardHin + gapYIn));
+
+                        pageContent += `
+                            <div class="cut-zone" style="
+                                position: absolute; left: ${cellX}in; top: ${cellY}in;
+                                width: ${totalCardWin}in; height: ${totalCardHin}in;
+                            ">`;
+
+                        if (cardIndex < totalLogicalCards || !isDataMerge) {
+                            let activeBgClass = frontBgClass;
+                            let rawHtml = frontContentHTML;
+
+                            if (isBack) {
+                                activeBgClass = hasCustomBack ? backBgClass : frontBgClass;
+                                rawHtml = hasCustomBack ? backContentHTML : frontContentHTML;
+                            }
+
+                            let activeContent = getCleanPrintHTML(rawHtml);
+                            if (isDataMerge) {
+                                const temp = document.createElement('div');
+                                temp.innerHTML = activeContent;
+                                temp.querySelectorAll('.element-container').forEach(el => {
+                                    if (el.dataset.mergeData) {
+                                        try {
+                                            const data = JSON.parse(el.dataset.mergeData);
+                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : '';
+                                            const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                            if (target) {
+                                                target.textContent = val;
+                                                parseMarkdownInElement(target);
+                                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                            }
+                                        } catch (e) {}
+                                    }
+                                });
+                                activeContent = temp.innerHTML;
+                            }
+
+                            const bleedPx = bleedIn * 100;
+                            let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
+                            let maxBleedBottom = (gridR === rows - 1) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
+                            let maxBleedLeft = (gridC === 0) ? bleedIn : Math.min(bleedIn, gapXIn / 2);
+                            let maxBleedRight = (gridC === cols - 1) ? bleedIn : Math.min(bleedIn, gapXIn / 2);
+
+                            pageContent += `
+                                <div class="bleed-clip" style="
+                                    position: absolute; top: ${-maxBleedTop}in; left: ${-maxBleedLeft}in;
+                                    width: ${totalCardWin + maxBleedLeft + maxBleedRight}in; height: ${totalCardHin + maxBleedTop + maxBleedBottom}in; overflow: hidden;
+                                ">
+                                    <div class="content-layer" style="
+                                        position: absolute; top: ${maxBleedTop + activeMtIn - bleedIn}in; left: ${maxBleedLeft + activeMlIn - bleedIn}in;
+                                        width: ${baseCardWin + 2 * bleedIn}in; height: ${baseCardHin + 2 * bleedIn}in; overflow: hidden; background: transparent;
+                                    ">
+                                        <div class="${activeBgClass}" style="
+                                            width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
+                                            transform: scale(0.96); transform-origin: top left;
+                                            background-position: ${bleedPx}px ${activeBgClass === 'bg-ruled' ? `calc(40px + ${bleedPx}px)` : `${bleedPx}px`};
+                                        ">
+                                            <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
+                                                ${activeContent}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        const activeBorderRight = (gapXIn === 0 && c < cols - 1) ? 0 : cutLineWidth;
+                        const activeBorderBottom = (gapYIn === 0 && r < rows - 1) ? 0 : cutLineWidth;
+
+                        let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
+                        if (cutLineWidth > 0) {
+                            cutLineStyle += ` border-style: ${cutLineStyleValue}; border-color: #d1d5db; border-top-width: ${cutLineWidth}px; border-left-width: ${cutLineWidth}px; border-right-width: ${activeBorderRight}px; border-bottom-width: ${activeBorderBottom}px;`;
+                        } else {
+                            cutLineStyle += ` border: none;`;
+                        }
+                        pageContent += `<div style="${cutLineStyle}"></div>`;
+
+                        if (showInnerGuide && bindingLineWidth > 0) {
+                            let bTop = activeMtIn > 0 ? bindingLineWidth : 0;
+                            let bRight = activeMrIn > 0 ? bindingLineWidth : 0;
+                            let bBottom = activeMbIn > 0 ? bindingLineWidth : 0;
+                            let bLeft = activeMlIn > 0 ? bindingLineWidth : 0;
+                            
+                            if (bTop > 0 || bRight > 0 || bBottom > 0 || bLeft > 0) {
+                                let bindingCSS = `position: absolute; top: ${activeMtIn}in; left: ${activeMlIn}in; width: ${baseCardWin}in; height: ${baseCardHin}in; box-sizing: border-box; pointer-events: none; z-index: 10000; border-color: #9ca3af; border-style: ${bindingLineStyle};`;
+                                bindingCSS += ` border-top-width: ${bTop}px; border-right-width: ${bRight}px; border-bottom-width: ${bBottom}px; border-left-width: ${bLeft}px;`;
+                                pageContent += `<div style="${bindingCSS}"></div>`;
+                            }
+                        }
+                        pageContent += `</div>`;
+                    }
+                }
+
+                if (printCropMarks) {
+                    let cropMarksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
+                    const cmLen = 0.25;
+                    const cmOff = 0.05;
+                    const strokeColor = "#000";
+                    const strokeWidth = "0.5px";
+
+                    for (let c = 0; c < cols; c++) {
+                        let leftX = printStartX + c * (totalCardWin + gapXIn);
+                        let rightX = leftX + totalCardWin;
+                        let topY = printStartY;
+                        let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
+
+                        cropMarksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                    }
+
+                    for (let r = 0; r < rows; r++) {
+                        let topY = printStartY + r * (totalCardHin + gapYIn);
+                        let bottomY = topY + totalCardHin;
+                        let leftX = printStartX;
+                        let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
+
+                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                    }
+                    cropMarksSvg += `</svg>`;
+                    pageContent += cropMarksSvg;
+                }
+
+                pageContent += `</div>`;
+
+                const canvasW = paperW * dpi;
+                const canvasH = paperH * dpi;
+                const scaleStr = `transform: scale(${dpi / 96}); transform-origin: top left;`; 
+                
+                const svgWrap = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
                     <foreignObject x="0" y="0" width="100%" height="100%">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; transform: scale(${scale}); transform-origin: top left; margin: 0; padding: 0;">
-                            <style>
-                                <![CDATA[
-                                ${customStyleTag}
-                                .bg-blank { background-color: white; }
-                                .element-container { outline: none !important; }
-                                ]]>
-                            </style>
-                            <div class="${activeBgClass}" style="width: 100%; height: 100%; position: relative; overflow: hidden; background-color: white;">
-                                ${activeContent}
-                            </div>
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; ${scaleStr} margin: 0; padding: 0;">
+                            <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; } * { box-sizing: border-box; }]]></style>
+                            ${pageContent}
                         </div>
                     </foreignObject>
-                </svg>
-            `;
+                </svg>`;
 
-        const img = new Image();
-        
-        // Crucial: Tell the browser we aren't trying to steal cross-domain credentials
-        img.crossOrigin = 'anonymous'; 
-        
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = canvasW;
-            canvas.height = canvasH;
-            const ctx = canvas.getContext('2d');
-            
-            // Fill with a white background first to prevent transparent PNG rendering issues
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvasW, canvasH);
-            ctx.drawImage(img, 0, 0);
-
-            try {
-                const a = document.createElement('a');
-                // Use the custom project name here too!
-                const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
-                a.download = `${projName}-${side}-${dpi}dpi.png`;
-                a.href = canvas.toDataURL('image/png');
-                a.click();
-                showToast(`Downloaded ${dpi} DPI PNG!`);
-            } catch (err) {
-                console.error(err);
-                showToast("Export failed: Canvas tainted by external cross-origin image.", true);
+                try {
+                    const dataUri = await renderSvgToDataUri(svgWrap, canvasW, canvasH);
+                    const a = document.createElement('a');
+                    const sideLabel = isBack ? 'Back' : 'Front';
+                    a.download = `${projName}-Sheet${sheet + 1}-${sideLabel}-${dpi}dpi.png`;
+                    a.href = dataUri;
+                    a.click();
+                } catch (e) {
+                    console.error(e);
+                    showToast(`Failed to export Sheet ${sheet + 1} (${sideLabel}).`, true);
+                }
             }
-        };
-        
-        // Encode the SVG as a direct data URI instead of a Blob to bypass strict origin locking
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+        }
+    }
+
+    async function executeExport(mode) {
+        const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
+        try {
+            if (mode === 'current') {
+                await downloadSingleCardPNG(editingSide, dpi);
+                showToast(`Downloaded ${dpi} DPI PNG!`);
+            } else if (mode === 'both') {
+                await downloadSingleCardPNG('front', dpi);
+                if (hasCustomBack) await downloadSingleCardPNG('back', dpi);
+                showToast(`Downloaded ${dpi} DPI PNGs!`);
+            } else if (mode === 'sheet' || mode === 'document') {
+                await renderPagesToImages(mode, dpi);
+                showToast(`Exported Page Sheets successfully.`);
+            }
+        } catch (err) {
+            console.error(err);
+            showToast("Export failed: Canvas tainted by external cross-origin image.", true);
+        }
+    }
+
+    function updateSafeZone() {
+        if (typeof updateUILayer === 'function') updateUILayer();
     }
 
     function uploadCard(event) {
@@ -5159,6 +5912,20 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         }
                     }
 
+                    if (settings.safeMargin) {
+                        if (typeof settings.safeMargin === 'object') {
+                            if (document.getElementById('safe-margin-top')) document.getElementById('safe-margin-top').value = settings.safeMargin.t || 0.125;
+                            if (document.getElementById('safe-margin-right')) document.getElementById('safe-margin-right').value = settings.safeMargin.r || 0.125;
+                            if (document.getElementById('safe-margin-bottom')) document.getElementById('safe-margin-bottom').value = settings.safeMargin.b || 0.125;
+                            if (document.getElementById('safe-margin-left')) document.getElementById('safe-margin-left').value = settings.safeMargin.l || 0.125;
+                        } else {
+                            // Backwards compatibility with the old single safe margin
+                            ['safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left'].forEach(id => {
+                                if (document.getElementById(id)) document.getElementById(id).value = settings.safeMargin;
+                            });
+                        }
+                    }
+
                     const printerOpts = settings.printer || {};
                     if (document.getElementById('paper-size')) document.getElementById('paper-size').value = printerOpts.paper || 'letter';
                     if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = printerOpts.orient || 'portrait';
@@ -5181,8 +5948,15 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = printerOpts.cropMarks !== undefined ? printerOpts.cropMarks : true;
 
                     if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
+                    if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
                     if (document.getElementById('cut-line-width') && settings.cutLineW !== undefined) document.getElementById('cut-line-width').value = settings.cutLineW;
-                    if (document.getElementById('safe-line-width') && settings.safeLineW !== undefined) document.getElementById('safe-line-width').value = settings.safeLineW;
+                    if (document.getElementById('cut-line-style') && settings.cutLineStyle !== undefined) document.getElementById('cut-line-style').value = settings.cutLineStyle;
+                    if (document.getElementById('print-cut-line') && settings.printCutLine !== undefined) document.getElementById('print-cut-line').checked = settings.printCutLine;
+                    
+                    // Note: Check for old 'safeLineW' to maintain backwards compatibility with older save files
+                    const bLineW = settings.bindingLineW !== undefined ? settings.bindingLineW : settings.safeLineW;
+                    if (document.getElementById('binding-line-width') && bLineW !== undefined) document.getElementById('binding-line-width').value = bLineW;
+                    if (document.getElementById('binding-line-style') && settings.bindingLineStyle !== undefined) document.getElementById('binding-line-style').value = settings.bindingLineStyle;
                 }
 
                 if (svgEl.hasAttribute('data-card-html-front')) {
@@ -5260,9 +6034,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const originalCanvas = document.getElementById('card-canvas');
         if (!originalCanvas) return;
 
+        const printCutLine = document.getElementById('print-cut-line')?.checked ?? true;
+        const cutLineWidth = printCutLine ? (parseFloat(document.getElementById('cut-line-width').value) || 0) : 0;
+        const cutLineStyleValue = document.getElementById('cut-line-style')?.value || 'dashed';
+        
         const showInnerGuide = document.getElementById('show-margin-guide').checked;
-        const cutLineWidth = parseFloat(document.getElementById('cut-line-width').value) || 0;
-        const safeLineWidth = parseFloat(document.getElementById('safe-line-width').value) || 0;
+        const bindingLineWidth = parseFloat(document.getElementById('binding-line-width')?.value) || 0;
+        const bindingLineStyle = document.getElementById('binding-line-style')?.value || 'dashed';
         const printVernier = document.getElementById('print-vernier').checked;
         const printCropMarks = document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false;
         const paperSizeStr = document.getElementById('paper-size').value;
@@ -5380,15 +6158,19 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         let gridR = r;
                         let activeMtIn = mtIn;
                         let activeMlIn = mlIn;
+                        let activeMrIn = mrIn;
+                        let activeMbIn = mbIn;
 
                         if (isBack) {
-                            if (gridRevCol) {
-                                gridC = cols - 1 - c;
-                                activeMlIn = mrIn;
+                            if (gridRevCol) { 
+                                gridC = cols - 1 - c; 
+                                activeMlIn = mrIn; 
+                                activeMrIn = mlIn;
                             }
-                            if (gridRevRow) {
-                                gridR = rows - 1 - r;
-                                activeMtIn = mbIn;
+                            if (gridRevRow) { 
+                                gridR = rows - 1 - r; 
+                                activeMtIn = mbIn; 
+                                activeMbIn = mtIn;
                             }
                         }
 
@@ -5464,18 +6246,30 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                         const activeBorderRight = (gapXIn === 0 && c < cols - 1) ? 0 : cutLineWidth;
                         const activeBorderBottom = (gapYIn === 0 && r < rows - 1) ? 0 : cutLineWidth;
 
-                        let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-style: dashed; border-color: #d1d5db; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
+                        let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
                         if (cutLineWidth > 0) {
-                            cutLineStyle += ` border-top-width: ${cutLineWidth}px; border-left-width: ${cutLineWidth}px; border-right-width: ${activeBorderRight}px; border-bottom-width: ${activeBorderBottom}px;`;
+                            cutLineStyle += ` border-style: ${cutLineStyleValue}; border-color: #d1d5db; border-top-width: ${cutLineWidth}px; border-left-width: ${cutLineWidth}px; border-right-width: ${activeBorderRight}px; border-bottom-width: ${activeBorderBottom}px;`;
                         } else {
                             cutLineStyle += ` border: none;`;
                         }
+                        
+                        pageContent += `<div style="${cutLineStyle}"></div>`;
 
-                        pageContent += `
-                                    <div style="${cutLineStyle}"></div>
-                                    ${showInnerGuide && safeLineWidth > 0 ? `<div style="position: absolute; top: ${activeMtIn}in; left: ${activeMlIn}in; width: ${baseCardWin}in; height: ${baseCardHin}in; outline: ${safeLineWidth}px dashed #9ca3af; outline-offset: -${safeLineWidth}px; pointer-events: none; z-index: 10000;"></div>` : ''}
-                                </div>
-                            `;
+                        // Draw Binding Line conditionally per edge!
+                        if (showInnerGuide && bindingLineWidth > 0) {
+                            let bTop = activeMtIn > 0 ? bindingLineWidth : 0;
+                            let bRight = activeMrIn > 0 ? bindingLineWidth : 0;
+                            let bBottom = activeMbIn > 0 ? bindingLineWidth : 0;
+                            let bLeft = activeMlIn > 0 ? bindingLineWidth : 0;
+                            
+                            if (bTop > 0 || bRight > 0 || bBottom > 0 || bLeft > 0) {
+                                let bindingCSS = `position: absolute; top: ${activeMtIn}in; left: ${activeMlIn}in; width: ${baseCardWin}in; height: ${baseCardHin}in; box-sizing: border-box; pointer-events: none; z-index: 10000; border-color: #9ca3af; border-style: ${bindingLineStyle};`;
+                                bindingCSS += ` border-top-width: ${bTop}px; border-right-width: ${bRight}px; border-bottom-width: ${bBottom}px; border-left-width: ${bLeft}px;`;
+                                pageContent += `<div style="${bindingCSS}"></div>`;
+                            }
+                        }
+
+                        pageContent += `</div>`;
                     }
                 }
 
@@ -5665,8 +6459,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             const printWin = window.open(url, '_blank');
             
             if (printWin) {
-                // Clear the temporary URL from memory after the page loads
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                // Clear the temporary URL from memory deterministically after the page loads
+                printWin.addEventListener('load', () => {
+                    URL.revokeObjectURL(url);
+                });
             } else {
                 showToast("Popup blocked. Please allow popups to open the print window.", true);
             }
