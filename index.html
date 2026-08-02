@@ -5091,6 +5091,19 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     document.addEventListener('keydown', (e) => {
         const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
 
+        // Math Up/Down Arrow Handlers
+        if (isInput && e.target.dataset.isMath === "true" && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            let val = parseFloat(e.target.value) || 0;
+            let step = parseFloat(e.target.step) || 1;
+            if (e.shiftKey) step *= 10;
+            val += (e.key === 'ArrowUp' ? step : -step);
+            e.target.value = Number.isInteger(val) ? val : parseFloat(val.toFixed(4));
+            e.target.dispatchEvent(new Event('input', { bubbles: true }));
+            e.target.dispatchEvent(new Event('change', { bubbles: true }));
+            return;
+        }
+
         if (e.key === 'Escape' && isInput) {
             if (e.target.dataset.originalValue !== undefined) {
                 if (e.target.isContentEditable) {
