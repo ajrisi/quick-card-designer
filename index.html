@@ -1098,12 +1098,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <option value="'Times New Roman', serif">Times New Roman</option>
             </datalist>
             <input type="number" id="font-size" value="16" min="8" max="72" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontSize', this.value + 'px')">
-            <select id="font-weight" class="w-[72px] border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontWeight', this.value)">
-                <option value="normal">Normal</option>
-                <option value="bold">Bold</option>
+            <select id="font-weight" class="w-[85px] border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontWeight', this.value)">
                 <option value="300">Light</option>
+                <option value="normal" selected>Regular</option>
+                <option value="500">Medium</option>
+                <option value="600">Semi-Bold</option>
+                <option value="bold">Bold</option>
+                <option value="900">Heavy</option>
             </select>
             <button id="font-italic-btn" onclick="toggleItalic()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif italic ml-1" title="Italic">I</button>
+            
             <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
                 <select id="align-scope" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none hidden shadow-sm">
                     <option value="cell">Cell</option>
@@ -2034,10 +2038,83 @@ function updateBgSettings() {
             localStorage.setItem('qcd_has_visited', 'true');
         }
 
-        // Enable Math Evaluation for all Number Inputs
+        // Enable Math Evaluation & Attached UI Steppers for Number Inputs
         document.querySelectorAll('input[type="number"]').forEach(inp => {
             inp.dataset.isMath = "true";
             inp.type = "text";
+            
+            // 1. Extract layout-critical classes to move to the wrapper
+            const layoutClasses = [];
+            const classesToRemove = [];
+            inp.classList.forEach(c => {
+                // Move w-full, grid column spans, and margins so the layout doesn't break
+                if (c === 'w-full' || c.startsWith('col-') || c.match(/^m[lrtbxy]?-[0-9]+$/)) {
+                    layoutClasses.push(c);
+                    classesToRemove.push(c);
+                }
+            });
+            
+            // 2. Create the sleek wrapper that will house both the input and the buttons
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex items-stretch focus-within:ring-2 focus-within:ring-blue-200 focus-within:border-blue-500 rounded bg-white shadow-sm border border-gray-300 overflow-hidden ${layoutClasses.join(' ')}`;
+            
+            // 3. Clean up the input's visual classes
+            classesToRemove.forEach(c => inp.classList.remove(c));
+            inp.className = inp.className.replace(/\bborder-gray-300\b|\bborder\b|\brounded\b|\bshadow-sm\b|\bbg-white\b/g, '').replace(/\s+/g, ' ').trim();
+            // By keeping the fixed width classes (like w-14) on the input and adding flex-1, 
+            // the input stays BIG and the wrapper seamlessly extends around the new buttons!
+            inp.classList.add('outline-none', 'bg-transparent', 'min-w-0', 'flex-1');
+            
+            // 4. Create right-side stacked button container
+            const btnContainer = document.createElement('div');
+            btnContainer.className = "flex flex-col border-l border-gray-200 w-[18px] flex-shrink-0 bg-gray-50";
+
+            // 5. Create + / - buttons
+            const btnPlus = document.createElement('button');
+            btnPlus.innerHTML = `<svg class="w-2.5 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>`;
+            btnPlus.className = "flex-1 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-blue-600 transition-colors focus:outline-none cursor-pointer";
+            
+            const btnMinus = document.createElement('button');
+            btnMinus.innerHTML = `<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>`;
+            btnMinus.className = "flex-1 flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-blue-600 transition-colors focus:outline-none border-t border-gray-200 cursor-pointer";
+
+            const triggerChange = () => {
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            const stepValue = (direction, e) => {
+                e.preventDefault();
+                let val = parseFloat(inp.value) || 0;
+                let step = parseFloat(inp.step) || 1;
+                if (e.shiftKey) step *= 10; // Hold shift to jump by 10x
+                
+                val += (direction * step);
+                
+                // Enforce min/max rules
+                if (inp.min !== '' && val < parseFloat(inp.min)) val = Math.max(val, parseFloat(inp.min));
+                if (inp.max !== '' && val > parseFloat(inp.max)) val = Math.min(val, parseFloat(inp.max));
+                
+                inp.value = Number.isInteger(val) ? val : parseFloat(val.toFixed(4));
+                triggerChange();
+            };
+
+            btnPlus.onpointerdown = (e) => stepValue(1, e);
+            btnMinus.onpointerdown = (e) => stepValue(-1, e);
+
+            // 6. Replace input with wrapper in DOM
+            inp.parentNode.insertBefore(wrapper, inp);
+            wrapper.appendChild(inp);
+            btnContainer.appendChild(btnPlus);
+            btnContainer.appendChild(btnMinus);
+            wrapper.appendChild(btnContainer);
+
+            // Add scroll wheel support for up/down incrementing
+            inp.addEventListener('wheel', (e) => {
+                if (document.activeElement === inp) {
+                    stepValue(e.deltaY < 0 ? 1 : -1, e);
+                }
+            }, { passive: false });
         });
 
         const savedData = localStorage.getItem('card_designer_autosave');
