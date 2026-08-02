@@ -2,6 +2,8 @@
 
 Quick Card Designer is a completely free, browser-based layout engine tailored for small-format print projects such as flash cards, recipe cards, board game assets, and business cards. Designed with a focus on precision and print-readiness, it bridges the gap between basic text editors and complex publishing software.
 
+[![Quick Card Designer](https://img.shields.io/badge/Quick_Card_Designer-%E2%86%97-007EC6?style=for-the-badge)](https://ajrisi.github.io/quick-card-designer) 
+
 This guide covers everything from basic canvas setup to advanced hardware print calibration and data merging.
 
 ## Table of Contents
