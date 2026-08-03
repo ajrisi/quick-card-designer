@@ -957,8 +957,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
     </div> <!-- Closes #element-settings -->
     <!-- END OF #element-settings MAIN TOOLBAR -->
 
-    <!-- START OF NEW SECONDARY SLIDE-DOWN TOOLBAR 
-    <div id="secondary-toolbar" class="px-4 flex items-center shrink-0 w-full bg-gray-50 border-gray-200 overflow-x-auto overflow-y-hidden hide-scrollbar transition-all duration-300 ease-in-out z-[9] shadow-inner" style="max-height: 0px; opacity: 0; border-bottom-width: 0px; padding-top: 0px; padding-bottom: 0px; pointer-events: none;">-->
+    <!-- START OF SECONDARY SLIDE-DOWN TOOLBAR -->
         <div id="secondary-toolbar" class="px-4 py-1.5 flex items-center shrink-0 w-full bg-gray-50 border-b border-gray-200 overflow-x-auto overflow-y-hidden hide-scrollbar z-[9] shadow-sm min-h-[44px] opacity-50 pointer-events-none transition-opacity duration-300">
         
         <!-- TEXT CONTROLS -->
@@ -2102,6 +2101,17 @@ function updateBgSettings() {
                         <div class="rot-handle sw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
                         <div class="rot-handle se pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
                     `;
+                } else {
+                    groupBox.innerHTML = `
+                        <div class="resizer n pointer-events-auto" style="display: block;" data-dir="n"></div>
+                        <div class="resizer s pointer-events-auto" style="display: block;" data-dir="s"></div>
+                        <div class="resizer e pointer-events-auto" style="display: block;" data-dir="e"></div>
+                        <div class="resizer w pointer-events-auto" style="display: block;" data-dir="w"></div>
+                        <div class="resizer nw pointer-events-auto" style="display: block;" data-dir="nw"></div>
+                        <div class="resizer ne pointer-events-auto" style="display: block;" data-dir="ne"></div>
+                        <div class="resizer sw pointer-events-auto" style="display: block;" data-dir="sw"></div>
+                        <div class="resizer se pointer-events-auto" style="display: block;" data-dir="se"></div>
+                    `;
                 }
                 boxesContainer.appendChild(groupBox);
             }
@@ -2153,7 +2163,6 @@ function updateBgSettings() {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </span>
                 
-                <!-- NEW: Restore the Merge Scrubber -->
                 <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                     <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                     <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
@@ -5307,20 +5316,59 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         // Check for 8-way resize handle
         if (e.target.closest('.resizer')) {
             let container = e.target.closest('.element-container');
-            if (!activeElements.includes(container)) {
+            
+            // If we click a single item that isn't selected, select it
+            if (container && !activeElements.includes(container)) {
                 setActiveElement(container);
             }
-            isResizingContainer = true;
-            resizeTargetResizer = container;
-            resizeDir = e.target.closest('.resizer').dataset.dir;
-            updateBaseLayout(); // Snapshot current layout for sizing
 
-            const box = getGroupBoundingBox();
-            resizeStartW = box.w;
-            resizeStartH = box.h;
+            let isMulti = activeElements.length > 1;
+
+            isResizingContainer = true;
             resizeStartX = e.clientX;
             resizeStartY = e.clientY;
-            resizeAspect = resizeStartW / resizeStartH;
+
+            if (isMulti) {
+                resizeTargetResizer = 'multi';
+                const box = getGroupBoundingBox('bbox');
+                resizeStartW = box.w;
+                resizeStartH = box.h;
+                resizeAspect = resizeStartW / resizeStartH;
+                window.multiResizeInitBox = { x: box.x, y: box.y };
+
+                if (!container) {
+                    // Clicked the global group box handle
+                    resizeDir = e.target.closest('.resizer').dataset.dir;
+                } else {
+                    // Clicked an individual item's handle; deduce screen direction relative to group center
+                    const cx = box.x + box.w / 2;
+                    const cy = box.y + box.h / 2;
+                    const coords = getCanvasCoords(e);
+                    
+                    let dir = '';
+                    if (coords.y < cy - box.h / 6) dir += 'n';
+                    else if (coords.y > cy + box.h / 6) dir += 's';
+                    
+                    if (coords.x < cx - box.w / 6) dir += 'w';
+                    else if (coords.x > cx + box.w / 6) dir += 'e';
+                    
+                    resizeDir = dir || e.target.closest('.resizer').dataset.dir;
+                }
+            } else {
+                resizeTargetResizer = container;
+                resizeDir = e.target.closest('.resizer').dataset.dir;
+
+                const res = container.querySelector('.resizable');
+                resizeStartW = res ? res.offsetWidth : container.offsetWidth;
+                resizeStartH = res ? res.offsetHeight : container.offsetHeight;
+                resizeAspect = resizeStartW / resizeStartH;
+
+                container.dataset.initLeft = parseFloat(container.style.left) || 0;
+                container.dataset.initTop = parseFloat(container.style.top) || 0;
+                if (container.dataset.type === 'group') delete container.dataset.initGroupW;
+            }
+
+            updateBaseLayout(); // Prepare base anchors for multi-scaling
 
             dragSnapTargets = { x: [], y: [] };
             const unitMult = currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN;
@@ -5582,12 +5630,47 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
 
         // Resizing Event Logic
-        if (isResizingContainer && resizeTargetResizer && baseGroupBB) {
+        if (isResizingContainer && resizeTargetResizer) {
             let dx = (e.clientX - resizeStartX) / canvasScale;
             let dy = (e.clientY - resizeStartY) / canvasScale;
 
-            // Handle element rotation local transformation
-            const rot = getRotation(activeElements[0]) * (Math.PI / 180);
+            if (resizeTargetResizer === 'multi') {
+                let newW = resizeStartW;
+                let newH = resizeStartH;
+                if (resizeDir.includes('e')) newW += dx;
+                if (resizeDir.includes('w')) newW -= dx;
+                if (resizeDir.includes('s')) newH += dy;
+                if (resizeDir.includes('n')) newH -= dy;
+
+                if (e.shiftKey && resizeAspect) {
+                    if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * resizeAspect) {
+                        newH = newW / resizeAspect;
+                    } else {
+                        newW = newH * resizeAspect;
+                    }
+                }
+
+                if (newW < 10) newW = 10;
+                if (newH < 10) newH = 10;
+
+                let newX = window.multiResizeInitBox.x;
+                let newY = window.multiResizeInitBox.y;
+                if (resizeDir.includes('w')) newX -= (newW - resizeStartW);
+                if (resizeDir.includes('n')) newY -= (newH - resizeStartH);
+
+                let pxPerUnit = getPxPerUnit();
+                document.getElementById('layout-w').value = newW / pxPerUnit;
+                document.getElementById('layout-h').value = newH / pxPerUnit;
+                document.getElementById('layout-x').value = newX / pxPerUnit;
+                document.getElementById('layout-y').value = newY / pxPerUnit;
+
+                applyLayoutFromInputs(undefined, true);
+                return;
+            }
+
+            const el = resizeTargetResizer;
+            const rot = getRotation(el) * (Math.PI / 180);
+            
             let localDx = dx * Math.cos(-rot) - dy * Math.sin(-rot);
             let localDy = dx * Math.sin(-rot) + dy * Math.cos(-rot);
 
@@ -5601,15 +5684,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (resizeDir.includes('n')) newH -= localDy;
 
             activeSnapLines = { x: null, y: null };
-const snappingEnabled = document.getElementById('enable-resize-snapping')?.checked !== false;
+            const snappingEnabled = document.getElementById('enable-resize-snapping')?.checked !== false;
 
-            // Ignore snapping if holding Shift (Aspect Lock) or Ctrl (Precision Mode)
-            if (snappingEnabled && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+            // Only apply boundary snapping if there is NO rotation
+            if (rot === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
                 let snapRadius = 6 / canvasScale;
+                const initLeft = parseFloat(el.dataset.initLeft);
+                const initTop = parseFloat(el.dataset.initTop);
 
                 // X-axis snapping
                 if (resizeDir.includes('e') || resizeDir.includes('w')) {
-                    let movingEdgeX = resizeDir.includes('e') ? baseGroupBB.x + newW : baseGroupBB.x + resizeStartW - newW;
+                    let movingEdgeX = resizeDir.includes('e') ? initLeft + newW : initLeft + resizeStartW - newW;
                     let minDiffX = snapRadius;
                     let snappedEdgeX = movingEdgeX;
 
@@ -5618,19 +5703,19 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                         if (diff < minDiffX) {
                             minDiffX = diff;
                             snappedEdgeX = tx;
-                            activeSnapLines.x = tx;
+                            activeSnapLines.x = tx; 
                         }
                     });
 
-                    if (minDiffX < snapRadius) {
-                        if (resizeDir.includes('e')) newW = snappedEdgeX - baseGroupBB.x;
-                        if (resizeDir.includes('w')) newW = baseGroupBB.x + resizeStartW - snappedEdgeX;
+                    if (snappingEnabled && minDiffX < snapRadius) {
+                        if (resizeDir.includes('e')) newW = snappedEdgeX - initLeft;
+                        if (resizeDir.includes('w')) newW = initLeft + resizeStartW - snappedEdgeX;
                     }
                 }
 
                 // Y-axis snapping
                 if (resizeDir.includes('s') || resizeDir.includes('n')) {
-                    let movingEdgeY = resizeDir.includes('s') ? baseGroupBB.y + newH : baseGroupBB.y + resizeStartH - newH;
+                    let movingEdgeY = resizeDir.includes('s') ? initTop + newH : initTop + resizeStartH - newH;
                     let minDiffY = snapRadius;
                     let snappedEdgeY = movingEdgeY;
 
@@ -5639,41 +5724,35 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                         if (diff < minDiffY) {
                             minDiffY = diff;
                             snappedEdgeY = ty;
-                            activeSnapLines.y = ty;
+                            activeSnapLines.y = ty; 
                         }
                     });
 
-                    if (minDiffY < snapRadius) {
-                        if (resizeDir.includes('s')) newH = snappedEdgeY - baseGroupBB.y;
-                        if (resizeDir.includes('n')) newH = baseGroupBB.y + resizeStartH - snappedEdgeY;
+                    if (snappingEnabled && minDiffY < snapRadius) {
+                        if (resizeDir.includes('s')) newH = snappedEdgeY - initTop;
+                        if (resizeDir.includes('n')) newH = initTop + resizeStartH - snappedEdgeY;
                     }
                 }
             }
 
             // 2. Force proportional aspect ratio
             let forceAspect = e.shiftKey;
-            let currentAspect = resizeAspect; // Default to the aspect ratio at drag start
+            let currentAspect = resizeAspect; 
             
-            // Override with default (unmodified) proportions for specific types
-            if (activeElements.length === 1) {
-                const el = activeElements[0];
-                if (el.dataset.type === 'image') {
-                    const fit = el.dataset.objectFit || 'contain';
-                    // Auto-lock aspect ratio for Best Fit and Original modes without needing Shift!
-                    if (fit === 'contain' || fit === 'none') {
-                        forceAspect = true;
-                        const img = el.querySelector('img');
-                        if (img && img.naturalWidth && img.naturalHeight) {
-                            currentAspect = img.naturalWidth / img.naturalHeight;
-                        }
+            if (el.dataset.type === 'image') {
+                const fit = el.dataset.objectFit || 'contain';
+                if ((fit === 'contain' || fit === 'none') && resizeDir.length === 2) {
+                    forceAspect = true;
+                    const img = el.querySelector('img');
+                    if (img && img.naturalWidth && img.naturalHeight) {
+                        currentAspect = img.naturalWidth / img.naturalHeight;
                     }
-                } else if (el.dataset.type === 'shape') {
-                    if (e.shiftKey) currentAspect = 1; // Shapes default to 1:1 if shifted
                 }
+            } else if (el.dataset.type === 'shape') {
+                if (e.shiftKey) currentAspect = 1; 
             }
 
             if (forceAspect && currentAspect) {
-                // Find the axis that was dragged the furthest distance from start
                 if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
                     newH = newW / currentAspect;
                 } else {
@@ -5691,23 +5770,95 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 if (forceAspect && currentAspect) newW = newH * currentAspect; 
             }
 
-            // 4. Calculate final X/Y position anchored to opposite edges
-            let newX = baseGroupBB.x;
-            let newY = baseGroupBB.y;
-            
-            // If dragging left side, X shifts by the exact width difference to keep right edge static
-            if (resizeDir.includes('w')) newX += (resizeStartW - newW);
-            // If dragging top side, Y shifts by the exact height difference to keep bottom edge static
-            if (resizeDir.includes('n')) newY += (resizeStartH - newH);
+            // 4. Pivot Math: Calculate exact new left/top based on center shift
+            let deltaCx_local = 0;
+            let deltaCy_local = 0;
+            if (resizeDir.includes('e')) deltaCx_local = (newW - resizeStartW) / 2;
+            if (resizeDir.includes('w')) deltaCx_local = -(newW - resizeStartW) / 2;
+            if (resizeDir.includes('s')) deltaCy_local = (newH - resizeStartH) / 2;
+            if (resizeDir.includes('n')) deltaCy_local = -(newH - resizeStartH) / 2;
 
-            const pxPerUnit = getPxPerUnit();
-            document.getElementById('layout-w').value = +(newW / pxPerUnit).toFixed(4);
-            document.getElementById('layout-h').value = +(newH / pxPerUnit).toFixed(4);
-            document.getElementById('layout-x').value = +(newX / pxPerUnit).toFixed(4);
-            document.getElementById('layout-y').value = +(newY / pxPerUnit).toFixed(4);
+            const deltaCx_parent = deltaCx_local * Math.cos(rot) - deltaCy_local * Math.sin(rot);
+            const deltaCy_parent = deltaCx_local * Math.sin(rot) + deltaCy_local * Math.cos(rot);
+
+            const initLeft = parseFloat(el.dataset.initLeft);
+            const initTop = parseFloat(el.dataset.initTop);
             
-            // Pass 'true' so the layout doesn't finalize until mouseup
-            applyLayoutFromInputs(undefined, true);
+            const Cx0 = initLeft + resizeStartW / 2;
+            const Cy0 = initTop + resizeStartH / 2;
+            
+            const newX = (Cx0 + deltaCx_parent) - newW / 2;
+            const newY = (Cy0 + deltaCy_parent) - newH / 2;
+
+            // 5. Apply directly to DOM
+            el.style.left = newX + 'px';
+            el.style.top = newY + 'px';
+            
+            const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
+            if (resizable) {
+                resizable.style.width = newW + 'px';
+                resizable.style.height = newH + 'px';
+            } else {
+                el.style.width = newW + 'px';
+                el.style.height = newH + 'px';
+                
+                // 6. Support recursive sizing for Active Groups
+                if (el.dataset.type === 'group') {
+                    const sX = newW / resizeStartW;
+                    const sY = newH / resizeStartH;
+                    
+                    const scaleGroupContents = (group, scaleX, scaleY) => {
+                        const children = Array.from(group.querySelectorAll(':scope > .element-container'));
+                        children.forEach(child => {
+                            child.style.left = ((parseFloat(child.dataset.initGroupLeft) || parseFloat(child.style.left) || 0) * scaleX) + 'px';
+                            child.style.top = ((parseFloat(child.dataset.initGroupTop) || parseFloat(child.style.top) || 0) * scaleY) + 'px';
+
+                            if (child.dataset.type === 'group') {
+                                child.style.width = ((parseFloat(child.dataset.initGroupW) || parseFloat(child.style.width) || 0) * scaleX) + 'px';
+                                child.style.height = ((parseFloat(child.dataset.initGroupH) || parseFloat(child.style.height) || 0) * scaleY) + 'px';
+                                scaleGroupContents(child, scaleX, scaleY);
+                            } else {
+                                const res = child.querySelector('.resizable');
+                                if (res) {
+                                    res.style.width = ((parseFloat(child.dataset.initGroupW) || res.offsetWidth) * scaleX) + 'px';
+                                    res.style.height = ((parseFloat(child.dataset.initGroupH) || res.offsetHeight) * scaleY) + 'px';
+                                }
+                            }
+                        });
+                    };
+                    
+                    // Capture initial sizes of nested elements on the very first drag pixel
+                    if (!el.dataset.initGroupW) {
+                        const captureState = (group) => {
+                            group.querySelectorAll(':scope > .element-container').forEach(child => {
+                                child.dataset.initGroupLeft = parseFloat(child.style.left) || 0;
+                                child.dataset.initGroupTop = parseFloat(child.style.top) || 0;
+                                if (child.dataset.type === 'group') {
+                                    child.dataset.initGroupW = parseFloat(child.style.width) || 0;
+                                    child.dataset.initGroupH = parseFloat(child.style.height) || 0;
+                                    captureState(child);
+                                } else {
+                                    const res = child.querySelector('.resizable');
+                                    if (res) {
+                                        child.dataset.initGroupW = res.offsetWidth;
+                                        child.dataset.initGroupH = res.offsetHeight;
+                                    }
+                                }
+                            });
+                        };
+                        captureState(el);
+                        el.dataset.initGroupW = "true";
+                    }
+                    
+                    scaleGroupContents(el, sX, sY);
+                }
+            }
+
+            // Sync layout inputs and visually update
+            updateLayoutInputs(e.ctrlKey || e.metaKey ? 4 : 2);
+            if (el.dataset.type === 'shape') drawShape(el);
+            if (typeof updateUILayer === 'function') updateUILayer();
+            
             return;
         }
 
@@ -5824,7 +5975,8 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         
         const snappingEnabled = document.getElementById('enable-snapping')?.checked !== false;
         
-        if (snappingEnabled && !e.ctrlKey && !e.metaKey && !e.shiftKey && initialDragBB) {
+        // Always calculate guides to show lasers, but ignore if holding modifiers
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && initialDragBB) {
             let projectedX = initialDragBB.x + dx;
             let projectedY = initialDragBB.y + dy;
             let projEdgesX = [projectedX, projectedX + initialDragBB.w, projectedX + initialDragBB.w/2];
@@ -5841,7 +5993,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     let diff = Math.abs(tx - px);
                     if (diff < minDiffX) {
                         minDiffX = diff;
-                        activeSnapLines.x = tx;
+                        activeSnapLines.x = tx; // Always show the laser if close enough
                         if (i === 0) snapDx = tx - initialDragBB.x;
                         else if (i === 1) snapDx = tx - initialDragBB.w - initialDragBB.x;
                         else if (i === 2) snapDx = tx - initialDragBB.w/2 - initialDragBB.x;
@@ -5854,7 +6006,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     let diff = Math.abs(ty - py);
                     if (diff < minDiffY) {
                         minDiffY = diff;
-                        activeSnapLines.y = ty;
+                        activeSnapLines.y = ty; // Always show the laser if close enough
                         if (i === 0) snapDy = ty - initialDragBB.y;
                         else if (i === 1) snapDy = ty - initialDragBB.h - initialDragBB.y;
                         else if (i === 2) snapDy = ty - initialDragBB.h/2 - initialDragBB.y;
@@ -5862,8 +6014,11 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 });
             });
             
-            dx = snapDx;
-            dy = snapDy;
+            // Only apply the physical snap offset if enabled
+            if (snappingEnabled) {
+                dx = snapDx;
+                dy = snapDy;
+            }
         }
 
         if (e.shiftKey) {
@@ -6602,13 +6757,13 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 } catch(e) {}
             }
             
-            // NEW: Capture missing native images directly on canvas
+            // Capture missing native images directly on canvas
             if (el.dataset.imageBankKey && !el.dataset.imageBankKey.startsWith('http') && !el.dataset.imageBankKey.startsWith('data:')) {
                 requiredAssets.add(el.dataset.imageBankKey);
             }
         });
 
-        // NEW: Gather Missing Assets directly from loaded CSV columns prefixed with "Images:"
+        // Gather Missing Assets directly from loaded CSV columns prefixed with "Images:"
         Object.values(mergeSources).forEach(source => {
             if (source.hasHeader && source.data.length > 0) {
                 const headers = source.data[0];
@@ -6975,7 +7130,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         const currentVal = extracted[globalMergeIndex] || '';
         const dataUrl = imageAssets[currentVal] || '';
 
-        // NEW: Format the placeholder text cleanly
+        // Format the placeholder text cleanly
         const cleanColName = columnName.replace(/^Images:\s*/i, '');
         const placeholderText = `Images: ${source.filename}, column ${cleanColName}`;
 
@@ -7298,7 +7453,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             }
         });
         
-        // NEW: Guarantee perfectly formed XML for the SVG Engine!
+        // format xml for svg engine
         temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
         activeContent = new XMLSerializer().serializeToString(temp);
 
@@ -7523,7 +7678,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                                 });
                             }
                             
-                            // NEW: Guarantee perfectly formed XML for the SVG Engine!
+                            // format xml for svg engine
                             temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
                             activeContent = new XMLSerializer().serializeToString(temp);
 
@@ -7967,7 +8122,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             el.style.cursor = 'default';
         });
 
-        // NEW: Convert vital Tailwind layout classes to inline styles for the SVG rendering engine
+        // Convert vital Tailwind layout classes to inline styles for the SVG rendering engine
         temp.querySelectorAll('.w-full').forEach(el => el.style.width = '100%');
         temp.querySelectorAll('.h-full').forEach(el => el.style.height = '100%');
         temp.querySelectorAll('.relative').forEach(el => el.style.position = 'relative');
