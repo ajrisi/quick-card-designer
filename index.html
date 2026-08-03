@@ -6853,7 +6853,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         const ghostInClone = clone.querySelector('#ghost-layer');
         if (ghostInClone) ghostInClone.remove();
 
-        clone.querySelectorAll('.ui-control, .controls, .col-resizer, .row-resizer, .rot-handle').forEach(el => el.style.display = 'none');
+        clone.querySelectorAll('.ui-control, .controls, .col-resizer, .row-resizer, .rot-handle, .image-placeholder').forEach(el => el.style.display = 'none');
         clone.querySelectorAll('[contenteditable="true"]').forEach(el => {
             el.removeAttribute('contenteditable');
             el.style.cursor = 'default';
@@ -7744,7 +7744,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         const laserOverlay = temp.querySelector('#laser-overlay');
         if (laserOverlay) laserOverlay.remove();
 
-        temp.querySelectorAll('.ui-control, .controls, .col-resizer, .row-resizer, .rot-handle').forEach(el => el.remove());
+        temp.querySelectorAll('.ui-control, .controls, .col-resizer, .row-resizer, .rot-handle, .image-placeholder').forEach(el => el.remove());
         temp.querySelectorAll('.element-container').forEach(el => el.classList.remove('active', 'rotation-active'));
         temp.querySelectorAll('[contenteditable="true"]').forEach(el => {
             el.removeAttribute('contenteditable');
