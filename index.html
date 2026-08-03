@@ -1187,7 +1187,26 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <option value="contain">Best Fit (Contain)</option>
                 <option value="fill">Stretch (Fill)</option>
                 <option value="cover">Crop (Cover)</option>
+                <option value="none">Original</option>
             </select>
+            <div class="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Scale</span>
+                <input type="number" step="0.05" min="0.05" max="5" id="image-scale-input" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" oninput="applyImageScale(this.value)">
+            </div>
+            <div class="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Align X</span>
+                <select id="image-pos-x-select" class="text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyImagePosition()">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+                <span class="text-[9px] font-bold text-gray-400 uppercase ml-1">Align Y</span>
+                <select id="image-pos-y-select" class="text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyImagePosition()">
+                    <option value="top">Top</option>
+                    <option value="center">Center</option>
+                    <option value="bottom">Bottom</option>
+                </select>
+            </div>
         </div>
 
         <div id="data-merge-section" style="display: none;" class="shrink-0 ml-3 border-l border-gray-200 pl-3">
@@ -1199,7 +1218,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <option value="">None</option>
                         </select>
                     </div>
-                    <div id="merge-options" class="flex items-center gap-1.5 hidden border-l border-gray-200 pl-2">
+                    <div id="merge-options" class="flex items-center gap-1.5 hidden border-gray-200 pl-2">
                         <span class="text-[9px] font-bold text-gray-400 uppercase">Col</span>
                         <select id="merge-col-select" class="w-20 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="applyMergeOptions()">
                         </select>
@@ -1250,8 +1269,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <rect x="3" y="3" width="8" height="8" rx="1" stroke-width="2"></rect>
             <circle cx="15" cy="15" r="5" stroke-width="2"></circle>
         </svg>
-        <span class="text-[10px] font-bold text-gray-400  tracking-wider group-hover:text-blue-500">Shape</span>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider group-hover:text-blue-500">Shape</span>
     </button>
+    
+    <!-- <button onclick="addElement('image')" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Add Image Box">
+        <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider group-hover:text-blue-500">Image</span>
+    </button> -->
     
     <button onclick="openImageBankModal()" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Image Bank">
         <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1305,12 +1331,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
             </div>
             <!-- Footer -->
-            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-500 font-medium">Use the exact filename in your CSV for Data Merging.</span>
-                    
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="custom-placeholder-input" placeholder="e.g. icon.png, back.jpg" class="text-xs border border-gray-300 rounded p-1.5 w-56 shadow-sm outline-none focus:border-blue-500" title="Comma separate multiple filenames">
+                    <button onclick="createCustomPlaceholders()" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded shadow-sm hover:bg-gray-50 transition-colors">Add Placeholder</button>
                 </div>
-                <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors">
+                <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors ml-auto">
                     + Upload Images
                 </button>
                 <input type="file" id="bank-upload-input" accept="image/*,.svg" multiple class="hidden" onchange="handleBankUpload(event)">
@@ -2776,13 +2802,28 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     function handleSizeChange() {
         const sizeSelect = document.getElementById('size-select');
         const customInputs = document.getElementById('custom-size-inputs');
+        
         if (sizeSelect.value === 'custom') {
             customInputs.classList.remove('hidden');
             customInputs.classList.add('grid', 'grid-cols-1');
         } else {
             customInputs.classList.add('hidden');
             customInputs.classList.remove('grid', 'grid-cols-1');
+
+            // Auto-switch orientation based on common physical defaults
+            const val = sizeSelect.value;
+            const portraitSizes = ['2.5x3.5', '2.25x3.25', '2.25x3.5', '2.75x4.75', '1.625x2.5', '4.25x6.87', '5.5x8.5', '6x9'];
+            const landscapeSizes = ['3x5', '4x6', '5x8', '2x3.5'];
+
+            if (portraitSizes.includes(val) && isLandscape) {
+                toggleOrientation(); // This automatically calls updateCanvasSettings()
+                return; 
+            } else if (landscapeSizes.includes(val) && !isLandscape) {
+                toggleOrientation();
+                return;
+            }
         }
+        
         updateCanvasSettings();
     }
 
@@ -3862,6 +3903,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             innerContent = `<div class="resizable" style="width: ${p(100)}px; height: ${p(100)}px;"><div class="shape-content w-full h-full pointer-events-none"></div></div>`;
         } else if (type === 'divider') {
             innerContent = `<div class="card-divider resizable" style="width: ${p(250)}px; height: ${p(2)}px; background-color: #374151;"></div>`;
+        } else if (type === 'image') {
+            el.dataset.objectFit = 'contain'; // Set default fit
+            el.dataset.imageScale = '1';
+            innerContent = getBaseImageContentHTML(p(150), p(150), '', 'Image', 'contain');
         }
 
         el.innerHTML = getControlsHTML(false) + innerContent;
@@ -4371,17 +4416,17 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'image') {
                 const mergeSection = document.getElementById('data-merge-section');
                 mergeSection.style.display = 'flex';
-                // Remove the border when standing alone for images
-                mergeSection.classList.remove('border-l', 'border-gray-200', 'pl-3', 'ml-1');
-                document.getElementById('image-controls').style.display = 'flex'; // Show image controls
-                document.getElementById('image-fit-select').value = activeElement.dataset.objectFit || 'fill';
+                
+                document.getElementById('image-controls').style.display = 'flex';
+                document.getElementById('image-fit-select').value = activeElement.dataset.objectFit || 'contain';
+                document.getElementById('image-pos-x-select').value = activeElement.dataset.objectPositionX || 'center';
+                document.getElementById('image-pos-y-select').value = activeElement.dataset.objectPositionY || 'center';
+                document.getElementById('image-scale-input').value = activeElement.dataset.imageScale || '1';
                 updateMergeUI();
             } else if (activeElements.length === 1 && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title')) {
                 document.getElementById('type-controls').style.display = 'flex';
                 const mergeSection = document.getElementById('data-merge-section');
                 mergeSection.style.display = 'flex';
-                // Restore the border to separate it from the text controls
-                mergeSection.classList.add('border-l', 'border-gray-200', 'pl-3', 'ml-1');
                 updateMergeUI();
             }
 
@@ -5355,41 +5400,45 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 }
             }
 
-            // 2. Force proportional aspect ratio if Shift is held
-            if (e.shiftKey) {
-                let currentAspect = resizeAspect; // Default to the aspect ratio at drag start
-                
-                // Override with default (unmodified) proportions for specific types
-                if (activeElements.length === 1) {
-                    const el = activeElements[0];
-                    if (el.dataset.type === 'image') {
+            // 2. Force proportional aspect ratio
+            let forceAspect = e.shiftKey;
+            let currentAspect = resizeAspect; // Default to the aspect ratio at drag start
+            
+            // Override with default (unmodified) proportions for specific types
+            if (activeElements.length === 1) {
+                const el = activeElements[0];
+                if (el.dataset.type === 'image') {
+                    const fit = el.dataset.objectFit || 'contain';
+                    // Auto-lock aspect ratio for Best Fit and Original modes without needing Shift!
+                    if (fit === 'contain' || fit === 'none') {
+                        forceAspect = true;
                         const img = el.querySelector('img');
                         if (img && img.naturalWidth && img.naturalHeight) {
                             currentAspect = img.naturalWidth / img.naturalHeight;
                         }
-                    } else if (el.dataset.type === 'shape') {
-                        currentAspect = 1; // Shapes default to 1:1
                     }
+                } else if (el.dataset.type === 'shape') {
+                    if (e.shiftKey) currentAspect = 1; // Shapes default to 1:1 if shifted
                 }
+            }
 
-                if (currentAspect) {
-                    // Find the axis that was dragged the furthest distance from start
-                    if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
-                        newH = newW / currentAspect;
-                    } else {
-                        newW = newH * currentAspect;
-                    }
+            if (forceAspect && currentAspect) {
+                // Find the axis that was dragged the furthest distance from start
+                if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
+                    newH = newW / currentAspect;
+                } else {
+                    newW = newH * currentAspect;
                 }
             }
 
             // 3. Enforce minimum size boundaries cleanly
             if (newW < 10) { 
                 newW = 10; 
-                if (e.shiftKey && currentAspect) newH = newW / currentAspect; 
+                if (forceAspect && currentAspect) newH = newW / currentAspect; 
             }
             if (newH < 10) { 
                 newH = 10; 
-                if (e.shiftKey && currentAspect) newW = newH * currentAspect; 
+                if (forceAspect && currentAspect) newW = newH * currentAspect; 
             }
 
             // 4. Calculate final X/Y position anchored to opposite edges
@@ -6484,42 +6533,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         reader.readAsDataURL(file);
     }
 
-    function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image') {
-        const hasUrl = !!dataUrl;
-        return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
-            <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed ${hasUrl ? 'hidden' : 'bg-gray-100 border-gray-300 text-gray-400'}" style="display: ${hasUrl ? 'none' : 'flex'};">
-                <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
-            </div>
-            <img src="${dataUrl}" class="w-full h-full pointer-events-none absolute inset-0 z-10" style="object-fit: fill; display: ${hasUrl ? 'block' : 'none'};" />
-        </div>`;
-    }
-
-    function updateImageElementDisplay(el, val) {
-        const img = el.querySelector('img');
-        const placeholder = el.querySelector('.image-placeholder');
-        const pText = el.querySelector('.placeholder-text');
-        if (!img || !placeholder) return;
-
-        // Reset styling footprint
-        placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
-
-        if (!val) {
-            img.style.display = 'none';
-            placeholder.style.display = 'flex';
-            placeholder.classList.add('bg-gray-100', 'border-gray-300', 'text-gray-400');
-            if(pText) pText.innerText = 'Empty';
-        } else if (imageAssets[val] || val.startsWith('http') || val.startsWith('data:')) {
-            img.src = imageAssets[val] || val;
-            img.style.display = 'block';
-            placeholder.style.display = 'none';
-        } else {
-            img.style.display = 'none';
-            placeholder.style.display = 'flex';
-            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
-            if(pText) pText.innerText = 'Missing: ' + val;
-        }
-    }
+    
 
     function deleteBankImage(filename) {
         if (confirm(`Delete "${filename}" from the Image Bank? Any canvas items mapping to it will become blank.`)) {
@@ -6531,110 +6545,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         }
     }
 
-    // function placeBankImage(filename) {
-    //     const dataUrl = imageAssets[filename];
-    //     if (!dataUrl) return;
-
-    //     const tempImg = new Image();
-    //     tempImg.onload = function() {
-    //         let w = tempImg.naturalWidth;
-    //         let h = tempImg.naturalHeight;
-
-    //         const p = (val) => Math.round(val * (PX_PER_IN / 100));
-    //         const maxDim = p(200);
-    //         if (w > maxDim || h > maxDim) {
-    //             const ratio = Math.min(maxDim / w, maxDim / h);
-    //             w = Math.round(w * ratio);
-    //             h = Math.round(h * ratio);
-    //         }
-    //         w = Math.max(p(20), w);
-    //         h = Math.max(p(20), h);
-
-    //         const contentArea = document.getElementById('card-content');
-    //         if (!contentArea) return;
-
-    //         const el = document.createElement('div');
-    //         el.className = 'element-container bg-transparent';
-    //         const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-    //         el.style.left = offset + 'px';
-    //         el.style.top = offset + 'px';
-    //         el.style.zIndex = zIndexCounter++;
-    //         el.dataset.type = 'image';
-    //         el.dataset.imageBankKey = filename; // Link to bank
-
-    //         const innerContent = getBaseImageContentHTML(w, h, dataUrl, filename);
-
-    //         el.innerHTML = getControlsHTML(false) + innerContent;
-    //         contentArea.appendChild(el);
-
-    //         setActiveElement(el);
-    //         closeImageBankModal();
-    //         saveState();
-    //     };
-    //     tempImg.src = dataUrl;
-    // }
-
-    // function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image', fit = 'contain') {
-    //     const hasUrl = !!dataUrl;
-    //     return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
-    //         <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed ${hasUrl ? 'hidden' : 'bg-gray-100 border-gray-300 text-gray-400'}" style="display: ${hasUrl ? 'none' : 'flex'};">
-    //             <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-    //             <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
-    //         </div>
-    //         <img src="${dataUrl}" class="w-full h-full pointer-events-none absolute inset-0 z-10" style="object-fit: ${fit}; display: ${hasUrl ? 'block' : 'none'};" />
-    //     </div>`;
-    // }
-
-    function placeBankImage(filename) {
-        const dataUrl = imageAssets[filename];
-        const p = (val) => Math.round(val * (PX_PER_IN / 100));
-        const contentArea = document.getElementById('card-content');
-        if (!contentArea) return;
-
-        const createEl = (w, h, dUrl) => {
-            const el = document.createElement('div');
-            el.className = 'element-container bg-transparent';
-            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-            el.style.left = offset + 'px';
-            el.style.top = offset + 'px';
-            el.style.zIndex = zIndexCounter++;
-            el.dataset.type = 'image';
-            el.dataset.imageBankKey = filename;
-            el.dataset.objectFit = 'contain'; // Default fit for new images
-
-            const innerContent = getBaseImageContentHTML(w, h, dUrl, filename, 'contain');
-            el.innerHTML = getControlsHTML(false) + innerContent;
-            contentArea.appendChild(el);
-
-            setActiveElement(el);
-            closeImageBankModal();
-            saveState();
-        };
-
-        if (!dataUrl) {
-            // Drop a default 150x150 box if the image is missing from the bank
-            createEl(p(150), p(150), '');
-            return;
-        }
-
-        const tempImg = new Image();
-        tempImg.onload = function() {
-            let w = tempImg.naturalWidth;
-            let h = tempImg.naturalHeight;
-
-            const maxDim = p(200);
-            if (w > maxDim || h > maxDim) {
-                const ratio = Math.min(maxDim / w, maxDim / h);
-                w = Math.round(w * ratio);
-                h = Math.round(h * ratio);
-            }
-            w = Math.max(p(20), w);
-            h = Math.max(p(20), h);
-
-            createEl(w, h, dataUrl);
-        };
-        tempImg.src = dataUrl;
-    }
+    
 
     function updateAllCanvasImages() {
         // Sync any non-merged, direct-placed image elements with their bank asset data
@@ -6647,78 +6558,163 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
     }
 
 
-    // function applyMergeOptions() {
-    //     if (!activeElement) return;
-    //     activeElement.dataset.mergeCol = document.getElementById('merge-col-select').value;
-    //     activeElement.dataset.mergeSkipHeader = document.getElementById('merge-skip-header').checked;
-    //     recomputeMergeData();
-    // }
+    
 
-    // function recomputeMergeData() {
-    //     if (!activeElement) return;
-    //     const sourceId = activeElement.dataset.mergeSourceId;
-    //     const source = mergeSources[sourceId];
-    //     if (source) {
-    //         let colIdx = parseInt(activeElement.dataset.mergeCol || "0", 10);
-    //         let skipHdr = activeElement.dataset.mergeSkipHeader === "true";
-    //         let startIndex = skipHdr ? 1 : 0;
+    function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image', fit = 'contain', posX = 'center', posY = 'center', scale = '1') {
+        const hasUrl = !!dataUrl;
+        return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
+            <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed ${hasUrl ? 'hidden' : 'bg-red-50 border-red-400 text-red-500'}" style="display: ${hasUrl ? 'none' : 'flex'};">
+                <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
+            </div>
+            <img src="${dataUrl}" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; display: ${hasUrl ? 'block' : 'none'};" />
+        </div>`;
+    }
 
-    //         let extracted = [];
-    //         for (let i = startIndex; i < source.data.length; i++) {
-    //             extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
-    //         }
+    function updateImageElementDisplay(el, val) {
+        const img = el.querySelector('img');
+        const placeholder = el.querySelector('.image-placeholder');
+        const pText = el.querySelector('.placeholder-text');
+        if (!img || !placeholder) return;
 
-    //         activeElement.dataset.mergeData = JSON.stringify(extracted);
-    //         applyMergePreview();
-            
-    //         // Sync the Missing Assets scanner instantly
-    //         if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
-    //             renderImageBankItems();
-    //         }
-    //     }
-    //     updateMergeUI();
-    //     saveState(true);
-    // }
+        placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
 
-    // function applyMergePreview() {
-    //     let maxRows = 0;
-    //     const elements = document.getElementById('card-content').querySelectorAll('.element-container');
-    //     elements.forEach(el => {
-    //         if (el.dataset.mergeData) {
-    //             try {
-    //                 const data = JSON.parse(el.dataset.mergeData);
-    //                 if (data.length > maxRows) maxRows = data.length;
-    //             } catch (e) {}
-    //         }
-    //     });
+        const fit = el.dataset.objectFit || 'contain';
+        const posX = el.dataset.objectPositionX || 'center';
+        const posY = el.dataset.objectPositionY || 'center';
+        const scale = el.dataset.imageScale || '1';
+        
+        img.style.objectFit = fit;
+        img.style.objectPosition = `${posX} ${posY}`;
+        
+        // Apply the anti-cropping scale magic with proper center anchoring
+        img.style.width = `calc(100% / ${scale})`;
+        img.style.height = `calc(100% / ${scale})`;
+        img.style.maxWidth = 'none'; // Override Tailwind preflight
+        img.style.top = '50%';
+        img.style.left = '50%';
+        img.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        img.style.transformOrigin = 'center';
 
-    //     if (maxRows > 0) {
-    //         if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
-    //         if (globalMergeIndex < 0) globalMergeIndex = 0;
+        // Strip legacy positioning classes to prevent conflicts with the new math
+        img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0');
+        img.classList.add('absolute');
 
-    //         elements.forEach(el => {
-    //             if (el.dataset.mergeData) {
-    //                 try {
-    //                     const data = JSON.parse(el.dataset.mergeData);
-    //                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-                        
-    //                     if (el.dataset.type === 'image') {
-    //                         updateImageElementDisplay(el, val);
-    //                     } else {
-    //                         const target = el.querySelector('div[contenteditable="true"]');
-    //                         if (target) {
-    //                             target.textContent = val;
-    //                             parseMarkdownInElement(target);
-    //                             target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
-    //                         }
-    //                     }
-    //                 } catch (e) {}
-    //             }
-    //         });
-    //     }
-    //     updateMergeUI();
-    //     if (typeof updateUILayer === 'function') updateUILayer();
-    // }
+        if (!val) {
+            img.style.display = 'none';
+            img.removeAttribute('src'); 
+            placeholder.style.display = 'flex';
+            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+            if(pText) pText.innerText = 'Empty';
+        } else if (imageAssets[val] || val.startsWith('http') || val.startsWith('data:')) {
+            img.src = imageAssets[val] || val;
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+        } else {
+            img.style.display = 'none';
+            img.removeAttribute('src'); 
+            placeholder.style.display = 'flex';
+            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+            if(pText) pText.innerText = 'Missing: ' + val;
+        }
+    }
+
+    function placeBankImage(filename) {
+        filename = filename || '';
+        const dataUrl = imageAssets[filename] || '';
+        const p = (val) => Math.round(val * (PX_PER_IN / 100));
+        const contentArea = document.getElementById('card-content');
+        if (!contentArea) return;
+
+        const createEl = (w, h, dUrl) => {
+            const el = document.createElement('div');
+            el.className = 'element-container bg-transparent';
+            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
+            el.style.left = offset + 'px';
+            el.style.top = offset + 'px';
+            el.style.zIndex = zIndexCounter++;
+            el.dataset.type = 'image';
+            if (filename) el.dataset.imageBankKey = filename;
+            el.dataset.objectFit = 'contain';
+            el.dataset.objectPositionX = 'center';
+            el.dataset.objectPositionY = 'center';
+            el.dataset.imageScale = '1';
+
+            const innerContent = getBaseImageContentHTML(w, h, dUrl, filename || 'Image', 'contain', 'center', 'center');
+            el.innerHTML = getControlsHTML(false) + innerContent;
+            contentArea.appendChild(el);
+
+            setActiveElement(el);
+            closeImageBankModal();
+            saveState();
+        };
+
+        if (!dataUrl) {
+            createEl(p(150), p(150), '');
+            return;
+        }
+
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            let w = tempImg.naturalWidth;
+            let h = tempImg.naturalHeight;
+            const maxDim = p(200);
+            if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            w = Math.max(p(20), w);
+            h = Math.max(p(20), h);
+            createEl(w, h, dataUrl);
+        };
+        tempImg.src = dataUrl;
+    }
+
+    function createCustomPlaceholders() {
+        const input = document.getElementById('custom-placeholder-input');
+        const val = input.value.trim();
+        const names = val ? val.split(',').map(s => s.trim()).filter(s => s) : [''];
+        
+        names.forEach(name => placeBankImage(name));
+        input.value = '';
+    }
+
+    function applyImageScale(val) {
+        if (activeElements.length === 0) return;
+        activeElements.forEach(el => {
+            if (el.dataset.type === 'image') {
+                el.dataset.imageScale = val;
+                const img = el.querySelector('img');
+                if (img) {
+                    img.style.width = `calc(100% / ${val})`;
+                    img.style.height = `calc(100% / ${val})`;
+                    img.style.maxWidth = 'none'; // Override Tailwind's default restriction!
+                    img.style.top = '50%';
+                    img.style.left = '50%';
+                    img.style.transform = `translate(-50%, -50%) scale(${val})`;
+                    img.style.transformOrigin = 'center';
+                }
+            }
+        });
+        saveState(true);
+    }
+
+    function applyImagePosition() {
+        if (activeElements.length === 0) return;
+        const x = document.getElementById('image-pos-x-select').value;
+        const y = document.getElementById('image-pos-y-select').value;
+        
+        activeElements.forEach(el => {
+            if (el.dataset.type === 'image') {
+                el.dataset.objectPositionX = x;
+                el.dataset.objectPositionY = y;
+                const img = el.querySelector('img');
+                if (img) img.style.objectPosition = `${x} ${y}`;
+            }
+        });
+        saveState(true);
+    }
 
     function scrubMergeData(delta) {
         globalMergeIndex += delta;
@@ -7089,13 +7085,18 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-                    const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                    if (target) {
-                        target.textContent = val;
-                        parseMarkdownInElement(target);
-                        target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                    
+                    // Split logic to protect images from being overwritten by text!
+                    if (el.dataset.type === 'image') {
+                        updateImageElementDisplay(el, val);
+                    } else {
+                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                        if (target) {
+                            target.textContent = val;
+                            parseMarkdownInElement(target);
+                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                        }
                     }
                 } catch (e) {}
             }
@@ -7300,12 +7301,18 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                                     if (el.dataset.mergeData) {
                                         try {
                                             const data = JSON.parse(el.dataset.mergeData);
-                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : '';
-                                            const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                                            if (target) {
-                                                target.textContent = val;
-                                                parseMarkdownInElement(target);
-                                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; // Use globalMergeIndex for downloadSingleCardPNG
+                                            
+                                            // Split logic to protect images from being overwritten by text!
+                                            if (el.dataset.type === 'image') {
+                                                updateImageElementDisplay(el, val);
+                                            } else {
+                                                const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                                if (target) {
+                                                    target.textContent = val;
+                                                    parseMarkdownInElement(target);
+                                                    target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                                }
                                             }
                                         } catch (e) {}
                                     }
