@@ -6427,7 +6427,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        showToast("Dual-Sided SVG Downloaded!");
+        showToast("Card File Downloaded!");
     }
 
     // function downloadPNG(side = 'front') {
@@ -6797,7 +6797,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                     ">
                                         <div class="${activeBgClass}" style="
                                             width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
-                                            transform: scale(0.96); transform-origin: top left;
+                                            transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
                                             background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                         ">
                                             <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
@@ -7366,7 +7366,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                         ">
                                             <div class="${activeBgClass}" style="
                                                 width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
-                                                transform: scale(0.96); transform-origin: top left;
+                                                transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
                                                 background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                             ">
                                                 <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
