@@ -1477,7 +1477,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let globalMergeIndex = 0;
 
     const resizeObserver = new ResizeObserver(() => {
-        if (activeElements.length > 0 && !isApplyingLayout) {
+        // Block the observer from resetting coordinates mid-drag!
+        if (activeElements.length > 0 && !isApplyingLayout && !isResizingContainer && !isDragging && !isRotating) {
             let shapesUpdated = false;
             activeElements.forEach(el => {
                 if (el.dataset.type === 'shape') {
