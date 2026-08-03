@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quick Card Designer</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='7' y='3' width='10' height='18' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='5' y='7' width='14' height='14' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='3' y='11' width='18' height='10' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='7' y='3' width='10' height='18' rx='2' fill='white' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='5' y='7' width='14' height='14' rx='2' fill='white' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='3' y='11' width='18' height='10' rx='2' fill='white' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 
     <!-- START TAILWIND INECTION -->
     <script id="tailwind">
@@ -359,11 +359,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     </h3>
                     <div class="mb-3">
                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
-                        <select id="target-dpi" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                            <option value="96">96 DPI (Web/Screen)</option>
-                            <option value="300" selected>300 DPI (Professional Print)</option>
-                            <option value="600">600 DPI (Ultra Quality)</option>
-                        </select>
+                        <input type="number" id="target-dpi" list="export-dpi-options" value="300" class="no-stepper w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" placeholder="Custom DPI...">
+                        <datalist id="export-dpi-options">
+                            <option value="96">96 (Web/Screen)</option>
+                            <option value="300">300 (Professional Print)</option>
+                            <option value="600">600 (Ultra Quality)</option>
+                            <option value="1200">1200 (Maximum)</option>
+                        </datalist>
                     </div>
 
                     <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1 mt-4">Single Card Export</h4>
@@ -623,18 +625,39 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <option value="mm">mm</option>
                 </select>
             </div>
-            <div class="flex items-center gap-2 ml-1 shrink-0">
+            <div class="flex items-center gap-2 ml-1 shrink-0 border-l border-gray-300 pl-4">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Doc DPI</span>
+                <div class="flex items-center">
+                    <input type="number" id="document-dpi" list="doc-dpi-options" value="300" class="no-stepper w-16 text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-text" onchange="updateDPI(parseInt(this.value))" title="Custom DPI">
+                    <datalist id="doc-dpi-options">
+                        <option value="100">100 (Legacy)</option>
+                        <option value="300">300 (Standard)</option>
+                        <option value="600">600 (High Res)</option>
+                    </datalist>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
                 <select id="size-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-28" onchange="handleSizeChange()">
+                    <optgroup label="Playing Cards">
+                        <option value="2.5x3.5">Standard Poker / TCG (2.5" x 3.5")</option>
+                        <option value="2.25x3.25">Japanese TCG (2.25" x 3.25")</option>
+                        <option value="2.25x3.5">Bridge (2.25" x 3.5")</option>
+                        <option value="2.75x4.75">Tarot (2.75" x 4.75")</option>
+                        <option value="1.625x2.5">Mini Card (1.625" x 2.5")</option>
+                    </optgroup>
                     <optgroup label="Index Cards">
-                        <option value="300x500">3" x 5"</option>
-                        <option value="400x600" selected>4" x 6"</option>
-                        <option value="500x800">5" x 8"</option>
+                        <option value="3x5">3" x 5"</option>
+                        <option value="4x6" selected>4" x 6"</option>
+                        <option value="5x8">5" x 8"</option>
+                    </optgroup>
+                    <optgroup label="Business">
+                        <option value="2x3.5">Business (2" x 3.5")</option>
                     </optgroup>
                     <optgroup label="Small Books">
-                        <option value="425x687">4.25" x 6.87"</option>
-                        <option value="550x850">5.5" x 8.5"</option>
-                        <option value="600x900">6" x 9"</option>
+                        <option value="4.25x6.87">4.25" x 6.87"</option>
+                        <option value="5.5x8.5">5.5" x 8.5"</option>
+                        <option value="6x9">6" x 9"</option>
                     </optgroup>
                     <optgroup label="Custom">
                         <option value="custom">Custom...</option>
@@ -744,50 +767,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         <!-- Fixed Right Section (Print & Export Options) -->
         <div id="print-and-layout" class="ml-auto flex items-center pl-2 gap-2">
             
-            <!-- EXPORT MENU --!!!>
-            <details class="relative group">
-                <summary class="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-indigo-100 transition-colors [&::-webkit-details-marker]:hidden shadow-sm">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Export
-                </summary>
-                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-72 p-4 text-gray-800 cursor-default hide-scrollbar">
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Raster Resolution & Export
-                    </h3>
-                    <div class="mb-3">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
-                        <select id="target-dpi" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                            <option value="96">96 DPI (Web/Screen)</option>
-                            <option value="300" selected>300 DPI (Professional Print)</option>
-                            <option value="600">600 DPI (Ultra Quality)</option>
-                        </select>
-                    </div>
-
-                    <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1 mt-4">Single Card Export</h4>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <button onclick="executeExport('current')" class="py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm">
-                            Current Face
-                        </button>
-                        <button onclick="executeExport('both')" class="py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors text-center shadow-sm opacity-50 pointer-events-none" id="btn-png-back">
-                            Both Faces
-                        </button>
-                    </div>
-
-                    <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1">Full Sheet Export</h4>
-                    <div class="flex items-center gap-2 mb-2">
-                        <select id="export-sheet-num" class="w-1/3 border-indigo-200 border rounded p-1.5 text-xs outline-none shadow-sm bg-indigo-50 text-indigo-700 font-medium cursor-pointer">
-                            <option value="1">Sheet 1</option>
-                        </select>
-                        <button onclick="executeExport('sheet')" class="flex-1 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-100 font-medium text-xs transition-colors text-center shadow-sm">
-                            Export Sheet
-                        </button>
-                    </div>
-                    <button onclick="executeExport('document')" class="w-full py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded hover:bg-indigo-700 font-medium text-xs transition-colors text-center shadow-sm">
-                        Export All Sheets
-                    </button>
-                </div>
-            </details>-->
+            
 
             <!-- PRINT MENU -->
             <details class="relative group shrink-0">
@@ -1088,16 +1068,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
         </div>
         <div id="type-controls" class="flex items-center gap-2.5 shrink-0">
-            <input type="text" list="font-options" id="font-family" placeholder="Font" class="w-28 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontFamily', this.value)">
+            <input type="text" list="font-options" id="font-family" placeholder="Font" class="w-28 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onfocus="updateFontDatalist()" onchange="applyStyle('fontFamily', this.value)">
             <datalist id="font-options">
                 <option value="system-ui, sans-serif">System Sans</option>
-                <option value="Georgia, serif">Georgia (Serif)</option>
-                <option value="'Courier New', Courier, monospace">Courier (Mono)</option>
-                <option value="Impact, sans-serif">Impact</option>
                 <option value="Arial, sans-serif">Arial</option>
+                <option value="'Courier New', Courier, monospace">Courier (Mono)</option>
+                <option value="Georgia, serif">Georgia (Serif)</option>
+                <option value="Impact, sans-serif">Impact</option>
                 <option value="'Times New Roman', serif">Times New Roman</option>
             </datalist>
-            <input type="number" id="font-size" value="16" min="8" max="72" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontSize', this.value + 'px')">
+            <input type="number" id="font-size" value="14" min="4" max="288" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontSize', (parseFloat(this.value) * (PX_PER_IN / 72)) + 'px')" title="Font Size (pt)">
             <select id="font-weight" class="w-[85px] border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontWeight', this.value)">
                 <option value="300">Light</option>
                 <option value="normal" selected>Regular</option>
@@ -1106,6 +1086,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <option value="bold">Bold</option>
                 <option value="900">Heavy</option>
             </select>
+            <button id="font-bold-btn" onclick="toggleBold()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif font-bold ml-1" title="Bold">B</button>
             <button id="font-italic-btn" onclick="toggleItalic()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif italic ml-1" title="Italic">I</button>
             
             <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
@@ -1176,7 +1157,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <input type="file" id="merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
                         </div>
                         
-                        <!-- Added left border to separate the options smoothly -->
+                       <!-- Added left border to separate the options smoothly -->
                         <div id="merge-options" class="flex items-center gap-1.5 hidden border-l border-gray-200 pl-2">
                             <span class="text-[9px] font-bold text-gray-400 uppercase">Col</span>
                             <select id="merge-col-select" class="w-20 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="applyMergeOptions()">
@@ -1184,6 +1165,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <label class="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase cursor-pointer" title="Skip Header Row">
                                 <input type="checkbox" id="merge-skip-header" class="rounded text-blue-600" onchange="applyMergeOptions()"> Skip Hdr
                             </label>
+                            
+                            <button onclick="openImageBankModal()" class="ml-1 px-1.5 py-1 bg-white border border-gray-300 rounded text-[9px] font-bold hover:bg-blue-50 text-blue-600 transition-colors uppercase shadow-sm whitespace-nowrap" title="Manage images mapped from CSV">Image Bank</button>
                         </div>
                     </div>
 
@@ -1420,13 +1403,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
         <span class="text-[10px] font-bold text-gray-400  tracking-wider group-hover:text-blue-500">Shape</span>
     </button>
     
-    <button onclick="document.getElementById('add-image-input').click()" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Add Image">
+    <button onclick="openImageBankModal()" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Image Bank">
         <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
         </svg>
-        <span class="text-[10px] font-bold text-gray-400  tracking-wider group-hover:text-blue-500">Image</span>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider group-hover:text-blue-500">Images</span>
     </button>
-    <input type="file" id="add-image-input" accept="image/*,.svg" class="hidden" onchange="handleAddImage(event)">
     
     
 </div>
@@ -1446,6 +1428,43 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div id="ui-active-boxes" class="absolute inset-0 w-full h-full overflow-visible"></div>
         </div>
     </main>
+
+    <!-- Central Image Bank Modal -->
+    <div id="image-bank-modal" class="fixed inset-0 z-[200] hidden bg-gray-900/40 backdrop-blur-sm flex items-center justify-center transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-4xl max-h-[85vh] overflow-hidden border border-gray-200">
+            <!-- Header -->
+            <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <h2 class="text-base font-bold text-gray-800">Document Image Bank</h2>
+                </div>
+                <button onclick="closeImageBankModal()" class="text-gray-400 hover:text-gray-700 transition-colors p-1 bg-white hover:bg-gray-200 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Body Grid -->
+            <div class="p-5 flex-1 overflow-y-auto bg-gray-100">
+                <div id="image-bank-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Dynamic Items Inject Here -->
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-500 font-medium">Use the exact filename in your CSV for Data Merging.</span>
+                    <button onclick="document.getElementById('merge-file-input').click()" class="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded text-[10px] font-bold uppercase transition-colors shadow-sm">
+                        + Upload CSV
+                    </button>
+                </div>
+                <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors">
+                    + Upload Images
+                </button>
+                <input type="file" id="bank-upload-input" accept="image/*,.svg" multiple class="hidden" onchange="handleBankUpload(event)">
+                <input type="file" id="bank-replace-input" accept="image/*,.svg" class="hidden" onchange="handleBankReplace(event)">
+                <input type="file" id="bank-fulfill-input" accept="image/*,.svg" class="hidden" onchange="handleBankFulfill(event)">
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Info Button -->
     <button id="info-btn" onclick="openInfoModal()" class="fixed bottom-6 right-6 w-10 h-10 bg-white border border-gray-200 text-gray-500 rounded-full shadow-lg hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center justify-center z-50">
@@ -1481,10 +1500,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
 
     <script>
-    const PX_PER_IN = 100;
-    const PX_PER_MM = 100 / 25.4;
+    let PX_PER_IN = 300;
+    let PX_PER_MM = 300 / 25.4;
 
     let zIndexCounter = 100;
+
+    
     let isLandscape = true;
     let activeElement = null;
     let activeTableCell = null;
@@ -1568,6 +1589,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let isRestoring = false;
     let saveStateTimeout = null;
     let mergeSources = {};
+    let imageAssets = {};
     let globalMergeIndex = 0;
 
     const resizeObserver = new ResizeObserver(() => {
@@ -1635,6 +1657,77 @@ Check your Browserslist config to be sure that your targets are set up correctly
             }
         });
     });
+
+    function updateDPI(newDpi) {
+        if (!newDpi || isNaN(newDpi) || newDpi <= 0) newDpi = 300;
+        document.getElementById('document-dpi').value = newDpi;
+        
+        const oldDpi = PX_PER_IN;
+        if (oldDpi === newDpi) return;
+        
+        const scale = newDpi / oldDpi;
+        PX_PER_IN = newDpi;
+        PX_PER_MM = newDpi / 25.4;
+
+        // Scale every element on the canvas to match the new physical pixel density
+        document.querySelectorAll('#card-content .element-container').forEach(el => {
+            el.style.left = (parseFloat(el.style.left || 0) * scale) + 'px';
+            el.style.top = (parseFloat(el.style.top || 0) * scale) + 'px';
+            
+            if (el.dataset.type === 'group') {
+                el.style.width = (parseFloat(el.style.width || 0) * scale) + 'px';
+                el.style.height = (parseFloat(el.style.height || 0) * scale) + 'px';
+            }
+            
+            const res = el.querySelector('.resizable');
+            if (res) {
+                res.style.width = (res.offsetWidth * scale) + 'px';
+                res.style.height = (res.offsetHeight * scale) + 'px';
+            }
+
+            const texts = el.querySelectorAll('.cell-text, div[contenteditable="true"]');
+            texts.forEach(text => {
+                if (text.style.fontSize && text.style.fontSize.endsWith('px')) {
+                    text.style.fontSize = (parseFloat(text.style.fontSize) * scale) + 'px';
+                }
+            });
+
+            if (el.dataset.type === 'shape') {
+                if (el.dataset.strokeWidth) {
+                    el.dataset.strokeWidth = parseFloat(el.dataset.strokeWidth) * scale;
+                }
+                drawShape(el);
+            }
+
+            if (el.dataset.type === 'table') {
+                const wrapper = el.querySelector('.card-table-wrapper');
+                if (wrapper) {
+                    const bw = parseFloat(wrapper.style.getPropertyValue('--tbl-bw')) || 0;
+                    wrapper.style.setProperty('--tbl-bw', (bw * scale) + 'px');
+                    const br = parseFloat(wrapper.style.getPropertyValue('--tbl-br')) || 0;
+                    wrapper.style.setProperty('--tbl-br', (br * scale) + 'px');
+                }
+            }
+
+            if (el.dataset.type === 'divider') {
+                const div = el.querySelector('.card-divider');
+                if (div) {
+                    div.style.height = (parseFloat(div.style.height || 0) * scale) + 'px';
+                }
+            }
+        });
+
+        updateCanvasSettings();
+        const activeConfig = editingSide === 'front' ? frontBgConfig : backBgConfig;
+        applyBgConfig(activeConfig);
+
+        if (activeElements.length > 0) {
+            updateBaseLayout();
+            updateLayoutInputs();
+            syncUISettingsWithActiveElement();
+        }
+        saveState(true);
+    }
 
     function openInfoModal() {
     const modal = document.getElementById('info-modal');
@@ -1715,9 +1808,9 @@ function updateBgSettings() {
         const gapXIn = (parseFloat(document.getElementById('gap-x')?.value) || 0) * unitToIn;
         const gapYIn = (parseFloat(document.getElementById('gap-y')?.value) || 0) * unitToIn;
 
-        // Base card dimensions always track internally at 100 pixels per inch
-        const baseCardWin = currentWidth / 100;
-        const baseCardHin = currentHeight / 100;
+        // Base card dimensions track at PX_PER_IN
+        const baseCardWin = currentWidth / PX_PER_IN;
+        const baseCardHin = currentHeight / PX_PER_IN;
 
         const totalCardWin = baseCardWin + mlIn + mrIn;
         const totalCardHin = baseCardHin + mtIn + mbIn;
@@ -2020,10 +2113,18 @@ function updateBgSettings() {
             return;
         }
 
+        const padding = 40;
+        const availW = rect.width - padding * 2;
+        const availH = rect.height - padding * 2;
+        
+        let idealScale = Math.min(availW / currentWidth, availH / currentHeight, 1);
+        canvasScale = idealScale;
+
         panX = (rect.width - (currentWidth * canvasScale)) / 2;
         panY = (rect.height - (currentHeight * canvasScale)) / 2;
         applyCanvasTransform();
     }
+
     window.onload = () => {
         setupPWA();
         
@@ -2039,7 +2140,7 @@ function updateBgSettings() {
         }
 
         // Enable Math Evaluation & Attached UI Steppers for Number Inputs
-        document.querySelectorAll('input[type="number"]').forEach(inp => {
+        document.querySelectorAll('input[type="number"]:not(.no-stepper)').forEach(inp => {
             inp.dataset.isMath = "true";
             inp.type = "text";
             
@@ -2126,6 +2227,21 @@ function updateBgSettings() {
 
                 const data = JSON.parse(savedData);
                 
+                if (data.imageAssets) imageAssets = data.imageAssets;
+
+                // Restore DPI early so the DOM aligns perfectly before initialization
+                if (data.dpi) {
+                    PX_PER_IN = data.dpi;
+                    PX_PER_MM = PX_PER_IN / 25.4;
+                    const dpiSelect = document.getElementById('document-dpi');
+                    if (dpiSelect) dpiSelect.value = data.dpi;
+                } else {
+                    PX_PER_IN = 100;
+                    PX_PER_MM = 100 / 25.4;
+                    const dpiSelect = document.getElementById('document-dpi');
+                    if (dpiSelect) dpiSelect.value = 100;
+                }
+                
                 // Restore physical settings
                 if (data.unit && data.unit !== currentUnit) {
                     document.getElementById('global-unit').value = data.unit;
@@ -2144,7 +2260,7 @@ function updateBgSettings() {
                 
                 if (data.projectName) document.getElementById('project-name').value = data.projectName;
 
-                updateCanvasSettings();
+                updateCanvasSettings(true); // skip center override
                 
                 // Restore layout HTML
                 restoreState(data.history);
@@ -2153,9 +2269,17 @@ function updateBgSettings() {
                 historyStack = [data.history];
                 historyIndex = 0;
                 updateUndoRedoUI();
+
+                if (data.canvasScale !== undefined) {
+                    panX = data.panX;
+                    panY = data.panY;
+                    canvasScale = data.canvasScale;
+                    applyCanvasTransform();
+                } else {
+                    centerCanvas();
+                }
                 
                 setTimeout(() => {
-                    centerCanvas();
                     // Force a browser reflow, then restore smooth animations
                     if (canvas) {
                         canvas.offsetHeight; 
@@ -2181,6 +2305,21 @@ function updateBgSettings() {
         }
 
         migrateTableCells();
+
+        // Migrate old image elements to new placeholder structure
+        document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
+            const img = el.querySelector('img');
+            const res = el.querySelector('.resizable');
+            if (img && !el.querySelector('.image-placeholder')) {
+                res.classList.add('relative');
+                img.classList.add('absolute', 'inset-0', 'z-10');
+                const placeholder = document.createElement('div');
+                placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed bg-gray-100 border-gray-300 text-gray-400';
+                placeholder.style.display = img.src ? 'none' : 'flex';
+                placeholder.innerHTML = `<svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">Image</span>`;
+                res.insertBefore(placeholder, img);
+            }
+        });
 
         document.getElementById('card-content').addEventListener('input', (e) => {
             if (activeElement && activeElement.dataset.type === 'table') {
@@ -2219,6 +2358,7 @@ function updateBgSettings() {
             canvasScale = newScale;
 
             applyCanvasTransform();
+            saveState(true);
         }, { passive: false });
     };
 
@@ -2258,15 +2398,20 @@ function updateBgSettings() {
                 backBgConfig: backBgConfig,
             };
 
-            const autoSaveData = {
-            history: state,
-            unit: currentUnit,
-            sizeSelect: document.getElementById('size-select').value,
-            customW: document.getElementById('custom-w').value,
-            customH: document.getElementById('custom-h').value,
-            isLandscape: isLandscape,
-            projectName: document.getElementById('project-name').value
-        };
+const autoSaveData = {
+                history: state,
+                unit: currentUnit,
+                dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
+                sizeSelect: document.getElementById('size-select').value,
+                customW: document.getElementById('custom-w').value,
+                customH: document.getElementById('custom-h').value,
+                isLandscape: isLandscape,
+                projectName: document.getElementById('project-name').value,
+                imageAssets: imageAssets,
+                panX: panX,
+                panY: panY,
+                canvasScale: canvasScale
+            };
         localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
 
             if (historyIndex >= 0) {
@@ -2366,6 +2511,7 @@ function updateBgSettings() {
         document.querySelectorAll('.card-table').forEach(setupTableResizers);
         migrateTableCells();
         updateGhostLayer();
+        updateAllCanvasImages();
 
         let maxZ = 100;
         document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
@@ -2600,8 +2746,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             baseH = (parseFloat(document.getElementById('custom-h').value) || 5) * pxPerUnit;
         } else {
             const sizeParts = sizeSelect.value.split('x');
-            baseW = parseInt(sizeParts[0]);
-            baseH = parseInt(sizeParts[1]);
+            baseW = parseFloat(sizeParts[0]) * PX_PER_IN;
+            baseH = parseFloat(sizeParts[1]) * PX_PER_IN;
         }
 
         currentWidth = isLandscape ? Math.max(baseW, baseH) : Math.min(baseW, baseH);
@@ -2680,6 +2826,31 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
     function getPxPerUnit() {
         return currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN;
+    }
+
+    function toggleBold() {
+        if (activeElements.length === 0) return;
+        const btn = document.getElementById('font-bold-btn');
+
+        let isBold = false;
+        if (activeElement.dataset.type === 'table') {
+            const target = activeTableCell && activeElement.contains(activeTableCell) ? (activeTableCell.querySelector('.cell-text') || activeTableCell) : (activeElement.querySelector('.cell-text') || activeElement);
+            isBold = target.style.fontWeight === 'bold' || parseInt(target.style.fontWeight) > 600;
+        } else {
+            const target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
+            isBold = target.style.fontWeight === 'bold' || parseInt(target.style.fontWeight) > 600;
+        }
+
+        const newVal = isBold ? 'normal' : 'bold';
+        applyStyle('fontWeight', newVal);
+
+        if (newVal === 'bold') {
+            btn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
+            btn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+        } else {
+            btn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
+            btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+        }
     }
 
     function toggleItalic() {
@@ -3356,6 +3527,49 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState();
     }
 
+    function updateFontDatalist() {
+        const defaultFonts = [
+            { val: "system-ui, sans-serif", lbl: "System Sans" },
+            { val: "Arial, sans-serif", lbl: "Arial" },
+            { val: "'Courier New', Courier, monospace", lbl: "Courier (Mono)" },
+            { val: "Georgia, serif", lbl: "Georgia (Serif)" },
+            { val: "Impact, sans-serif", lbl: "Impact" },
+            { val: "'Times New Roman', serif", lbl: "Times New Roman" }
+        ];
+
+        // 1. Harvest all fonts currently applied to text/table elements
+        const usedFonts = new Set();
+        document.querySelectorAll('#card-content [contenteditable="true"], #card-content .cell-text').forEach(el => {
+            const ff = el.style.fontFamily;
+            if (ff) usedFonts.add(ff); // Keep exactly as formatted in DOM
+        });
+
+        const datalist = document.getElementById('font-options');
+        datalist.innerHTML = ''; // Clear current list
+
+        // 2. Inject used fonts at the top
+        usedFonts.forEach(font => {
+            // Strip quotes to check against defaults cleanly
+            const normalizedFont = font.replace(/['"]/g, '');
+            const isDefault = defaultFonts.find(df => df.val.replace(/['"]/g, '') === normalizedFont);
+            
+            if (!isDefault) {
+                const opt = document.createElement('option');
+                opt.value = font;
+                opt.innerText = "Used: " + normalizedFont.split(',')[0];
+                datalist.appendChild(opt);
+            }
+        });
+
+        // 3. Inject standard defaults below
+        defaultFonts.forEach(df => {
+            const opt = document.createElement('option');
+            opt.value = df.val;
+            opt.innerText = df.lbl;
+            datalist.appendChild(opt);
+        });
+    }
+
     function applyStyle(property, value) {
         if (activeElements.length === 0) return;
 
@@ -3525,35 +3739,38 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         const el = document.createElement('div');
         el.className = 'element-container bg-transparent';
-        const offset = (zIndexCounter % 10) * 10 + 20;
+        const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
         el.style.left = offset + 'px';
         el.style.top = offset + 'px';
         el.style.zIndex = zIndexCounter++;
         el.dataset.type = type;
 
+        const p = (val) => Math.round(val * (PX_PER_IN / 100)); // Maintain original 100 DPI relative proportions
+        const ptToPx = (pt) => Math.round(pt * (PX_PER_IN / 72));
+
         let innerContent = '';
         if (type === 'title') {
-            innerContent = `<div contenteditable="true" placeholder="Title Here" class="resizable" style="font-size: 24px; font-weight: bold; width: 250px; text-align: left;"></div>`;
+            innerContent = `<div contenteditable="true" placeholder="Title Here" class="resizable" style="font-size: ${ptToPx(24)}px; font-weight: bold; width: ${p(250)}px; text-align: left;"></div>`;
         } else if (type === 'text') {
-            innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: 250px; min-height: 50px; text-align: left;"></div>`;
+            innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: ${p(250)}px; min-height: ${p(50)}px; text-align: left; font-size: ${ptToPx(14)}px;"></div>`;
         } else if (type === 'table') {
             innerContent = `
-                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: 300px; height: 100px; --tbl-bw: 1px; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
+                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
                         <table class="card-table">
                             <tr>
                                 <td style="height: 50%; width: 50%; background-color: #f9fafb;">
-                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-weight: bold;"></div></div>
+                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-weight: bold; font-size: ${ptToPx(12)}px;"></div></div>
                                 </td>
                                 <td style="height: 50%; width: 50%; background-color: #f9fafb;">
-                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-weight: bold;"></div></div>
+                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-weight: bold; font-size: ${ptToPx(12)}px;"></div></div>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="height: 50%; width: 50%; background-color: transparent;">
-                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center;"></div></div>
+                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-size: ${ptToPx(12)}px;"></div></div>
                                 </td>
                                 <td style="height: 50%; width: 50%; background-color: transparent;">
-                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center;"></div></div>
+                                    <div class="cell-content-layer"><div class="cell-text" contenteditable="true" style="justify-content: center; align-items: center; text-align: center; font-size: ${ptToPx(12)}px;"></div></div>
                                 </td>
                             </tr>
                         </table>
@@ -3563,14 +3780,14 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             el.dataset.shape = 'rect';
             el.dataset.fill = '#e5e7eb';
             el.dataset.stroke = '#374151';
-            el.dataset.strokeWidth = '2';
+            el.dataset.strokeWidth = p(2);
             el.dataset.radius = '0';
             el.dataset.sides = '3';
             el.dataset.curve = '25';
             el.dataset.flip = 'false';
-            innerContent = `<div class="resizable" style="width: 100px; height: 100px;"><div class="shape-content w-full h-full pointer-events-none"></div></div>`;
+            innerContent = `<div class="resizable" style="width: ${p(100)}px; height: ${p(100)}px;"><div class="shape-content w-full h-full pointer-events-none"></div></div>`;
         } else if (type === 'divider') {
-            innerContent = `<div class="card-divider resizable" style="width: 250px; height: 2px; background-color: #374151;"></div>`;
+            innerContent = `<div class="card-divider resizable" style="width: ${p(250)}px; height: ${p(2)}px; background-color: #374151;"></div>`;
         }
 
         el.innerHTML = getControlsHTML(false) + innerContent;
@@ -3582,57 +3799,62 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState();
     }
 
-    function handleAddImage(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    // function handleAddImage(event) {
+    //     const file = event.target.files[0];
+    //     if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const dataUrl = e.target.result;
-            const tempImg = new Image();
-            tempImg.onload = function() {
-                let w = tempImg.naturalWidth;
-                let h = tempImg.naturalHeight;
+    //     const reader = new FileReader();
+    //     reader.onload = function(e) {
+    //         const dataUrl = e.target.result;
+    //         const tempImg = new Image();
+    //         tempImg.onload = function() {
+    //             let w = tempImg.naturalWidth;
+    //             let h = tempImg.naturalHeight;
 
-                const maxDim = 200;
-                if (w > maxDim || h > maxDim) {
-                    const ratio = Math.min(maxDim / w, maxDim / h);
-                    w = Math.round(w * ratio);
-                    h = Math.round(h * ratio);
-                }
-                w = Math.max(20, w);
-                h = Math.max(20, h);
+    //             const p = (val) => Math.round(val * (PX_PER_IN / 100));
+    //             const maxDim = p(200);
+    //             if (w > maxDim || h > maxDim) {
+    //                 const ratio = Math.min(maxDim / w, maxDim / h);
+    //                 w = Math.round(w * ratio);
+    //                 h = Math.round(h * ratio);
+    //             }
+    //             w = Math.max(p(20), w);
+    //             h = Math.max(p(20), h);
 
-                const contentArea = document.getElementById('card-content');
-                if (!contentArea) return;
+    //             const contentArea = document.getElementById('card-content');
+    //             if (!contentArea) return;
 
-                const el = document.createElement('div');
-                el.className = 'element-container bg-transparent';
-                const offset = (zIndexCounter % 10) * 10 + 20;
-                el.style.left = offset + 'px';
-                el.style.top = offset + 'px';
-                el.style.zIndex = zIndexCounter++;
-                el.dataset.type = 'image';
+    //             const el = document.createElement('div');
+    //             el.className = 'element-container bg-transparent';
+    //             const offset = (zIndexCounter % 10) * 10 + 20;
+    //             el.style.left = offset + 'px';
+    //             el.style.top = offset + 'px';
+    //             el.style.zIndex = zIndexCounter++;
+    //             el.dataset.type = 'image';
 
-                const innerContent = `<div class="resizable" style="width: ${w}px; height: ${h}px;"><img src="${dataUrl}" class="w-full h-full pointer-events-none" style="object-fit: fill; display: block;" /></div>`;
+    //             const innerContent = `<div class="resizable" style="width: ${w}px; height: ${h}px;"><img src="${dataUrl}" class="w-full h-full pointer-events-none" style="object-fit: fill; display: block;" /></div>`;
 
-                el.innerHTML = getControlsHTML(false) + innerContent;
-                contentArea.appendChild(el);
+    //             el.innerHTML = getControlsHTML(false) + innerContent;
+    //             contentArea.appendChild(el);
 
-                setActiveElement(el);
-                saveState();
-            };
-            tempImg.src = dataUrl;
-        };
-        reader.readAsDataURL(file);
-        event.target.value = ''; // reset input for subsequent uploads
-    }
+    //             setActiveElement(el);
+    //             saveState();
+    //         };
+    //         tempImg.src = dataUrl;
+    //     };
+    //     reader.readAsDataURL(file);
+    //     event.target.value = ''; // reset input for subsequent uploads
+    // }
 
     function applyShapeStyle(prop, value) {
         if (activeElements.length === 0) return;
         activeElements.forEach(el => {
             if (el.dataset.type === 'shape') {
-                el.dataset[prop] = value;
+                if (prop === 'strokeWidth') {
+                    el.dataset[prop] = parseFloat(value) * (PX_PER_IN / 100);
+                } else {
+                    el.dataset[prop] = value;
+                }
                 drawShape(el);
             }
         });
@@ -3847,8 +4069,23 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 target = activeTableCell && activeElement.contains(activeTableCell) ? (activeTableCell.querySelector('.cell-text') || activeTableCell) : (activeElement.querySelector('.cell-text') || target);
             }
 
-            if (target.style.fontSize) document.getElementById('font-size').value = parseInt(target.style.fontSize);
+            if (target.style.fontSize) {
+                const px = parseFloat(target.style.fontSize);
+                document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
+            }
             if (target.style.fontWeight) document.getElementById('font-weight').value = target.style.fontWeight;
+
+            const boldBtn = document.getElementById('font-bold-btn');
+            if (boldBtn) {
+                const fw = target.style.fontWeight;
+                if (fw === 'bold' || parseInt(fw) > 600) {
+                    boldBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
+                    boldBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+                } else {
+                    boldBtn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
+                    boldBtn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+                }
+            }
 
             const italicBtn = document.getElementById('font-italic-btn');
             if (italicBtn) {
@@ -3883,13 +4120,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'table') {
                 const wrapper = activeElement.querySelector('.card-table-wrapper');
                 if (wrapper) {
-                    const bw = parseInt(wrapper.style.getPropertyValue('--tbl-bw') || wrapper.style.borderWidth) || 0;
-                    document.getElementById('border-size').value = bw;
-                    document.getElementById('border-val').innerText = bw;
+                    const bw = parseFloat(wrapper.style.getPropertyValue('--tbl-bw') || wrapper.style.borderWidth) || 0;
+                    document.getElementById('border-size').value = Math.round(bw / (PX_PER_IN / 100));
+                    document.getElementById('border-val').innerText = Math.round(bw / (PX_PER_IN / 100));
 
-                    const br = parseInt(wrapper.style.getPropertyValue('--tbl-br') || wrapper.style.borderRadius) || 0;
-                    document.getElementById('border-radius').value = br;
-                    document.getElementById('radius-val').innerText = br;
+                    const br = parseFloat(wrapper.style.getPropertyValue('--tbl-br') || wrapper.style.borderRadius) || 0;
+                    document.getElementById('border-radius').value = Math.round(br / (PX_PER_IN / 100));
+                    document.getElementById('radius-val').innerText = Math.round(br / (PX_PER_IN / 100));
 
                     let { hex: bcHex, alpha: bcAlpha } = parseColorToHexAndAlpha(wrapper.style.getPropertyValue('--tbl-bc').trim() || wrapper.style.borderColor || '#9ca3af');
                     document.getElementById('border-color').value = bcHex;
@@ -3949,6 +4186,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 document.getElementById('vertical-align-group').classList.remove('flex');
                 document.getElementById('type-controls').style.display = 'none';
                 document.getElementById('data-merge-section').style.display = 'none';
+                updateMergeUI();
             } else {
                 document.getElementById('table-controls').style.display = 'none';
                 document.getElementById('align-scope').classList.add('hidden');
@@ -3987,8 +4225,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         document.getElementById('shape-curve-group').style.display = shape === 'curve' ? 'flex' : 'none';
         document.getElementById('shape-flip-group').style.display = (shape === 'line' || shape === 'curve') ? 'flex' : 'none';
 
-        document.getElementById('shape-stroke-width').value = activeElement.dataset.strokeWidth || 2;
-        document.getElementById('shape-stroke-val').innerText = activeElement.dataset.strokeWidth || 2;
+        document.getElementById('shape-stroke-width').value = Math.round(parseFloat(activeElement.dataset.strokeWidth || (2 * (PX_PER_IN / 100))) / (PX_PER_IN / 100));
+        document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
 
         if (shape === 'rect') document.getElementById('shape-radius').value = activeElement.dataset.radius || 0;
         if (shape === 'polygon') {
@@ -4018,9 +4256,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             const wrapper = activeElement.querySelector('.card-table-wrapper');
 
             if (type === 'borderWidth') {
-                wrapper.style.setProperty('--tbl-bw', value + 'px');
+                wrapper.style.setProperty('--tbl-bw', (parseFloat(value) * (PX_PER_IN / 100)) + 'px');
             } else if (type === 'borderRadius') {
-                wrapper.style.setProperty('--tbl-br', value + 'px');
+                wrapper.style.setProperty('--tbl-br', (parseFloat(value) * (PX_PER_IN / 100)) + 'px');
             } else if (type === 'borderColor') {
                 wrapper.style.setProperty('--tbl-bc', value);
                 document.getElementById('color-val').innerText = value;
@@ -4044,7 +4282,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         } else if (activeElement.dataset.type === 'divider') {
             const div = activeElement.querySelector('.card-divider');
             if (type === 'borderWidth') {
-                div.style.height = value + 'px';
+                div.style.height = (parseFloat(value) * (PX_PER_IN / 100)) + 'px';
             } else if (type === 'borderColor') {
                 div.style.backgroundColor = value;
                 document.getElementById('color-val').innerText = value;
@@ -4849,26 +5087,58 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
             let newW = resizeStartW;
             let newH = resizeStartH;
-            let newX = baseGroupBB.x;
-            let newY = baseGroupBB.y;
 
-            if (e.shiftKey && resizeAspect) {
-                if (Math.abs(localDx) > Math.abs(localDy)) {
-                    localDy = localDx / resizeAspect;
-                    if ((resizeDir === 'nw' || resizeDir === 'se') && localDx * localDy < 0) localDy = -localDy;
-                } else {
-                    localDx = localDy * resizeAspect;
-                    if ((resizeDir === 'nw' || resizeDir === 'se') && localDx * localDy < 0) localDx = -localDx;
+            // 1. Calculate raw dimensions based on mouse pull
+            if (resizeDir.includes('e')) newW += localDx;
+            if (resizeDir.includes('w')) newW -= localDx;
+            if (resizeDir.includes('s')) newH += localDy;
+            if (resizeDir.includes('n')) newH -= localDy;
+
+            // 2. Force proportional aspect ratio if Shift is held
+            if (e.shiftKey) {
+                let currentAspect = resizeAspect; // Default to the aspect ratio at drag start
+                
+                // Override with default (unmodified) proportions for specific types
+                if (activeElements.length === 1) {
+                    const el = activeElements[0];
+                    if (el.dataset.type === 'image') {
+                        const img = el.querySelector('img');
+                        if (img && img.naturalWidth && img.naturalHeight) {
+                            currentAspect = img.naturalWidth / img.naturalHeight;
+                        }
+                    } else if (el.dataset.type === 'shape') {
+                        currentAspect = 1; // Shapes default to 1:1
+                    }
+                }
+
+                if (currentAspect) {
+                    // Find the axis that was dragged the furthest distance from start
+                    if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
+                        newH = newW / currentAspect;
+                    } else {
+                        newW = newH * currentAspect;
+                    }
                 }
             }
 
-            if (resizeDir.includes('e')) newW += localDx;
-            if (resizeDir.includes('w')) { newW -= localDx; newX += localDx; }
-            if (resizeDir.includes('s')) newH += localDy;
-            if (resizeDir.includes('n')) { newH -= localDy; newY += localDy; }
+            // 3. Enforce minimum size boundaries cleanly
+            if (newW < 10) { 
+                newW = 10; 
+                if (e.shiftKey && currentAspect) newH = newW / currentAspect; 
+            }
+            if (newH < 10) { 
+                newH = 10; 
+                if (e.shiftKey && currentAspect) newW = newH * currentAspect; 
+            }
 
-            if (newW < 10) { if (resizeDir.includes('w')) newX -= (10 - newW); newW = 10; }
-            if (newH < 10) { if (resizeDir.includes('n')) newY -= (10 - newH); newH = 10; }
+            // 4. Calculate final X/Y position anchored to opposite edges
+            let newX = baseGroupBB.x;
+            let newY = baseGroupBB.y;
+            
+            // If dragging left side, X shifts by the exact width difference to keep right edge static
+            if (resizeDir.includes('w')) newX += (resizeStartW - newW);
+            // If dragging top side, Y shifts by the exact height difference to keep bottom edge static
+            if (resizeDir.includes('n')) newY += (resizeStartH - newH);
 
             const pxPerUnit = getPxPerUnit();
             document.getElementById('layout-w').value = +(newW / pxPerUnit).toFixed(4);
@@ -5018,6 +5288,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         if (isPanning) {
             isPanning = false;
             document.getElementById('canvas-container').style.cursor = 'auto';
+            saveState(true);
         }
 
         if (isMarquee) {
@@ -5357,10 +5628,310 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 activeElement.dataset.mergeSkipHeader = "false";
                 recomputeMergeData();
             }
+            
+            // Force the Image Bank to render live if it's currently open
+            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                renderImageBankItems();
+            }
         };
         reader.readAsText(file);
         event.target.value = '';
     }
+
+    // function handleImageAssetsUpload(event) {
+    //     const files = event.target.files;
+    //     if (!files.length) return;
+        
+    //     let loaded = 0;
+    //     for (let i = 0; i < files.length; i++) {
+    //         const file = files[i];
+    //         const reader = new FileReader();
+    //         reader.onload = (e) => {
+    //             imageAssets[file.name] = e.target.result;
+    //             loaded++;
+    //             if (loaded === files.length) {
+    //                 showToast(`Added ${files.length} images to Image Bank!`);
+    //                 applyMergePreview();
+    //                 saveState(true);
+    //             }
+    //         };
+    //         reader.readAsDataURL(file);
+    //     }
+    //     event.target.value = ''; // reset input
+    // }
+
+    /* --- IMAGE BANK ENGINE --- */
+    function openImageBankModal() {
+        document.getElementById('image-bank-modal').classList.remove('hidden');
+        renderImageBankItems();
+    }
+
+    function closeImageBankModal() {
+        document.getElementById('image-bank-modal').classList.add('hidden');
+    }
+
+    function renderImageBankItems() {
+        const container = document.getElementById('image-bank-grid');
+        container.innerHTML = '';
+        const keys = Object.keys(imageAssets);
+        
+        // 1. Gather Missing Assets from the canvas records
+        const requiredAssets = new Set();
+        document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    data.forEach(val => {
+                        if (val && !val.startsWith('http') && !val.startsWith('data:')) {
+                            requiredAssets.add(val);
+                        }
+                    });
+                } catch(e) {}
+            }
+            
+            // NEW: Capture missing native images directly on canvas
+            if (el.dataset.imageBankKey && !el.dataset.imageBankKey.startsWith('http') && !el.dataset.imageBankKey.startsWith('data:')) {
+                requiredAssets.add(el.dataset.imageBankKey);
+            }
+        });
+
+        const missingAssets = Array.from(requiredAssets).filter(val => !imageAssets[val]);
+
+        if (keys.length === 0 && missingAssets.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No images in the bank. Upload some to get started!</div>`;
+            return;
+        }
+
+        let html = '';
+
+        // 2. Render Missing Assets Warning Block First
+        if (missingAssets.length > 0) {
+            html += `<div class="col-span-full mb-2">
+                <h4 class="text-xs font-bold text-red-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Missing from CSV</h4>
+            </div>`;
+            
+            missingAssets.forEach(filename => {
+                const safeName = filename.replace(/'/g, "\\'");
+                html += `
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm relative">
+                        <div class="h-28 w-full bg-white border border-red-200 border-dashed rounded-lg flex flex-col items-center justify-center overflow-hidden text-red-400">
+                            <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-[9px] font-bold px-2 text-center break-all w-full leading-tight text-red-600">${filename}</span>
+                        </div>
+                        <button onclick="triggerBankFulfill('${safeName}')" class="mt-auto py-1.5 bg-red-600 text-white hover:bg-red-700 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Fulfill Image</button>
+                    </div>
+                `;
+            });
+
+            if (keys.length > 0) {
+                html += `<div class="col-span-full mt-4 mb-2">
+                    <h4 class="text-xs font-bold text-gray-700 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg> Uploaded Assets</h4>
+                </div>`;
+            }
+        }
+
+        // 3. Render Standard Uploaded Assets
+        keys.forEach(filename => {
+            const src = imageAssets[filename];
+            const safeName = filename.replace(/'/g, "\\'");
+            html += `
+                <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
+                    <div class="h-28 w-full bg-gray-100 border border-gray-200/50 rounded-lg flex items-center justify-center overflow-hidden relative">
+                        <img src="${src}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />
+                    </div>
+                    <div class="text-[10px] font-mono text-gray-700 truncate w-full text-center px-1 select-all" title="${filename}">${filename}</div>
+                    <div class="grid grid-cols-2 gap-1.5 mt-auto">
+                        <button onclick="placeBankImage('${safeName}')" class="py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[9px] font-bold uppercase transition-colors col-span-2 shadow-sm">Place on Canvas</button>
+                        <button onclick="triggerBankReplace('${safeName}')" class="py-1.5 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Replace</button>
+                        <button onclick="deleteBankImage('${safeName}')" class="py-1.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function handleBankUpload(event) {
+        const fileList = event.target.files;
+        if (!fileList || fileList.length === 0) return;
+        
+        // 1. Lock the total files count so it cannot be mutated
+        const totalFiles = fileList.length;
+        // 2. Convert FileList to a static Array so the file objects aren't lost
+        const files = Array.from(fileList);
+        
+        let loaded = 0;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imageAssets[file.name] = e.target.result;
+                loaded++;
+                // 3. Compare against our locked total
+                if (loaded === totalFiles) {
+                    showToast(`Added ${totalFiles} images to Image Bank!`);
+                    renderImageBankItems();
+                    applyMergePreview();
+                    updateAllCanvasImages();
+                    saveState(true);
+                    // 4. Safely clear the input ONLY after everything is done
+                    event.target.value = '';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    let replaceTargetFilename = null;
+    function triggerBankReplace(filename) {
+        replaceTargetFilename = filename;
+        document.getElementById('bank-replace-input').click();
+    }
+
+    function handleBankReplace(event) {
+        const file = event.target.files[0];
+        if (!file || !replaceTargetFilename) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imageAssets[replaceTargetFilename] = e.target.result;
+            showToast(`Globally replaced "${replaceTargetFilename}"`);
+            renderImageBankItems();
+            applyMergePreview();
+            updateAllCanvasImages();
+            saveState(true);
+            replaceTargetFilename = null;
+            // Clear input after processing
+            event.target.value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    let fulfillTargetFilename = null;
+    function triggerBankFulfill(filename) {
+        fulfillTargetFilename = filename;
+        document.getElementById('bank-fulfill-input').click();
+    }
+
+    function handleBankFulfill(event) {
+        const file = event.target.files[0];
+        if (!file || !fulfillTargetFilename) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imageAssets[fulfillTargetFilename] = e.target.result;
+            showToast(`Fulfilled "${fulfillTargetFilename}"`);
+            renderImageBankItems();
+            applyMergePreview();
+            updateAllCanvasImages();
+            saveState(true);
+            fulfillTargetFilename = null;
+            event.target.value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image') {
+        const hasUrl = !!dataUrl;
+        return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
+            <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed ${hasUrl ? 'hidden' : 'bg-gray-100 border-gray-300 text-gray-400'}" style="display: ${hasUrl ? 'none' : 'flex'};">
+                <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
+            </div>
+            <img src="${dataUrl}" class="w-full h-full pointer-events-none absolute inset-0 z-10" style="object-fit: fill; display: ${hasUrl ? 'block' : 'none'};" />
+        </div>`;
+    }
+
+    function updateImageElementDisplay(el, val) {
+        const img = el.querySelector('img');
+        const placeholder = el.querySelector('.image-placeholder');
+        const pText = el.querySelector('.placeholder-text');
+        if (!img || !placeholder) return;
+
+        // Reset styling footprint
+        placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
+
+        if (!val) {
+            img.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.classList.add('bg-gray-100', 'border-gray-300', 'text-gray-400');
+            if(pText) pText.innerText = 'Empty';
+        } else if (imageAssets[val] || val.startsWith('http') || val.startsWith('data:')) {
+            img.src = imageAssets[val] || val;
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+        } else {
+            img.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+            if(pText) pText.innerText = 'Missing: ' + val;
+        }
+    }
+
+    function deleteBankImage(filename) {
+        if (confirm(`Delete "${filename}" from the Image Bank? Any canvas items mapping to it will become blank.`)) {
+            delete imageAssets[filename];
+            renderImageBankItems();
+            applyMergePreview();
+            updateAllCanvasImages();
+            saveState(true);
+        }
+    }
+
+    function placeBankImage(filename) {
+        const dataUrl = imageAssets[filename];
+        if (!dataUrl) return;
+
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            let w = tempImg.naturalWidth;
+            let h = tempImg.naturalHeight;
+
+            const p = (val) => Math.round(val * (PX_PER_IN / 100));
+            const maxDim = p(200);
+            if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            w = Math.max(p(20), w);
+            h = Math.max(p(20), h);
+
+            const contentArea = document.getElementById('card-content');
+            if (!contentArea) return;
+
+            const el = document.createElement('div');
+            el.className = 'element-container bg-transparent';
+            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
+            el.style.left = offset + 'px';
+            el.style.top = offset + 'px';
+            el.style.zIndex = zIndexCounter++;
+            el.dataset.type = 'image';
+            el.dataset.imageBankKey = filename; // Link to bank
+
+            const innerContent = getBaseImageContentHTML(w, h, dataUrl, filename);
+
+            el.innerHTML = getControlsHTML(false) + innerContent;
+            contentArea.appendChild(el);
+
+            setActiveElement(el);
+            closeImageBankModal();
+            saveState();
+        };
+        tempImg.src = dataUrl;
+    }
+
+    function updateAllCanvasImages() {
+        // Sync any non-merged, direct-placed image elements with their bank asset data
+        document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
+            const key = el.dataset.imageBankKey;
+            if (key) {
+                updateImageElementDisplay(el, key);
+            }
+        });
+    }
+
 
     function applyMergeOptions() {
         if (!activeElement) return;
@@ -5385,6 +5956,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
             activeElement.dataset.mergeData = JSON.stringify(extracted);
             applyMergePreview();
+            
+            // Sync the Missing Assets scanner instantly
+            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                renderImageBankItems();
+            }
         }
         updateMergeUI();
         saveState(true);
@@ -5411,11 +5987,16 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     try {
                         const data = JSON.parse(el.dataset.mergeData);
                         const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-                        const target = el.querySelector('div[contenteditable="true"]');
-                        if (target) {
-                            target.textContent = val;
-                            parseMarkdownInElement(target);
-                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                        
+                        if (el.dataset.type === 'image') {
+                            updateImageElementDisplay(el, val);
+                        } else {
+                            const target = el.querySelector('div[contenteditable="true"]');
+                            if (target) {
+                                target.textContent = val;
+                                parseMarkdownInElement(target);
+                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                            }
                         }
                     } catch (e) {}
                 }
@@ -5864,8 +6445,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const driftYIn = (parseFloat(document.getElementById('print-offset-y').value) || 0) * unitToIn;
         const bleedIn = (parseFloat(document.getElementById('print-bleed').value) || 0) * unitToIn;
 
-        const baseCardWin = (currentWidth / 100);
-        const baseCardHin = (currentHeight / 100);
+        // Base card dimensions track at PX_PER_IN
+        const baseCardWin = currentWidth / PX_PER_IN;
+        const baseCardHin = currentHeight / PX_PER_IN;
 
         const totalCardWin = baseCardWin + mlIn + mrIn;
         const totalCardHin = baseCardHin + mtIn + mbIn;
@@ -6191,9 +6773,16 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     }
 
                     if (settings.w && settings.h) {
-                        let baseW = settings.land ? Math.max(settings.w, settings.h) : Math.min(settings.w, settings.h);
-                        let baseH = settings.land ? Math.min(settings.w, settings.h) : Math.max(settings.w, settings.h);
-                        let matchStr = `${Math.round(baseW)}x${Math.round(baseH)}`;
+                        let oldDpi = settings.printer?.targetDpi || 100;
+                        let wInches = settings.w / oldDpi;
+                        let hInches = settings.h / oldDpi;
+                        
+                        let baseW = settings.land ? Math.max(wInches, hInches) : Math.min(wInches, hInches);
+                        let baseH = settings.land ? Math.min(wInches, hInches) : Math.max(wInches, hInches);
+                        
+                        baseW = Math.round(baseW * 100) / 100;
+                        baseH = Math.round(baseH * 100) / 100;
+                        let matchStr = `${baseW}x${baseH}`;
 
                         let found = Array.from(document.getElementById('size-select').options).some(opt => opt.value === matchStr);
 
@@ -6206,9 +6795,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                             document.getElementById('custom-size-inputs').classList.remove('hidden');
                             document.getElementById('custom-size-inputs').classList.add('grid', 'grid-cols-1');
 
-                            let pxPerU = settings.unit === 'mm' ? (100 / 25.4) : 100;
-                            document.getElementById('custom-w').value = +(baseW / pxPerU).toFixed(3);
-                            document.getElementById('custom-h').value = +(baseH / pxPerU).toFixed(3);
+                            let mult = settings.unit === 'mm' ? 25.4 : 1;
+                            document.getElementById('custom-w').value = +(baseW * mult).toFixed(3);
+                            document.getElementById('custom-h').value = +(baseH * mult).toFixed(3);
                         }
                     }
 
@@ -6421,8 +7010,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const driftYIn = (parseFloat(document.getElementById('print-offset-y').value) || 0) * unitToIn;
         const bleedIn = (parseFloat(document.getElementById('print-bleed').value) || 0) * unitToIn;
 
-        const baseCardWin = (currentWidth / 100);
-        const baseCardHin = (currentHeight / 100);
+        // Base card dimensions track at PX_PER_IN
+        const baseCardWin = currentWidth / PX_PER_IN;
+        const baseCardHin = currentHeight / PX_PER_IN;
 
         const totalCardWin = baseCardWin + mlIn + mrIn;
         const totalCardHin = baseCardHin + mtIn + mbIn;
