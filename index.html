@@ -122,8 +122,17 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .bg-blank { background-image: none; background-color: white; }
         .bg-ruled {
             background-color: white;
-            background-image: repeating-linear-gradient(transparent, transparent calc(var(--bg-rule-sp) - var(--bg-thick)), var(--bg-color) calc(var(--bg-rule-sp) - var(--bg-thick)), var(--bg-color) var(--bg-rule-sp));
-            background-position: 0 var(--bg-rule-top);
+            /* Layer 1: Solid white mask for the top margin */
+            /* Layer 2: A single line that we will tile */
+            background-image: 
+                linear-gradient(white var(--bg-rule-top), transparent var(--bg-rule-top)),
+                linear-gradient(var(--bg-color) var(--bg-thick), transparent var(--bg-thick));
+            
+            /* Tell the line layer to size itself to your spacing variable */
+            background-size: 100% 100%, 100% var(--bg-rule-sp);
+            
+            /* Start the tiling exactly under the white mask */
+            background-position: 0 0, 0 var(--bg-rule-top);
         }
         .bg-grid {
             background-color: white;
@@ -131,6 +140,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 linear-gradient(to right, var(--bg-color) var(--bg-thick), transparent var(--bg-thick)),
                 linear-gradient(to bottom, var(--bg-color) var(--bg-thick), transparent var(--bg-thick));
             background-size: var(--bg-grid-sz) var(--bg-grid-sz);
+        }
+        .bg-dotted {
+            background-color: white;
+            background-image: radial-gradient(circle, var(--bg-color) var(--bg-thick), transparent calc(var(--bg-thick) + 0.5px));
+            background-size: var(--bg-grid-sz) var(--bg-grid-sz);
+            background-position: 0 0;
         }
 
         /* Interactive Canvas Elements */
@@ -310,7 +325,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
 
         <!-- Right Section (Absolute on small screens to overlap truncating title) -->
-        <div class="absolute right-4 flex gap-1.5 md:gap-2 justify-end items-center shrink-0 bg-white/90 backdrop-blur shadow-[-12px_0_10px_rgba(255,255,255,0.9)] pl-3 py-1 z-50">
+        <div class="absolute right-4 flex gap-1.5 md:gap-2 justify-end items-center shrink-0 bg-white shadow-[-12px_0_10px_rgba(255,255,255,0.9)] pl-3 py-1 z-50">
             <div class="flex items-center gap-1 border-r pr-2 mr-1 shrink-0">
                 <button id="btn-undo" onclick="undo()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-500 disabled:cursor-not-allowed" disabled title="Undo (Ctrl+Z)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,231 +408,19 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
             </details>
 
-            <details class="relative group shrink-0">
-                <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-gray-900 text-white rounded cursor-pointer flex items-center gap-1.5 hover:bg-gray-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Print">
-                    <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                    </svg>
-                    <span class="hidden md:inline">Print</span>
-                </summary>
-                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-80 max-h-[75vh] overflow-y-auto cursor-default p-4 text-gray-800 hide-scrollbar">
-                    
-                    <!-- Dynamic Print Stats Bar -->
-                    <div id="print-stats-bar" class="mb-4 bg-blue-50 text-blue-700 border border-blue-200 rounded p-2 text-center text-xs shadow-sm transition-colors duration-300">
-                        <span class="font-bold uppercase tracking-wide text-[10px]">Cards Per Page:</span> 
-                        <span id="cpp-count" class="text-lg font-black ml-1">0</span> 
-                        <span class="text-[10px] block opacity-80 mt-0.5" id="cpp-grid">(0x0 grid)</span>
-                    </div>
-
-                    <!-- 1. SHEET SETUP -->
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        1. Sheet Setup
-                    </h3>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Paper Size</label>
-                            <select id="paper-size" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                                <option value="letter">US Letter (8.5x11")</option>
-                                <option value="a4">A4 (210x297mm)</option>
-                                <option value="legal">US Legal (8.5x14")</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Orientation</label>
-                            <select id="paper-orientation" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                                <option value="portrait">Portrait</option>
-                                <option value="landscape">Landscape</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mb-5">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Column Gap <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="gap-x" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Row Gap <span class="unit-lbl">(in)</span></label>
-                            <input type="number" id="gap-y" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                    </div>
-
-                    <!-- 2. CARD BOUNDARIES -->
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
-                        2. Card Boundaries
-                    </h3>
-                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 mb-3">
-                        <div class="col-span-2 flex items-center justify-between mb-1">
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase">Bleed <span class="unit-lbl">(in)</span></label>
-                            <label class="flex items-center gap-1.5 text-[10px] font-medium text-blue-600 cursor-pointer">
-                                <input type="checkbox" id="show-bleed-editor" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateBleedVisualization()">
-                                Show Bleed Area
-                            </label>
-                        </div>
-                        <input type="number" id="print-bleed" step="0.125" min="0" value="0" class="col-span-2 mb-2 w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateBleedVisualization()">
-                        
-                        <div class="col-span-2">
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Binding Margin <span class="unit-lbl">(in)</span></label>
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Top</label>
-                            <input type="number" id="margin-top" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Right</label>
-                            <input type="number" id="margin-right" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Bottom</label>
-                            <input type="number" id="margin-bottom" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Left</label>
-                            <input type="number" id="margin-left" step="0.125" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                        </div>
-
-                        <!-- Internal Safe Margin -->
-                    <div class="col-span-2 mt-4">
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Internal Safe Margins <span class="unit-lbl">(in)</span></label>
-                    </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Top</label>
-                            <input type="number" id="safe-margin-top" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Right</label>
-                            <input type="number" id="safe-margin-right" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Bottom</label>
-                            <input type="number" id="safe-margin-bottom" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] text-gray-400 uppercase mb-0.5">Left</label>
-                            <input type="number" id="safe-margin-left" step="0.05" min="0" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" oninput="updateSafeZone()">
-                        </div>
-                    
-                    </div>
-
-                    <!-- 3. GUIDES & MARKS -->
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 mt-5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        3. Guides & Marks
-                    </h3>
-                    
-                    <!-- Cut Edge Settings -->
-                    <div class="mb-3 border border-gray-200 rounded p-2 bg-gray-50/50">
-                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2">
-                            <input type="checkbox" id="print-cut-line" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                            Print Card Cut Edge
-                        </label>
-                        <div class="grid grid-cols-2 gap-2 pl-5">
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Style</label>
-                                <select id="cut-line-style" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                                    <option value="dashed">Dashed</option>
-                                    <option value="dotted">Dotted</option>
-                                    <option value="solid">Solid</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
-                                <input type="number" id="cut-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Binding Margin Settings -->
-                    <div class="mb-3 border border-gray-200 rounded p-2 bg-gray-50/50">
-                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2">
-                            <input type="checkbox" id="show-margin-guide" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                            Print Binding Margin Line
-                        </label>
-                        <div class="grid grid-cols-2 gap-2 pl-5">
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Style</label>
-                                <select id="binding-line-style" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                                    <option value="dashed">Dashed</option>
-                                    <option value="dotted">Dotted</option>
-                                    <option value="solid">Solid</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
-                                <input type="number" id="binding-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                            </div>
-                        </div>
-                    </div>
-
-                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-5">
-                        <input type="checkbox" id="print-crop-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                        Print External Crop Marks
-                    </label>
-
-                    <!-- 4. DUPLEX & CALIBRATION -->
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                        4. Duplex & Calibration
-                    </h3>
-                    <label class="flex items-start gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 bg-gray-50 border p-2 rounded shadow-sm">
-                        <input type="checkbox" id="print-duplex" class="rounded text-blue-600 mt-0.5 focus:ring-blue-500" onchange="document.getElementById('duplex-settings').style.display = this.checked ? 'block' : 'none'">
-                        <span>Generate 2nd Page for Duplex <span class="block text-[10px] font-normal text-gray-500 mt-0.5">Enables double-sided printing alignments.</span></span>
-                    </label>
-                    <div id="duplex-settings" class="mb-4 pl-6" style="display: none;">
-                        <p class="block text-[10px] font-bold text-blue-600 uppercase mb-1 mt-2">Grid Duplex Layout (Physical)</p>
-                        <p class="text-[9px] text-gray-500 mb-2 leading-tight">Mirrors the underlying grid coordinates so back cards align seamlessly.</p>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-1.5 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="grid-reverse-col" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                            Reverse Columns (Left-to-Right)
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="grid-reverse-row" class="rounded text-blue-600 focus:ring-blue-500">
-                            Reverse Rows (Top-to-Bottom)
-                        </label>
-                        <p class="block text-[10px] font-bold text-gray-600 uppercase mb-1 mt-3">Global Page 2 Transforms</p>
-                        <p class="text-[9px] text-gray-500 mb-2 leading-tight">Apply custom CSS rotations for non-standard printer drivers.</p>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-1.5 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="mirror-horizontal" class="rounded text-blue-600 focus:ring-blue-500">
-                            CSS Mirror Horizontally (scaleX)
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-1.5 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="mirror-vertical" class="rounded text-blue-600 focus:ring-blue-500">
-                            CSS Mirror Vertically (scaleY)
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="rotate-180" class="rounded text-blue-600 focus:ring-blue-500">
-                            CSS Rotate 180°
-                        </label>
-                    </div>
-
-                    <div class="mb-5">
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hardware Drift</p>
-                        <p class="text-[9px] text-gray-400 mb-2 leading-tight">Fix physical printer feed drift by shifting the grid.</p>
-                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="print-vernier" class="rounded text-blue-600 focus:ring-blue-500">
-                            Print Vernier Caliper Scale (Duplex)
-                        </label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">X Offset <span class="unit-lbl">(in)</span></label>
-                                <input type="number" id="print-offset-x" step="0.01" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Y Offset <span class="unit-lbl">(in)</span></label>
-                                <input type="number" id="print-offset-y" step="0.01" value="0" class="w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </details>
+            <button onclick="prepareAndPrint()" class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-gray-900 text-white rounded cursor-pointer flex items-center gap-1.5 hover:bg-gray-800 transition-colors shadow-sm whitespace-nowrap shrink-0" title="Print">
+    <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+    </svg>
+    <span class="hidden md:inline">Print</span>
+</button>
         </div>
     </header>
 
     <div class="px-4 py-2 flex items-center justify-between gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
         
         <!-- Mobile Swipeable Left Section -->
-        <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar py-0.5 min-w-0 flex-1">
+        <div class="flex items-center gap-4 flex-wrap py-0.5 min-w-0 flex-1">
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
                 <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
@@ -684,6 +487,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <option value="bg-blank">Blank</option>
                     <option value="bg-ruled">Ruled Lines</option>
                     <option value="bg-grid">Grid</option>
+                    <option value="bg-dotted">Dotted</option>
                 </select>
                 <details id="bg-settings-det" class="relative group opacity-50 pointer-events-none">
                     <summary id="bg-settings-btn" class="p-1 bg-white border border-gray-300 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors" title="Background Settings">
@@ -718,6 +522,23 @@ Check your Browserslist config to be sure that your targets are set up correctly
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </details>
+            </div>
+            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
+                <details id="snapping-settings" class="relative group">
+                    <summary class="text-[11px] font-semibold bg-white text-gray-600 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-50 [&::-webkit-details-marker]:hidden flex items-center gap-1 shadow-sm">
+                        Snapping <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </summary>
+                    <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl p-3 rounded-lg z-50 w-48 cursor-default">
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-snapping" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
+                            Drag Snapping
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="show-snap-lines" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
+                            Show Snap Lasers
+                        </label>
                     </div>
                 </details>
             </div>
@@ -803,10 +624,29 @@ Check your Browserslist config to be sure that your targets are set up correctly
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Paper Size</label>
                             <select id="paper-size" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
-                                <option value="letter">US Letter (8.5x11")</option>
-                                <option value="a4">A4 (210x297mm)</option>
-                                <option value="legal">US Legal (8.5x14")</option>
-                            </select>
+    <optgroup label="Standard Documents">
+        <option value="letter" selected>US Letter (8.5x11")</option>
+        <option value="a4">A4 (210x297mm)</option>
+        <option value="legal">US Legal (8.5x14")</option>
+        <option value="half-letter">Half Letter (5.5x8.5")</option>
+        <option value="executive">Executive (7.25x10.5")</option>
+    </optgroup>
+    <optgroup label="Photos & Cards (Borderless Supported)">
+        <option value="4x6">4x6" Index / Photo</option>
+        <option value="3.5x5">3.5x5" Photo</option>
+        <option value="5x7">5x7" Photo</option>
+        <option value="8x10">8x10" Photo</option>
+    </optgroup>
+    <optgroup label="International & Legal">
+        <option value="a6">A6 (105x148mm)</option>
+        <option value="8.5x13">8.5x13" (Folio)</option>
+        <option value="mexico-oficio">Mexico-Oficio (8.5x13.4")</option>
+        <option value="oficio-9">Oficio 9 (8.46x12.4")</option>
+    </optgroup>
+    <optgroup label="Envelopes">
+        <option value="env-10">No. 10 Envelope (4.125x9.5")</option>
+    </optgroup>
+</select>
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Orientation</label>
@@ -1002,7 +842,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
     </div>
 
-    <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
+    <div id="element-settings" class="px-4 py-2 flex flex-wrap overflow-visible items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
             <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
@@ -1818,9 +1658,21 @@ function updateBgSettings() {
         const paperSizeStr = document.getElementById('paper-size')?.value;
         const isPaperLand = document.getElementById('paper-orientation')?.value === 'landscape';
         
-        let paperW = 8.5, paperH = 11;
+        let paperW = 8.5, paperH = 11; // default to letter
         if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
         else if (paperSizeStr === 'legal') { paperW = 8.5; paperH = 14; }
+        else if (paperSizeStr === 'half-letter') { paperW = 5.5; paperH = 8.5; }
+        else if (paperSizeStr === 'executive') { paperW = 7.25; paperH = 10.5; }
+        else if (paperSizeStr === '4x6') { paperW = 4; paperH = 6; }
+        else if (paperSizeStr === '3.5x5') { paperW = 3.5; paperH = 5; }
+        else if (paperSizeStr === '5x7') { paperW = 5; paperH = 7; }
+        else if (paperSizeStr === '8x10') { paperW = 8; paperH = 10; }
+        else if (paperSizeStr === 'a6') { paperW = 4.134; paperH = 5.827; }
+        else if (paperSizeStr === '8.5x13') { paperW = 8.5; paperH = 13; }
+        else if (paperSizeStr === 'mexico-oficio') { paperW = 8.5; paperH = 13.4; }
+        else if (paperSizeStr === 'oficio-9') { paperW = 8.46; paperH = 12.4; }
+        else if (paperSizeStr === 'env-10') { paperW = 4.125; paperH = 9.5; }
+
         if (isPaperLand) [paperW, paperH] = [paperH, paperW];
 
         const unitToIn = currentUnit === 'mm' ? (1 / 25.4) : 1;
@@ -2252,6 +2104,14 @@ function updateBgSettings() {
                 
                 if (data.imageAssets) imageAssets = data.imageAssets;
                 if (data.mergeSources) mergeSources = data.mergeSources;
+
+                // Restore Snapping Options
+                if (data.snapping !== undefined && document.getElementById('enable-snapping')) {
+                    document.getElementById('enable-snapping').checked = data.snapping;
+                }
+                if (data.snapLines !== undefined && document.getElementById('show-snap-lines')) {
+                    document.getElementById('show-snap-lines').checked = data.snapLines;
+                }
                 
                 // Backwards compatibility for older saves without the header property
                 Object.values(mergeSources).forEach(src => {
@@ -2438,6 +2298,8 @@ const autoSaveData = {
                 projectName: document.getElementById('project-name').value,
                 imageAssets: imageAssets,
                 mergeSources: mergeSources,
+                snapping: document.getElementById('enable-snapping')?.checked !== false,
+                snapLines: document.getElementById('show-snap-lines')?.checked !== false,
                 panX: panX,
                 panY: panY,
                 canvasScale: canvasScale
@@ -2807,7 +2669,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const ruledOpts = document.getElementById('bg-ruled-opts');
         const settingsDet = document.getElementById('bg-settings-det');
         
-        if (val === 'bg-grid') {
+        if (val === 'bg-grid' || val === 'bg-dotted') {
             gridOpts.style.display = 'flex';
             ruledOpts.style.display = 'none';
             settingsDet.classList.remove('opacity-50', 'pointer-events-none');
@@ -4035,15 +3897,18 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         });
 
         // Handle Drag/Drop Snapping Lines
-        if (activeSnapLines.x !== null) {
-            hasLasers = true;
-            const screenX = panX + activeSnapLines.x * canvasScale;
-            svg += `<line x1="${screenX}" y1="-50000" x2="${screenX}" y2="50000" stroke="rgba(16, 185, 129, 0.8)" stroke-width="1.5" />`;
-        }
-        if (activeSnapLines.y !== null) {
-            hasLasers = true;
-            const screenY = panY + activeSnapLines.y * canvasScale;
-            svg += `<line x1="-50000" y1="${screenY}" x2="50000" y2="${screenY}" stroke="rgba(16, 185, 129, 0.8)" stroke-width="1.5" />`;
+        const showSnapLines = document.getElementById('show-snap-lines')?.checked !== false;
+        if (showSnapLines) {
+            if (activeSnapLines.x !== null) {
+                hasLasers = true;
+                const screenX = panX + activeSnapLines.x * canvasScale;
+                svg += `<line x1="${screenX}" y1="-50000" x2="${screenX}" y2="50000" stroke="rgba(16, 185, 129, 0.8)" stroke-width="1.5" />`;
+            }
+            if (activeSnapLines.y !== null) {
+                hasLasers = true;
+                const screenY = panY + activeSnapLines.y * canvasScale;
+                svg += `<line x1="-50000" y1="${screenY}" x2="50000" y2="${screenY}" stroke="rgba(16, 185, 129, 0.8)" stroke-width="1.5" />`;
+            }
         }
 
         if (hasLasers) {
@@ -5244,7 +5109,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         activeSnapLines = { x: null, y: null };
         
-        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && initialDragBB) {
+        const snappingEnabled = document.getElementById('enable-snapping')?.checked !== false;
+        
+        if (snappingEnabled && !e.ctrlKey && !e.metaKey && !e.shiftKey && initialDragBB) {
             let projectedX = initialDragBB.x + dx;
             let projectedY = initialDragBB.y + dy;
             let projEdgesX = [projectedX, projectedX + initialDragBB.w, projectedX + initialDragBB.w/2];
@@ -6745,9 +6612,21 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const mirrorV = document.getElementById('mirror-vertical').checked;
         const rotate180 = document.getElementById('rotate-180').checked;
 
-        let paperW = 8.5, paperH = 11;
+        let paperW = 8.5, paperH = 11; // default to letter
         if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
         else if (paperSizeStr === 'legal') { paperW = 8.5; paperH = 14; }
+        else if (paperSizeStr === 'half-letter') { paperW = 5.5; paperH = 8.5; }
+        else if (paperSizeStr === 'executive') { paperW = 7.25; paperH = 10.5; }
+        else if (paperSizeStr === '4x6') { paperW = 4; paperH = 6; }
+        else if (paperSizeStr === '3.5x5') { paperW = 3.5; paperH = 5; }
+        else if (paperSizeStr === '5x7') { paperW = 5; paperH = 7; }
+        else if (paperSizeStr === '8x10') { paperW = 8; paperH = 10; }
+        else if (paperSizeStr === 'a6') { paperW = 4.134; paperH = 5.827; }
+        else if (paperSizeStr === '8.5x13') { paperW = 8.5; paperH = 13; }
+        else if (paperSizeStr === 'mexico-oficio') { paperW = 8.5; paperH = 13.4; }
+        else if (paperSizeStr === 'oficio-9') { paperW = 8.46; paperH = 12.4; }
+        else if (paperSizeStr === 'env-10') { paperW = 4.125; paperH = 9.5; }
+
         if (isPaperLand) [paperW, paperH] = [paperH, paperW];
 
         const unitToIn = currentUnit === 'mm' ? (1 / 25.4) : 1;
@@ -6919,7 +6798,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                         <div class="${activeBgClass}" style="
                                             width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
                                             transform: scale(0.96); transform-origin: top left;
-                                            background-position: ${bleedPx}px ${activeBgClass === 'bg-ruled' ? `calc(40px + ${bleedPx}px)` : `${bleedPx}px`};
+                                            background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                         ">
                                             <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
                                                 ${activeContent}
@@ -7306,18 +7185,22 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const mirrorV = document.getElementById('mirror-vertical').checked;
         const rotate180 = document.getElementById('rotate-180').checked;
 
-        let paperW = 8.5,
-            paperH = 11;
-        if (paperSizeStr === 'a4') {
-            paperW = 8.268;
-            paperH = 11.693;
-        } else if (paperSizeStr === 'legal') {
-            paperW = 8.5;
-            paperH = 14;
-        }
-        if (isPaperLand) {
-            [paperW, paperH] = [paperH, paperW];
-        }
+        let paperW = 8.5, paperH = 11; // default to letter
+        if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
+        else if (paperSizeStr === 'legal') { paperW = 8.5; paperH = 14; }
+        else if (paperSizeStr === 'half-letter') { paperW = 5.5; paperH = 8.5; }
+        else if (paperSizeStr === 'executive') { paperW = 7.25; paperH = 10.5; }
+        else if (paperSizeStr === '4x6') { paperW = 4; paperH = 6; }
+        else if (paperSizeStr === '3.5x5') { paperW = 3.5; paperH = 5; }
+        else if (paperSizeStr === '5x7') { paperW = 5; paperH = 7; }
+        else if (paperSizeStr === '8x10') { paperW = 8; paperH = 10; }
+        else if (paperSizeStr === 'a6') { paperW = 4.134; paperH = 5.827; }
+        else if (paperSizeStr === '8.5x13') { paperW = 8.5; paperH = 13; }
+        else if (paperSizeStr === 'mexico-oficio') { paperW = 8.5; paperH = 13.4; }
+        else if (paperSizeStr === 'oficio-9') { paperW = 8.46; paperH = 12.4; }
+        else if (paperSizeStr === 'env-10') { paperW = 4.125; paperH = 9.5; }
+
+        if (isPaperLand) [paperW, paperH] = [paperH, paperW];
 
         const unitToIn = currentUnit === 'mm' ? (1 / 25.4) : 1;
         const mtIn = (parseFloat(document.getElementById('margin-top').value) || 0) * unitToIn;
@@ -7484,7 +7367,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                             <div class="${activeBgClass}" style="
                                                 width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
                                                 transform: scale(0.96); transform-origin: top left;
-                                                background-position: ${bleedPx}px ${activeBgClass === 'bg-ruled' ? `calc(40px + ${bleedPx}px)` : `${bleedPx}px`};
+                                                background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                             ">
                                                 <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
                                                    ${activeContent}
