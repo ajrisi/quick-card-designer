@@ -420,7 +420,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
     <div class="px-4 py-2 flex items-center justify-between gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
         
         <!-- Mobile Swipeable Left Section -->
-        <div class="flex items-center gap-4 flex-wrap py-0.5 min-w-0 flex-1">
+        <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar flex-nowrap py-0.5 min-w-0 flex-1">
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
                 <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
@@ -842,7 +842,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
     </div>
 
-    <div id="element-settings" class="px-4 py-2 flex flex-wrap overflow-visible items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
+    <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
             <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
@@ -2001,6 +2001,38 @@ function updateBgSettings() {
     }
 
     window.onload = () => {
+        // 1. Unclip dropdowns by fixing them to the viewport when opened
+        document.addEventListener('toggle', (e) => {
+            if (e.target.tagName === 'DETAILS') {
+                const menu = e.target.querySelector('div.absolute');
+                if (!menu) return;
+                
+                if (e.target.open) {
+                    // Grab exact layout coordinates BEFORE modifying
+                    const rect = menu.getBoundingClientRect();
+                    menu.dataset.origCssText = menu.style.cssText;
+                    
+                    // Break out of the overflow container
+                    menu.style.position = 'fixed';
+                    menu.style.top = rect.top + 'px';
+                    menu.style.left = rect.left + 'px';
+                    menu.style.marginTop = '0';
+                    menu.style.transform = 'none';
+                } else {
+                    // Restore original layout classes when closed
+                    menu.style.cssText = menu.dataset.origCssText || '';
+                }
+            }
+        }, true);
+
+        // 2. Automatically close dropdowns if the user swipes the toolbar
+        document.querySelectorAll('.hide-scrollbar').forEach(scrollContainer => {
+            scrollContainer.addEventListener('scroll', () => {
+                document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
+            }, { passive: true });
+        });
+
+        
         setupPWA();
         
         // Auto-update print stats when inputs change
