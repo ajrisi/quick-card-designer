@@ -564,22 +564,20 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </summary>
-                    <div class="absolute top-full left-0 mt-2 bg-white border shadow-xl p-3 rounded-lg z-50 w-56">
+                    <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl p-3 rounded-lg z-50 w-56 cursor-default">
+                        
+                        <!-- Reverse Side Ghosting -->
                         <label id="lbl-reverse-ghost" class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
                             <input type="checkbox" id="enable-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
                             Show Reverse Side
                         </label>
-                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
-                            <input type="checkbox" id="enable-data-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
-                            Show Data Ghosting
-                        </label>
-                        <div class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity" id="ghost-controls">
+                        <div class="flex flex-col gap-3 pl-6 mb-3 opacity-50 pointer-events-none transition-opacity" id="reverse-ghost-controls">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-[10px] font-bold text-gray-500 uppercase">Opacity</span>
-                                <input type="range" id="ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.2" class="w-24 accent-blue-600" oninput="if(document.getElementById('ghost-layer')) document.getElementById('ghost-layer').style.opacity = this.value">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Side Opacity</span>
+                                <input type="range" id="ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.2" class="w-20 accent-blue-600" oninput="updateGhostLayer()">
                             </div>
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-[10px] font-bold text-gray-500 uppercase">Flip Mode</span>
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Flip Mode</span>
                                 <select id="ghost-flip" class="text-xs border-gray-300 border rounded p-1 outline-none shadow-sm bg-white" onchange="updateGhostLayer()">
                                     <option value="scaleX(-1)">Horz (Book)</option>
                                     <option value="scaleY(-1)">Vert (Calendar)</option>
@@ -587,6 +585,21 @@ Check your Browserslist config to be sure that your targets are set up correctly
                                 </select>
                             </div>
                         </div>
+
+                        <div class="border-t border-gray-200 my-3"></div>
+
+                        <!-- Data Ghosting -->
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-data-ghost" class="rounded text-blue-600 focus:ring-blue-500" onchange="updateGhostLayer()">
+                            Show Data Ghosting
+                        </label>
+                        <div class="flex flex-col gap-3 pl-6 opacity-50 pointer-events-none transition-opacity" id="data-ghost-controls">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Data Opacity</span>
+                                <input type="range" id="data-ghost-opacity" min="0.02" max="0.5" step="0.005" value="0.04" class="w-20 accent-blue-600" oninput="updateGhostLayer()">
+                            </div>
+                        </div>
+
                     </div>
                 </details>
             </div>
@@ -917,6 +930,22 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 6v10h8V6z" /></svg></button>
                 </div>
             </div>
+
+<div class="flex items-center gap-2 border-r border-gray-200 pr-3">
+            <div class="flex bg-white border border-gray-300 rounded shadow-sm">
+                    <button onclick="alignElements('top')" title="Align Top" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M8 8v10h8V8z" /></svg></button>
+                    <button onclick="alignElements('centerY')" title="Align Center Y" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M8 8v8h8V8z" /></svg></button>
+                    <button onclick="alignElements('bottom')" title="Align Bottom" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 6v10h8V6z" /></svg></button>
+                </div>
+                <div class="flex bg-white border border-gray-300 rounded shadow-sm ml-1">
+                    <button onclick="flipElements('x')" title="Mirror Horizontally" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8l-4 4 4 4m8-8l4 4-4 4" /></svg></button>
+                    <button onclick="flipElements('y')" title="Mirror Vertically" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M8 8l4-4 4 4m-8 8l4 4 4-4" /></svg></button>
+                </div>
+                </div>
+
         </div>
             
         <!--</div>  Closes the Alignment Buttons -->
@@ -1895,6 +1924,62 @@ function updateBgSettings() {
         updateLasers();
     }
 
+    function syncGhostLive() {
+        const ghostLayer = document.getElementById('ghost-layer');
+        if (!ghostLayer || ghostLayer.classList.contains('hidden')) return;
+
+        const dataGhostContainer = ghostLayer.querySelector('.data-ghost-wrapper > div.w-full.h-full.relative');
+        if (!dataGhostContainer) return;
+
+        const mainElements = Array.from(document.getElementById('card-content').children);
+        const ghostElements = Array.from(dataGhostContainer.children);
+
+        const syncNodes = (mNodes, gNodes) => {
+            if (mNodes.length !== gNodes.length) return;
+            for (let i = 0; i < mNodes.length; i++) {
+                const mEl = mNodes[i];
+                const gEl = gNodes[i];
+                
+                // Sync outer container bounds
+                gEl.style.left = mEl.style.left;
+                gEl.style.top = mEl.style.top;
+                gEl.style.width = mEl.style.width;
+                gEl.style.height = mEl.style.height;
+                gEl.style.transform = mEl.style.transform;
+                
+                // Sync inner resizable bounds
+                const mRes = mEl.querySelector(':scope > .resizable');
+                const gRes = gEl.querySelector(':scope > .resizable');
+                if (mRes && gRes) {
+                    gRes.style.width = mRes.style.width;
+                    gRes.style.height = mRes.style.height;
+                }
+
+                // Image scale magic logic sync
+                if (mEl.dataset.type === 'image') {
+                    const mImg = mEl.querySelector('img');
+                    const gImgs = gEl.querySelectorAll('img'); // there could be multiple stacked ghost images
+                    if (mImg && gImgs.length > 0) {
+                        gImgs.forEach(gImg => {
+                            gImg.style.width = mImg.style.width;
+                            gImg.style.height = mImg.style.height;
+                            gImg.style.transform = mImg.style.transform;
+                        });
+                    }
+                }
+
+                // Recurse into groups
+                if (mEl.dataset.type === 'group') {
+                    const mChildren = Array.from(mEl.querySelectorAll(':scope > .element-container'));
+                    const gChildren = Array.from(gEl.querySelectorAll(':scope > .element-container'));
+                    syncNodes(mChildren, gChildren);
+                }
+            }
+        };
+
+        syncNodes(mainElements, ghostElements);
+    }
+
     function updateUILayer() {
         const uiLayer = document.getElementById('ui-layer');
         if (!uiLayer) return;
@@ -2032,6 +2117,7 @@ function updateBgSettings() {
         }
 
         if (typeof updateLasers === 'function') updateLasers();
+        syncGhostLive();
     }
 
     function applyCanvasTransform() {
@@ -2681,23 +2767,35 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     function updateGhostLayer() {
         const enableGhost = document.getElementById('enable-ghost')?.checked;
         const enableDataGhost = document.getElementById('enable-data-ghost')?.checked;
-        const ghostControls = document.getElementById('ghost-controls');
+        
+        const reverseGhostControls = document.getElementById('reverse-ghost-controls');
+        const dataGhostControls = document.getElementById('data-ghost-controls');
         const ghostLayer = document.getElementById('ghost-layer');
 
-        if (!ghostLayer || !ghostControls) return;
+        if (!ghostLayer) return;
 
+        // Manage overall ghost layer visibility
         if ((!hasCustomBack || !enableGhost) && !enableDataGhost) {
             ghostLayer.classList.add('hidden');
-            ghostControls.classList.add('opacity-50', 'pointer-events-none');
+            if (reverseGhostControls) reverseGhostControls.classList.add('opacity-50', 'pointer-events-none');
+            if (dataGhostControls) dataGhostControls.classList.add('opacity-50', 'pointer-events-none');
             return;
         }
 
         ghostLayer.classList.remove('hidden');
 
+        // Manage Reverse Controls
         if (hasCustomBack && enableGhost) {
-            ghostControls.classList.remove('opacity-50', 'pointer-events-none');
+            if (reverseGhostControls) reverseGhostControls.classList.remove('opacity-50', 'pointer-events-none');
         } else {
-            ghostControls.classList.add('opacity-50', 'pointer-events-none');
+            if (reverseGhostControls) reverseGhostControls.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        // Manage Data Controls
+        if (enableDataGhost) {
+            if (dataGhostControls) dataGhostControls.classList.remove('opacity-50', 'pointer-events-none');
+        } else {
+            if (dataGhostControls) dataGhostControls.classList.add('opacity-50', 'pointer-events-none');
         }
 
         let finalHTML = '';
@@ -2715,8 +2813,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                     `;
             }
 
-            const opacity = document.getElementById('ghost-opacity').value;
-            const transform = document.getElementById('ghost-flip').value;
+            const opacity = document.getElementById('ghost-opacity') ? document.getElementById('ghost-opacity').value : 0.2;
+            const transform = document.getElementById('ghost-flip') ? document.getElementById('ghost-flip').value : 'scaleX(-1)';
 
             finalHTML += `<div class="absolute inset-0 pointer-events-none ${otherBg}" style="opacity: ${opacity}; transform: ${transform}; transform-origin: center;">
                     <div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${contentHTML}</div>
@@ -2727,6 +2825,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             saveCurrentSideState();
             const currentHTML = editingSide === 'front' ? frontContentHTML : backContentHTML;
             let dataHTML = getCleanPrintHTML(currentHTML);
+            
+            // Get the specific opacity for Data items
+            const dataOpacity = document.getElementById('data-ghost-opacity') ? document.getElementById('data-ghost-opacity').value : 0.1;
 
             const temp = document.createElement('div');
             temp.innerHTML = dataHTML;
@@ -2739,15 +2840,47 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                             target.innerHTML = '';
                             target.style.position = 'relative';
                             const maxRows = Math.min(data.length, 100);
-                            for (let i = 0; i < maxRows; i++) {
-                                const val = data[i] !== undefined ? data[i] : '';
-                                if (!val.trim()) continue;
-                                const ghostDiv = document.createElement('div');
-                                ghostDiv.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.15; pointer-events: none; word-break: break-word;';
-                                ghostDiv.textContent = val;
-                                parseMarkdownInElement(ghostDiv);
-                                ghostDiv.innerHTML = ghostDiv.innerHTML.replace(/\n/g, '<br>');
-                                target.appendChild(ghostDiv);
+                            
+                            // Fork logic based on element type
+                            if (el.dataset.type === 'image') {
+                                const fit = el.dataset.objectFit || 'contain';
+                                const posX = el.dataset.objectPositionX || 'center';
+                                const posY = el.dataset.objectPositionY || 'center';
+                                const scale = el.dataset.imageScale || '1';
+
+                                for (let i = 0; i < maxRows; i++) {
+                                    let displayVal = data[i] !== undefined ? data[i] : '';
+                                    
+                                    // Fallback to base image if data is missing
+                                    if (!displayVal && el.dataset.imageBankKey) {
+                                        displayVal = el.dataset.imageBankKey;
+                                    }
+
+                                    // If both data and base image are empty, skip rendering a ghost for this row
+                                    if (!displayVal) continue;
+
+                                    if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
+                                        const imgSrc = imageAssets[displayVal] || displayVal;
+                                        const ghostImg = document.createElement('img');
+                                        ghostImg.src = imgSrc;
+                                        // Apply the anti-cropping scale math to the ghost images with dynamic slider opacity
+                                        ghostImg.style.cssText = `position: absolute; top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; opacity: ${dataOpacity}; pointer-events: none; display: block;`;
+                                        target.appendChild(ghostImg);
+                                    }
+                                }
+                            } else {
+                                // Standard text ghosting logic
+                                for (let i = 0; i < maxRows; i++) {
+                                    const val = data[i] !== undefined ? data[i] : '';
+                                    if (!val.trim()) continue;
+                                    const ghostDiv = document.createElement('div');
+                                    // Use height: auto so the text doesn't artificially stretch bounds, and dynamic slider opacity
+                                    ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${dataOpacity}; pointer-events: none; word-break: break-word;`;
+                                    ghostDiv.textContent = val;
+                                    parseMarkdownInElement(ghostDiv);
+                                    ghostDiv.innerHTML = ghostDiv.innerHTML.replace(/\n/g, '<br>');
+                                    target.appendChild(ghostDiv);
+                                }
                             }
                         }
                     } catch (e) {}
@@ -2756,7 +2889,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 }
             });
 
-            finalHTML += `<div class="absolute inset-0 pointer-events-none" style="opacity: 1;">
+            finalHTML += `<div class="absolute inset-0 pointer-events-none data-ghost-wrapper" style="opacity: 1;">
                     <div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${temp.innerHTML}</div>
                 </div>`;
         }
@@ -2769,6 +2902,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             if (res) res.style.resize = 'none';
         });
 
+        // Ensure the ghost layer wrapper is always fully visible (1), since inner items dictate transparency
         ghostLayer.className = 'absolute inset-0 pointer-events-none z-20';
         ghostLayer.style.opacity = '1';
         ghostLayer.style.transform = 'none';
@@ -3353,7 +3487,14 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 const cRot = cRotMatch ? parseFloat(cRotMatch[1]) : 0;
                 let finalRot = cRot + gRot;
                 finalRot = ((finalRot % 360) + 360) % 360; // Normalize to 0-360
-                child.style.transform = `rotate(${finalRot}deg)`;
+                
+                let flipX = child.dataset.flipX === 'true';
+                let flipY = child.dataset.flipY === 'true';
+                let tStr = `rotate(${finalRot}deg)`;
+                if (flipX) tStr += ` scaleX(-1)`;
+                if (flipY) tStr += ` scaleY(-1)`;
+                
+                child.style.transform = tStr;
 
                 parent.appendChild(child);
                 newSelection.push(child);
@@ -3461,7 +3602,12 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         let deg = parseFloat(document.getElementById('layout-rot').value) || 0;
         deg = ((deg % 360) + 360) % 360;
         activeElements.forEach(el => {
-            el.style.transform = `rotate(${deg}deg)`;
+            let flipX = el.dataset.flipX === 'true';
+            let flipY = el.dataset.flipY === 'true';
+            let tStr = `rotate(${deg}deg)`;
+            if (flipX) tStr += ` scaleX(-1)`;
+            if (flipY) tStr += ` scaleY(-1)`;
+            el.style.transform = tStr;
         });
         
         updateBaseLayout(); // Recompute new bounding boxes
@@ -3648,6 +3794,32 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState();
     }
 
+    function flipElements(axis) {
+        if (activeElements.length === 0) return;
+        activeElements.forEach(el => {
+            let flipX = el.dataset.flipX === 'true';
+            let flipY = el.dataset.flipY === 'true';
+            
+            if (axis === 'x') flipX = !flipX;
+            if (axis === 'y') flipY = !flipY;
+            
+            el.dataset.flipX = flipX;
+            el.dataset.flipY = flipY;
+            
+            const rot = getRotation(el);
+            
+            let tStr = `rotate(${rot}deg)`;
+            if (flipX) tStr += ` scaleX(-1)`;
+            if (flipY) tStr += ` scaleY(-1)`;
+            
+            el.style.transform = tStr;
+        });
+        
+        updateBaseLayout();
+        if (typeof updateUILayer === 'function') updateUILayer();
+        saveState(true);
+    }
+
     function updateFontDatalist() {
         const defaultFonts = [
             { val: "system-ui, sans-serif", lbl: "System Sans" },
@@ -3768,28 +3940,36 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         if (activeElements.length === 0) return;
 
         activeElements.forEach(el => {
-            if (el.dataset.type !== 'table') return;
+            if (el.dataset.type === 'table') {
+                const scope = document.getElementById('align-scope').value;
+                const setVAlign = (cell) => {
+                    const inner = cell.querySelector('.cell-text');
+                    if (inner) inner.style.justifyContent = flexVal;
+                };
 
-            const scope = document.getElementById('align-scope').value;
-            const setVAlign = (cell) => {
-                const inner = cell.querySelector('.cell-text');
-                if (inner) inner.style.justifyContent = flexVal;
-            };
-
-            if (!activeTableCell || !el.contains(activeTableCell) || scope === 'table') {
-                el.querySelectorAll('td, th').forEach(setVAlign);
-            } else if (scope === 'cell') {
-                setVAlign(activeTableCell);
-            } else if (scope === 'row') {
-                const row = activeTableCell.parentElement;
-                row.querySelectorAll('td, th').forEach(setVAlign);
-            } else if (scope === 'col') {
-                const table = activeTableCell.closest('table');
-                const row = activeTableCell.parentElement;
-                const colIndex = Array.from(row.children).indexOf(activeTableCell);
-                table.querySelectorAll('tr').forEach(r => {
-                    if (r.children[colIndex]) setVAlign(r.children[colIndex]);
-                });
+                if (!activeTableCell || !el.contains(activeTableCell) || scope === 'table') {
+                    el.querySelectorAll('td, th').forEach(setVAlign);
+                } else if (scope === 'cell') {
+                    setVAlign(activeTableCell);
+                } else if (scope === 'row') {
+                    const row = activeTableCell.parentElement;
+                    row.querySelectorAll('td, th').forEach(setVAlign);
+                } else if (scope === 'col') {
+                    const table = activeTableCell.closest('table');
+                    const row = activeTableCell.parentElement;
+                    const colIndex = Array.from(row.children).indexOf(activeTableCell);
+                    table.querySelectorAll('tr').forEach(r => {
+                        if (r.children[colIndex]) setVAlign(r.children[colIndex]);
+                    });
+                }
+            } else {
+                // Apply vertical alignment to standard text or titles
+                const target = el.querySelector('div[contenteditable="true"]') || el;
+                if (target) {
+                    target.style.display = 'flex';
+                    target.style.flexDirection = 'column';
+                    target.style.justifyContent = flexVal;
+                }
             }
         });
         saveState();
@@ -3871,9 +4051,9 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         let innerContent = '';
         if (type === 'title') {
-            innerContent = `<div contenteditable="true" placeholder="Title Here" class="resizable" style="font-size: ${ptToPx(24)}px; font-weight: bold; width: ${p(250)}px; text-align: left;"></div>`;
+            innerContent = `<div contenteditable="true" placeholder="Title Here" class="resizable" style="font-size: ${ptToPx(24)}px; font-weight: bold; width: ${p(250)}px; text-align: left; display: flex; flex-direction: column; justify-content: flex-start;"></div>`;
         } else if (type === 'text') {
-            innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: ${p(250)}px; min-height: ${p(50)}px; text-align: left; font-size: ${ptToPx(14)}px;"></div>`;
+            innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: ${p(250)}px; min-height: ${p(50)}px; text-align: left; font-size: ${ptToPx(14)}px; display: flex; flex-direction: column; justify-content: flex-start;"></div>`;
         } else if (type === 'table') {
             innerContent = `
                     <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
@@ -4433,6 +4613,12 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 document.getElementById('type-controls').style.display = 'flex';
                 const mergeSection = document.getElementById('data-merge-section');
                 mergeSection.style.display = 'flex';
+                
+                // Show the vertical align group, but keep scope hidden
+                document.getElementById('align-scope').classList.add('hidden');
+                document.getElementById('vertical-align-group').classList.remove('hidden');
+                document.getElementById('vertical-align-group').classList.add('flex');
+                
                 updateMergeUI();
             }
 
@@ -5483,10 +5669,17 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 const sinA = Math.sin(deltaAngleRad);
 
                 initialRotateStates.forEach(state => {
-                    // 1. Rotate the element visually in place
+                    // 1. Rotate the element visually in place while preserving flips
                     let newRotation = state.initRot + deltaAngle;
                     newRotation = ((newRotation % 360) + 360) % 360;
-                    state.el.style.transform = `rotate(${newRotation}deg)`;
+                    
+                    let flipX = state.el.dataset.flipX === 'true';
+                    let flipY = state.el.dataset.flipY === 'true';
+                    let tStr = `rotate(${newRotation}deg)`;
+                    if (flipX) tStr += ` scaleX(-1)`;
+                    if (flipY) tStr += ` scaleY(-1)`;
+                    
+                    state.el.style.transform = tStr;
 
                     // 2. Orbit multiple items around the central group pivot
                     if (initialRotateStates.length > 1) {
