@@ -535,6 +535,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <input type="checkbox" id="enable-snapping" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
                             Drag Snapping
                         </label>
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-resize-snapping" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
+                            Resize Snapping
+                        </label>
                         <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="checkbox" id="show-snap-lines" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
                             Show Snap Lasers
@@ -2142,6 +2146,9 @@ function updateBgSettings() {
                 if (data.snapping !== undefined && document.getElementById('enable-snapping')) {
                     document.getElementById('enable-snapping').checked = data.snapping;
                 }
+                if (data.resizeSnapping !== undefined && document.getElementById('enable-resize-snapping')) {
+                    document.getElementById('enable-resize-snapping').checked = data.resizeSnapping;
+                }
                 if (data.snapLines !== undefined && document.getElementById('show-snap-lines')) {
                     document.getElementById('show-snap-lines').checked = data.snapLines;
                 }
@@ -2332,6 +2339,7 @@ const autoSaveData = {
                 imageAssets: imageAssets,
                 mergeSources: mergeSources,
                 snapping: document.getElementById('enable-snapping')?.checked !== false,
+                resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
                 snapLines: document.getElementById('show-snap-lines')?.checked !== false,
                 panX: panX,
                 panY: panY,
@@ -4787,6 +4795,35 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             resizeStartY = e.clientY;
             resizeAspect = resizeStartW / resizeStartH;
 
+            dragSnapTargets = { x: [], y: [] };
+            const unitMult = currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN;
+            const sTopPx = (parseFloat(document.getElementById('safe-margin-top')?.value) || 0) * unitMult;
+            const sRightPx = (parseFloat(document.getElementById('safe-margin-right')?.value) || 0) * unitMult;
+            const sBottomPx = (parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0) * unitMult;
+            const sLeftPx = (parseFloat(document.getElementById('safe-margin-left')?.value) || 0) * unitMult;
+
+            dragSnapTargets.x.push(0, currentWidth, currentWidth / 2);
+            dragSnapTargets.y.push(0, currentHeight, currentHeight / 2);
+
+            if (sLeftPx > 0) dragSnapTargets.x.push(sLeftPx);
+            if (sRightPx > 0) dragSnapTargets.x.push(currentWidth - sRightPx);
+            if (sTopPx > 0) dragSnapTargets.y.push(sTopPx);
+            if (sBottomPx > 0) dragSnapTargets.y.push(currentHeight - sBottomPx);
+
+            document.querySelectorAll('#card-content > .element-container').forEach(el => {
+                let isInsideActiveGroup = false;
+                let p = el.parentElement;
+                while (p && p.id !== 'card-content') {
+                    if (activeElements.includes(p)) { isInsideActiveGroup = true; break; }
+                    p = p.parentElement;
+                }
+                if (!activeElements.includes(el) && !el.classList.contains('group-wrapper') && !isInsideActiveGroup) {
+                    const b = getAbsoluteBounds(el, 'bbox');
+                    dragSnapTargets.x.push(b.x, b.x + b.w, b.x + b.w / 2);
+                    dragSnapTargets.y.push(b.y, b.y + b.h, b.y + b.h / 2);
+                }
+            });
+
             e.preventDefault();
             e.stopPropagation();
             return;
@@ -5026,6 +5063,56 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             if (resizeDir.includes('w')) newW -= localDx;
             if (resizeDir.includes('s')) newH += localDy;
             if (resizeDir.includes('n')) newH -= localDy;
+
+            activeSnapLines = { x: null, y: null };
+const snappingEnabled = document.getElementById('enable-resize-snapping')?.checked !== false;
+
+            // Ignore snapping if holding Shift (Aspect Lock) or Ctrl (Precision Mode)
+            if (snappingEnabled && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                let snapRadius = 6 / canvasScale;
+
+                // X-axis snapping
+                if (resizeDir.includes('e') || resizeDir.includes('w')) {
+                    let movingEdgeX = resizeDir.includes('e') ? baseGroupBB.x + newW : baseGroupBB.x + resizeStartW - newW;
+                    let minDiffX = snapRadius;
+                    let snappedEdgeX = movingEdgeX;
+
+                    dragSnapTargets.x.forEach(tx => {
+                        let diff = Math.abs(tx - movingEdgeX);
+                        if (diff < minDiffX) {
+                            minDiffX = diff;
+                            snappedEdgeX = tx;
+                            activeSnapLines.x = tx;
+                        }
+                    });
+
+                    if (minDiffX < snapRadius) {
+                        if (resizeDir.includes('e')) newW = snappedEdgeX - baseGroupBB.x;
+                        if (resizeDir.includes('w')) newW = baseGroupBB.x + resizeStartW - snappedEdgeX;
+                    }
+                }
+
+                // Y-axis snapping
+                if (resizeDir.includes('s') || resizeDir.includes('n')) {
+                    let movingEdgeY = resizeDir.includes('s') ? baseGroupBB.y + newH : baseGroupBB.y + resizeStartH - newH;
+                    let minDiffY = snapRadius;
+                    let snappedEdgeY = movingEdgeY;
+
+                    dragSnapTargets.y.forEach(ty => {
+                        let diff = Math.abs(ty - movingEdgeY);
+                        if (diff < minDiffY) {
+                            minDiffY = diff;
+                            snappedEdgeY = ty;
+                            activeSnapLines.y = ty;
+                        }
+                    });
+
+                    if (minDiffY < snapRadius) {
+                        if (resizeDir.includes('s')) newH = snappedEdgeY - baseGroupBB.y;
+                        if (resizeDir.includes('n')) newH = baseGroupBB.y + resizeStartH - snappedEdgeY;
+                    }
+                }
+            }
 
             // 2. Force proportional aspect ratio if Shift is held
             if (e.shiftKey) {
