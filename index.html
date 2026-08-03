@@ -2047,6 +2047,11 @@ function updateBgSettings() {
             if(el) el.addEventListener('input', updatePrintStats);
         });
 
+        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left', 'gap-x', 'gap-y', 'print-bleed', 'cut-line-width', 'cut-line-style', 'binding-line-width', 'binding-line-style', 'print-offset-x', 'print-offset-y', 'target-dpi', 'show-bleed-editor', 'print-cut-line', 'show-margin-guide', 'print-crop-marks', 'print-duplex', 'grid-reverse-col', 'grid-reverse-row', 'mirror-horizontal', 'mirror-vertical', 'rotate-180', 'print-vernier'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('change', () => { saveState(true); });
+        });
+
         if (!localStorage.getItem('qcd_has_visited')) {
             setTimeout(openInfoModal, 500); // 500ms delay so it feels smooth
             localStorage.setItem('qcd_has_visited', 'true');
@@ -2152,6 +2157,51 @@ function updateBgSettings() {
                 }
                 if (data.snapLines !== undefined && document.getElementById('show-snap-lines')) {
                     document.getElementById('show-snap-lines').checked = data.snapLines;
+                }
+
+                if (data.margin) {
+                    if (document.getElementById('margin-top')) document.getElementById('margin-top').value = data.margin.t || 0;
+                    if (document.getElementById('margin-right')) document.getElementById('margin-right').value = data.margin.r || 0;
+                    if (document.getElementById('margin-bottom')) document.getElementById('margin-bottom').value = data.margin.b || 0;
+                    if (document.getElementById('margin-left')) document.getElementById('margin-left').value = data.margin.l || 0;
+                }
+                if (data.safeMargin) {
+                    if (document.getElementById('safe-margin-top')) document.getElementById('safe-margin-top').value = data.safeMargin.t || 0;
+                    if (document.getElementById('safe-margin-right')) document.getElementById('safe-margin-right').value = data.safeMargin.r || 0;
+                    if (document.getElementById('safe-margin-bottom')) document.getElementById('safe-margin-bottom').value = data.safeMargin.b || 0;
+                    if (document.getElementById('safe-margin-left')) document.getElementById('safe-margin-left').value = data.safeMargin.l || 0;
+                }
+                if (document.getElementById('show-margin-guide') && data.guide !== undefined) document.getElementById('show-margin-guide').checked = data.guide;
+                if (document.getElementById('cut-line-width') && data.cutLineW !== undefined) document.getElementById('cut-line-width').value = data.cutLineW;
+                if (document.getElementById('cut-line-style') && data.cutLineStyle !== undefined) document.getElementById('cut-line-style').value = data.cutLineStyle;
+                if (document.getElementById('print-cut-line') && data.printCutLine !== undefined) document.getElementById('print-cut-line').checked = data.printCutLine;
+                if (document.getElementById('binding-line-width') && data.bindingLineW !== undefined) document.getElementById('binding-line-width').value = data.bindingLineW;
+                if (document.getElementById('binding-line-style') && data.bindingLineStyle !== undefined) document.getElementById('binding-line-style').value = data.bindingLineStyle;
+                
+                if (data.printer) {
+                    const po = data.printer;
+                    if (document.getElementById('paper-size')) document.getElementById('paper-size').value = po.paper || 'letter';
+                    if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = po.orient || 'portrait';
+                    
+                    const duplexCb = document.getElementById('print-duplex');
+                    if (duplexCb) {
+                        duplexCb.checked = po.duplex || false;
+                        const ds = document.getElementById('duplex-settings');
+                        if (ds) ds.style.display = po.duplex ? 'block' : 'none';
+                    }
+
+                    if (document.getElementById('grid-reverse-col')) document.getElementById('grid-reverse-col').checked = po.gridRevCol !== undefined ? po.gridRevCol : true;
+                    if (document.getElementById('grid-reverse-row')) document.getElementById('grid-reverse-row').checked = po.gridRevRow || false;
+                    if (document.getElementById('mirror-horizontal')) document.getElementById('mirror-horizontal').checked = po.mirrorH || false;
+                    if (document.getElementById('mirror-vertical')) document.getElementById('mirror-vertical').checked = po.mirrorV || false;
+                    if (document.getElementById('rotate-180')) document.getElementById('rotate-180').checked = po.rotate180 || false;
+                    if (document.getElementById('print-offset-x')) document.getElementById('print-offset-x').value = po.driftX || 0;
+                    if (document.getElementById('print-offset-y')) document.getElementById('print-offset-y').value = po.driftY || 0;
+                    if (document.getElementById('target-dpi')) document.getElementById('target-dpi').value = po.targetDpi || 300;
+                    if (document.getElementById('print-bleed')) document.getElementById('print-bleed').value = po.bleed || 0;
+                    if (document.getElementById('show-bleed-editor')) document.getElementById('show-bleed-editor').checked = po.showBleed || false;
+                    if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = po.cropMarks !== undefined ? po.cropMarks : false;
+                    if (document.getElementById('print-vernier')) document.getElementById('print-vernier').checked = po.vernier || false;
                 }
                 
                 // Backwards compatibility for older saves without the header property
@@ -2344,7 +2394,42 @@ const autoSaveData = {
                 snapLines: document.getElementById('show-snap-lines')?.checked !== false,
                 panX: panX,
                 panY: panY,
-                canvasScale: canvasScale
+                canvasScale: canvasScale,
+                margin: {
+                    t: document.getElementById('margin-top')?.value || 0,
+                    r: document.getElementById('margin-right')?.value || 0,
+                    b: document.getElementById('margin-bottom')?.value || 0,
+                    l: document.getElementById('margin-left')?.value || 0
+                },
+                safeMargin: {
+                    t: document.getElementById('safe-margin-top')?.value || 0,
+                    r: document.getElementById('safe-margin-right')?.value || 0,
+                    b: document.getElementById('safe-margin-bottom')?.value || 0,
+                    l: document.getElementById('safe-margin-left')?.value || 0
+                },
+                guide: document.getElementById('show-margin-guide')?.checked ?? true,
+                cutLineW: document.getElementById('cut-line-width')?.value || 1,
+                cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+                printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
+                bindingLineW: document.getElementById('binding-line-width')?.value || 1,
+                bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+                printer: {
+                    paper: document.getElementById('paper-size')?.value || 'letter',
+                    orient: document.getElementById('paper-orientation')?.value || 'portrait',
+                    duplex: document.getElementById('print-duplex')?.checked ?? false,
+                    gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
+                    gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
+                    mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
+                    mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
+                    rotate180: document.getElementById('rotate-180')?.checked ?? false,
+                    driftX: document.getElementById('print-offset-x')?.value || 0,
+                    driftY: document.getElementById('print-offset-y')?.value || 0,
+                    targetDpi: document.getElementById('target-dpi')?.value || 300,
+                    bleed: document.getElementById('print-bleed')?.value || 0,
+                    showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
+                    cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
+                    vernier: document.getElementById('print-vernier')?.checked ?? false
+                }
             };
 try {
                 localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
@@ -6499,7 +6584,8 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 targetDpi: document.getElementById('target-dpi') ? document.getElementById('target-dpi').value : 300,
                 bleed: document.getElementById('print-bleed') ? document.getElementById('print-bleed').value : 0,
                 showBleed: document.getElementById('show-bleed-editor') ? document.getElementById('show-bleed-editor').checked : false,
-                cropMarks: document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false
+                cropMarks: document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false,
+                vernier: document.getElementById('print-vernier') ? document.getElementById('print-vernier').checked : false
             },
             hasCustomBack: hasCustomBack,
             frontBg: frontBgClass,
@@ -7266,6 +7352,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     if (document.getElementById('print-bleed') && printerOpts.bleed !== undefined) document.getElementById('print-bleed').value = printerOpts.bleed;
                     if (document.getElementById('show-bleed-editor') && printerOpts.showBleed !== undefined) document.getElementById('show-bleed-editor').checked = printerOpts.showBleed;
                     if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = printerOpts.cropMarks !== undefined ? printerOpts.cropMarks : true;
+                    if (document.getElementById('print-vernier')) document.getElementById('print-vernier').checked = printerOpts.vernier || false;
 
                     if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
                     if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
