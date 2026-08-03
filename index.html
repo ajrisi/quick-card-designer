@@ -374,7 +374,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     </h3>
                     <div class="mb-3">
                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
-                        <input type="number" id="target-dpi" list="export-dpi-options" value="300" class="no-stepper w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" placeholder="Custom DPI...">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="target-dpi" list="export-dpi-options" value="300" class="no-stepper w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" placeholder="Custom DPI..." onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;">
                         <datalist id="export-dpi-options">
                             <option value="96">96 (Web/Screen)</option>
                             <option value="300">300 (Professional Print)</option>
@@ -431,7 +431,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div class="flex items-center gap-2 ml-1 shrink-0 border-l border-gray-300 pl-4">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Doc DPI</span>
                 <div class="flex items-center">
-                    <input type="number" id="document-dpi" list="doc-dpi-options" value="300" class="no-stepper w-16 text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-text" onchange="updateDPI(parseInt(this.value))" title="Custom DPI">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="document-dpi" list="doc-dpi-options" value="300" class="no-stepper w-16 text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-text" onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;" onchange="updateDPI(parseInt(this.value))" title="Custom DPI">
                     <datalist id="doc-dpi-options">
                         <option value="100">100 (Legacy)</option>
                         <option value="300">300 (Standard)</option>
@@ -2032,7 +2032,7 @@ function updateBgSettings() {
             }, { passive: true });
         });
 
-        
+
         setupPWA();
         
         // Auto-update print stats when inputs change
@@ -2336,7 +2336,12 @@ const autoSaveData = {
                 panY: panY,
                 canvasScale: canvasScale
             };
-        localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
+try {
+                localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
+            } catch (e) {
+                console.warn("Autosave failed, possibly due to quota exceeded", e);
+                // We catch this so the History Stack (Undo/Redo) keeps working!
+            }
 
             if (historyIndex >= 0) {
                 const top = historyStack[historyIndex];
@@ -6412,7 +6417,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             backBg: backBgClass,
             mergeSources: mergeSources,
             bgConfigFront: frontBgConfig,
-            bgConfigBack: backBgConfig
+            bgConfigBack: backBgConfig,
+            imageAssets: imageAssets
         };
 
         const xmlSerializer = new XMLSerializer();
@@ -7040,6 +7046,68 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
                     hasCustomBack = settings.hasCustomBack || false;
                     mergeSources = settings.mergeSources || {};
+                    imageAssets = settings.imageAssets || {};
+                    
+                    // RECOVERY SCRIPT: Rebuild lost CSV data from orphaned elements
+                    if (Object.keys(mergeSources).length === 0) {
+                        const tempFront = decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || '');
+                        const tempBack = decodeURIComponent(svgEl.getAttribute('data-card-html-back') || '');
+                        
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = tempFront + tempBack;
+                        
+                        const orphanedElements = Array.from(tempDiv.querySelectorAll('[data-merge-data]'));
+                        if (orphanedElements.length > 0) {
+                            let maxRows = 0;
+                            orphanedElements.forEach(el => {
+                                try {
+                                    const colData = JSON.parse(el.dataset.mergeData);
+                                    if (colData.length > maxRows) maxRows = colData.length;
+                                } catch(e) {}
+                            });
+                            
+                            let mockData = Array.from({length: maxRows}, () => []);
+                            let colIdx = 0;
+                            
+                            const processHTML = (html) => {
+                                if (!html) return '';
+                                const t = document.createElement('div');
+                                t.innerHTML = html;
+                                t.querySelectorAll('[data-merge-data]').forEach(el => {
+                                    try {
+                                        const colData = JSON.parse(el.dataset.mergeData);
+                                        for(let i=0; i<maxRows; i++) mockData[i][colIdx] = colData[i] || '';
+                                        
+                                        // Re-link the elements to our new recovered source
+                                        el.dataset.mergeSourceId = 'src_recovered';
+                                        el.dataset.mergeCol = colIdx.toString();
+                                        colIdx++;
+                                    } catch(e) {}
+                                });
+                                return t.innerHTML;
+                            };
+                            
+                            frontContentHTML = injectControlsIntoHTML(processHTML(tempFront));
+                            backContentHTML = injectControlsIntoHTML(processHTML(tempBack));
+                            
+                            if (colIdx > 0) {
+                                mergeSources['src_recovered'] = {
+                                    filename: "Recovered_Data.csv",
+                                    data: mockData,
+                                    hasHeader: false
+                                };
+                                setTimeout(() => showToast("Recovered missing CSV data from card elements!"), 500);
+                            }
+                        } else {
+                            frontContentHTML = injectControlsIntoHTML(tempFront);
+                            backContentHTML = injectControlsIntoHTML(tempBack);
+                        }
+                    } else {
+                        // Normal loading path
+                        frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || ''));
+                        backContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-back') || ''));
+                    }
+
                     Object.values(mergeSources).forEach(src => {
                         if (src.hasHeader === undefined) src.hasHeader = true;
                     });
