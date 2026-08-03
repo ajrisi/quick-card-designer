@@ -6819,7 +6819,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                 activeContent = temp.innerHTML;
                             }
 
-                            const bleedPx = bleedIn * 100;
+                            const bleedPx = bleedIn * PX_PER_IN;
                             let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
                             let maxBleedBottom = (gridR === rows - 1) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
                             let maxBleedLeft = (gridC === 0) ? bleedIn : Math.min(bleedIn, gapXIn / 2);
@@ -7450,7 +7450,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                                 activeContent = temp.innerHTML;
                             }
 
-                            const bleedPx = bleedIn * 100;
+                            const bleedPx = bleedIn * PX_PER_IN;
                             let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
                             let maxBleedBottom = (gridR === rows - 1) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
                             let maxBleedLeft = (gridC === 0) ? bleedIn : Math.min(bleedIn, gapXIn / 2);
