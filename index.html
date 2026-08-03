@@ -217,7 +217,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }*/
         /* 8-Way Directional Resizers */
         .resizer { display: none; position: absolute; z-index: 1002; transform: scale(var(--inverse-scale)); }
-        .element-container.active > .resizer { display: block; }
+        .element-container.active:not(.rotation-active) > .resizer { display: block; }
         
         .resizer.n { top: -6px; left: 6px; right: 6px; height: 12px; cursor: n-resize; }
         .resizer.s { bottom: -6px; left: 6px; right: 6px; height: 12px; cursor: s-resize; }
@@ -294,11 +294,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
 /* "Held Down" active state for laser buttons */
 .element-container[data-lasers="true"] .laser-btn,
-#multi-select-controls[data-lasers="true"] .laser-btn {
-    background: #dbeafe !important;
-    color: #2563eb !important;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
-}
+        #multi-select-controls[data-lasers="true"] .laser-btn,
+        .element-container.rotation-active .rot-btn,
+        #multi-select-controls[data-rotating="true"] .rot-btn {
+            background: #dbeafe !important;
+            color: #2563eb !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
 /* Allow group wrappers to shrink tightly around small objects */
 .element-container.group-wrapper {
     min-width: 0 !important;
@@ -848,6 +851,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
     </div>
 
+
+
     <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
@@ -920,8 +925,9 @@ Check your Browserslist config to be sure that your targets are set up correctly
     </div> <!-- Closes #element-settings -->
     <!-- END OF #element-settings MAIN TOOLBAR -->
 
-    <!-- START OF NEW SECONDARY SLIDE-DOWN TOOLBAR -->
-    <div id="secondary-toolbar" class="px-4 flex items-center shrink-0 w-full bg-gray-50 border-gray-200 overflow-x-auto overflow-y-hidden hide-scrollbar transition-all duration-300 ease-in-out z-[9] shadow-inner" style="max-height: 0px; opacity: 0; border-bottom-width: 0px; padding-top: 0px; padding-bottom: 0px; pointer-events: none;">
+    <!-- START OF NEW SECONDARY SLIDE-DOWN TOOLBAR 
+    <div id="secondary-toolbar" class="px-4 flex items-center shrink-0 w-full bg-gray-50 border-gray-200 overflow-x-auto overflow-y-hidden hide-scrollbar transition-all duration-300 ease-in-out z-[9] shadow-inner" style="max-height: 0px; opacity: 0; border-bottom-width: 0px; padding-top: 0px; padding-bottom: 0px; pointer-events: none;">-->
+        <div id="secondary-toolbar" class="px-4 py-1.5 flex items-center shrink-0 w-full bg-gray-50 border-b border-gray-200 overflow-x-auto overflow-y-hidden hide-scrollbar z-[9] shadow-sm min-h-[44px] opacity-50 pointer-events-none transition-opacity duration-300">
         
         <!-- TEXT CONTROLS -->
         <div id="type-controls" class="flex items-center gap-2.5 shrink-0" style="display: none;">
@@ -1174,6 +1180,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
         </div>
 
+        <!-- IMAGE CONTROLS -->
+        <div id="image-controls" class="flex items-center gap-2.5 shrink-0" style="display: none;">
+            <span class="text-[9px] font-bold text-gray-400 uppercase">Fit</span>
+            <select id="image-fit-select" class="text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyImageFit(this.value)">
+                <option value="contain">Best Fit (Contain)</option>
+                <option value="fill">Stretch (Fill)</option>
+                <option value="cover">Crop (Cover)</option>
+            </select>
+        </div>
+
         <div id="data-merge-section" style="display: none;" class="shrink-0 ml-3 border-l border-gray-200 pl-3">
             <div class="flex items-center gap-2 h-full">
                 <div class="flex items-center gap-2">
@@ -1194,6 +1210,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
             </div>
         </div>
+
+
 
     </div>
     <!-- END SECONDARY TOOLBAR -->
@@ -1812,6 +1830,18 @@ function updateBgSettings() {
         saveState();
     }
 
+    function applyImageFit(val) {
+        if (activeElements.length === 0) return;
+        activeElements.forEach(el => {
+            if (el.dataset.type === 'image') {
+                el.dataset.objectFit = val;
+                const img = el.querySelector('img');
+                if (img) img.style.objectFit = val;
+            }
+        });
+        saveState(true);
+    }
+
     // Replaces the old global toggleLasers
     function toggleLasers(el, event) {
         if (event) event.stopPropagation();
@@ -1959,8 +1989,9 @@ function updateBgSettings() {
             ms.style.left = (panX + box.x * canvasScale - 2) + 'px';
             ms.style.top = (panY + box.y * canvasScale - 34) + 'px';
 
-            // Sync the multi-select laser visual state
+            // Sync the multi-select visual states
             ms.dataset.lasers = activeElements[0]?.dataset.lasers === 'true' ? 'true' : 'false';
+            ms.dataset.rotating = activeElements[0]?.classList.contains('rotation-active') ? 'true' : 'false';
 
         } else {
             // Clear classes and hide the multi popover for single items
@@ -3149,7 +3180,24 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     `;
     }
 
-    // Toggles rotation handles for all items in a multi-select
+    // // Toggles rotation handles for all items in a multi-select
+    // function toggleMultiRotation(event) {
+    //     if (event) event.stopPropagation();
+        
+    //     // Check if ANY of the selected elements currently have active rotation handles
+    //     const anyActive = activeElements.some(el => el.classList.contains('rotation-active'));
+        
+    //     activeElements.forEach(el => {
+    //         if (anyActive) {
+    //             el.classList.remove('rotation-active');
+    //         } else {
+    //             el.classList.add('rotation-active');
+    //         }
+    //     });
+        
+    //     saveState(true);
+    // }
+
     function toggleMultiRotation(event) {
         if (event) event.stopPropagation();
         
@@ -3163,6 +3211,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 el.classList.add('rotation-active');
             }
         });
+
+        // Sync the multi-select popover visual state
+        const ms = document.getElementById('multi-select-controls');
+        if (ms) ms.dataset.rotating = anyActive ? 'false' : 'true';
         
         saveState(true);
     }
@@ -4097,8 +4149,134 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
     }
 
+    // function syncUISettingsWithActiveElement() {
+    //     const stylePanel = document.getElementById('element-settings');
+    //     const badge = document.getElementById('selection-badge');
+
+    //     document.getElementById('btn-group').disabled = activeElements.length < 2;
+    //     document.getElementById('btn-ungroup').disabled = !activeElements.some(e => e.dataset.type === 'group');
+
+    //     if (activeElements.length > 0) {
+    //         stylePanel.classList.remove('opacity-50', 'pointer-events-none');
+    //         badge.classList.remove('hidden');
+    //         badge.innerText = activeElements.length > 1 ? `${activeElements.length} Items` : (activeElement.dataset.type === 'group' ? 'Group' : 'Active');
+
+    //         updateBaseLayout();
+    //         updateLayoutInputs();
+
+    //         let target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
+    //         if (activeElement.dataset.type === 'table') {
+    //             target = activeTableCell && activeElement.contains(activeTableCell) ? (activeTableCell.querySelector('.cell-text') || activeTableCell) : (activeElement.querySelector('.cell-text') || target);
+    //         }
+
+    //         if (target.style.fontSize) {
+    //             const px = parseFloat(target.style.fontSize);
+    //             document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
+    //         }
+    //         if (target.style.fontWeight) document.getElementById('font-weight').value = target.style.fontWeight;
+
+    //         const boldBtn = document.getElementById('font-bold-btn');
+    //         if (boldBtn) {
+    //             const fw = target.style.fontWeight;
+    //             if (fw === 'bold' || parseInt(fw) > 600) {
+    //                 boldBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    //                 boldBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+    //             } else {
+    //                 boldBtn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    //                 boldBtn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    //             }
+    //         }
+
+    //         const italicBtn = document.getElementById('font-italic-btn');
+    //         if (italicBtn) {
+    //             if (target.style.fontStyle === 'italic') {
+    //                 italicBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    //                 italicBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+    //             } else {
+    //                 italicBtn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    //                 italicBtn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    //             }
+    //         }
+
+    //         let { hex: tHex, alpha: tAlpha } = parseColorToHexAndAlpha(target.style.color || '#1f2937');
+    //         document.getElementById('text-color').value = tHex;
+    //         document.getElementById('text-opacity').value = tAlpha;
+    //         document.getElementById('text-opacity-val').innerText = Math.round(tAlpha * 100) + '%';
+    //         document.getElementById('text-color-swatch').style.backgroundColor = tAlpha < 1 ? target.style.color : tHex;
+
+    //         const fontInput = document.getElementById('font-family');
+    //         fontInput.value = target.style.fontFamily ? target.style.fontFamily.replace(/"/g, "").replace(/'/g, "") : '';
+
+    //         // Clear all secondary panels first
+    //         document.getElementById('type-controls').style.display = 'none';
+    //         if (document.getElementById('shape-controls')) document.getElementById('shape-controls').style.display = 'none';
+    //         document.getElementById('table-controls').style.display = 'none';
+    //         document.getElementById('data-merge-section').style.display = 'none';
+            
+    //         document.getElementById('align-scope').classList.add('hidden');
+    //         document.getElementById('vertical-align-group').classList.add('hidden');
+    //         document.getElementById('vertical-align-group').classList.remove('flex');
+            
+    //         let shouldShowSecondary = false;
+
+    //         if (activeElements.length === 1 && activeElement.dataset.type === 'shape') {
+    //             shouldShowSecondary = true;
+    //             document.getElementById('shape-controls').style.display = 'flex';
+    //             syncShapeSettingsUI();
+    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'table') {
+    //             shouldShowSecondary = true;
+    //             document.getElementById('table-controls').style.display = 'flex';
+    //             document.getElementById('radius-control-group').style.display = 'flex';
+    //             document.getElementById('table-options-btn').style.display = 'block';
+    //             document.getElementById('cell-fill-group').style.display = 'flex';
+    //             document.getElementById('table-structure-group').style.display = 'flex';
+    //             document.getElementById('align-scope').classList.remove('hidden');
+    //             document.getElementById('vertical-align-group').classList.remove('hidden');
+    //             document.getElementById('vertical-align-group').classList.add('flex');
+    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'divider') {
+    //             shouldShowSecondary = true;
+    //             document.getElementById('table-controls').style.display = 'flex';
+    //             document.getElementById('radius-control-group').style.display = 'none';
+    //             document.getElementById('table-options-btn').style.display = 'none';
+    //             document.getElementById('cell-fill-group').style.display = 'none';
+    //             document.getElementById('table-structure-group').style.display = 'none';
+    //             document.getElementById('align-scope').classList.add('hidden');
+    //             document.getElementById('vertical-align-group').classList.add('hidden');
+    //             document.getElementById('vertical-align-group').classList.remove('flex');
+    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'image') {
+    //             shouldShowSecondary = true;
+    //             document.getElementById('data-merge-section').style.display = 'flex';
+    //             document.getElementById('data-merge-section').classList.remove('border-l', 'border-gray-200', 'pl-3', 'ml-1');
+    //             updateMergeUI();
+    //         } else {
+    //             if (activeElements.length === 1 && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title')) {
+    //                 shouldShowSecondary = true;
+    //                 document.getElementById('type-controls').style.display = 'flex';
+    //                 document.getElementById('data-merge-section').style.display = 'flex';
+    //                 document.getElementById('data-merge-section').classList.add('border-l', 'border-gray-200', 'pl-3', 'ml-1');
+    //                 updateMergeUI();
+    //             } else {
+    //                 document.getElementById('data-merge-section').style.display = 'none';
+    //             }
+    //         }
+
+    //         if (shouldShowSecondary) showSecondaryToolbar();
+    //         else hideSecondaryToolbar();
+
+    //     } else {
+    //         stylePanel.classList.add('opacity-50', 'pointer-events-none');
+    //         badge.classList.add('hidden');
+    //         document.getElementById('align-scope').classList.add('hidden');
+    //         document.getElementById('vertical-align-group').classList.add('hidden');
+    //         document.getElementById('vertical-align-group').classList.remove('flex');
+    //         document.getElementById('data-merge-section').style.display = 'none';
+    //         hideSecondaryToolbar();
+    //     }
+    // }
+
     function syncUISettingsWithActiveElement() {
         const stylePanel = document.getElementById('element-settings');
+        const secToolbar = document.getElementById('secondary-toolbar');
         const badge = document.getElementById('selection-badge');
 
         document.getElementById('btn-group').disabled = activeElements.length < 2;
@@ -4106,6 +4284,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         if (activeElements.length > 0) {
             stylePanel.classList.remove('opacity-50', 'pointer-events-none');
+            if (secToolbar) secToolbar.classList.remove('opacity-50', 'pointer-events-none');
+            
             badge.classList.remove('hidden');
             badge.innerText = activeElements.length > 1 ? `${activeElements.length} Items` : (activeElement.dataset.type === 'group' ? 'Group' : 'Active');
 
@@ -4160,19 +4340,16 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             if (document.getElementById('shape-controls')) document.getElementById('shape-controls').style.display = 'none';
             document.getElementById('table-controls').style.display = 'none';
             document.getElementById('data-merge-section').style.display = 'none';
+            document.getElementById('image-controls').style.display = 'none';
             
             document.getElementById('align-scope').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.remove('flex');
-            
-            let shouldShowSecondary = false;
 
             if (activeElements.length === 1 && activeElement.dataset.type === 'shape') {
-                shouldShowSecondary = true;
                 document.getElementById('shape-controls').style.display = 'flex';
                 syncShapeSettingsUI();
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'table') {
-                shouldShowSecondary = true;
                 document.getElementById('table-controls').style.display = 'flex';
                 document.getElementById('radius-control-group').style.display = 'flex';
                 document.getElementById('table-options-btn').style.display = 'block';
@@ -4182,7 +4359,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 document.getElementById('vertical-align-group').classList.remove('hidden');
                 document.getElementById('vertical-align-group').classList.add('flex');
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'divider') {
-                shouldShowSecondary = true;
                 document.getElementById('table-controls').style.display = 'flex';
                 document.getElementById('radius-control-group').style.display = 'none';
                 document.getElementById('table-options-btn').style.display = 'none';
@@ -4192,31 +4368,31 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 document.getElementById('vertical-align-group').classList.add('hidden');
                 document.getElementById('vertical-align-group').classList.remove('flex');
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'image') {
-                shouldShowSecondary = true;
-                document.getElementById('data-merge-section').style.display = 'flex';
+                const mergeSection = document.getElementById('data-merge-section');
+                mergeSection.style.display = 'flex';
+                // Remove the border when standing alone for images
+                mergeSection.classList.remove('border-l', 'border-gray-200', 'pl-3', 'ml-1');
+                document.getElementById('image-controls').style.display = 'flex'; // Show image controls
+                document.getElementById('image-fit-select').value = activeElement.dataset.objectFit || 'fill';
                 updateMergeUI();
-            } else {
-                if (activeElements.length === 1 && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title')) {
-                    shouldShowSecondary = true;
-                    document.getElementById('type-controls').style.display = 'flex';
-                    document.getElementById('data-merge-section').style.display = 'flex';
-                    updateMergeUI();
-                } else {
-                    document.getElementById('data-merge-section').style.display = 'none';
-                }
+            } else if (activeElements.length === 1 && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title')) {
+                document.getElementById('type-controls').style.display = 'flex';
+                const mergeSection = document.getElementById('data-merge-section');
+                mergeSection.style.display = 'flex';
+                // Restore the border to separate it from the text controls
+                mergeSection.classList.add('border-l', 'border-gray-200', 'pl-3', 'ml-1');
+                updateMergeUI();
             }
-
-            if (shouldShowSecondary) showSecondaryToolbar();
-            else hideSecondaryToolbar();
 
         } else {
             stylePanel.classList.add('opacity-50', 'pointer-events-none');
+            if (secToolbar) secToolbar.classList.add('opacity-50', 'pointer-events-none');
+            
             badge.classList.add('hidden');
             document.getElementById('align-scope').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.remove('flex');
             document.getElementById('data-merge-section').style.display = 'none';
-            hideSecondaryToolbar();
         }
     }
 
@@ -5955,6 +6131,43 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         document.getElementById('data-bank-modal').classList.add('hidden');
     }
 
+    // function renderDataSourcesList() {
+    //     const container = document.getElementById('data-sources-list');
+    //     container.innerHTML = '';
+    //     const keys = Object.keys(mergeSources);
+        
+    //     if (keys.length === 0) {
+    //         container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No data sources loaded. Upload a CSV to get started!</div>';
+    //         return;
+    //     }
+
+    //     keys.forEach(id => {
+    //         const src = mergeSources[id];
+    //         const div = document.createElement('div');
+    //         div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md";
+    //         div.innerHTML = `
+    //             <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
+    //                 <div class="flex items-center gap-2 overflow-hidden">
+    //                     <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+    //                     <span class="text-xs font-bold text-gray-700 truncate" title="${src.filename}">${src.filename}</span>
+    //                 </div>
+    //                 <button onclick="deleteMergeSource('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors shrink-0" title="Delete Source">
+    //                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    //                 </button>
+    //             </div>
+    //             <div class="flex justify-between items-center">
+    //                 <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded">${src.data.length} rows</span>
+    //                 <label class="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 uppercase cursor-pointer hover:text-blue-600 transition-colors">
+    //                     <input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleMergeHeader('${id}', this.checked)" ${src.hasHeader ? 'checked' : ''}> Has Header
+    //                 </label>
+    //             </div>
+    //         `;
+    //         container.appendChild(div);
+    //     });
+        
+    //     updateMergeUI();
+    // }
+
     function renderDataSourcesList() {
         const container = document.getElementById('data-sources-list');
         container.innerHTML = '';
@@ -5967,6 +6180,55 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
 
         keys.forEach(id => {
             const src = mergeSources[id];
+            
+            // Adjust row count for header
+            const rowCount = src.hasHeader ? Math.max(0, src.data.length - 1) : src.data.length;
+            
+            // Find linked images within this specific source
+            const requiredImages = new Set();
+            if (src.hasHeader && src.data.length > 0) {
+                const headers = src.data[0];
+                headers.forEach((hdr, colIdx) => {
+                    if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
+                        for (let i = 1; i < src.data.length; i++) {
+                            const val = src.data[i][colIdx];
+                            if (val && typeof val === 'string' && val.trim() !== '' && !val.startsWith('http') && !val.startsWith('data:')) {
+                                requiredImages.add(val.trim());
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Build Image Status HTML Block
+            let imageStatusHTML = '';
+            if (requiredImages.size > 0) {
+                const missingCount = Array.from(requiredImages).filter(img => !imageAssets[img]).length;
+                const totalCount = requiredImages.size;
+                
+                const imgListHTML = Array.from(requiredImages).map(img => {
+                    const isFound = !!imageAssets[img];
+                    const colorCls = isFound ? 'text-green-600 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200';
+                    const icon = isFound ? '✓' : '✗';
+                    return `<div class="text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px] ${colorCls}" title="${img}">${icon} ${img}</div>`;
+                }).join('');
+                
+                imageStatusHTML = `
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-gray-500 uppercase">Linked Images</span>
+                            ${missingCount > 0 
+                                ? `<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">${missingCount} Missing</span>`
+                                : `<span class="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">All ${totalCount} Found</span>`
+                            }
+                        </div>
+                        <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto hide-scrollbar">
+                            ${imgListHTML}
+                        </div>
+                    </div>
+                `;
+            }
+
             const div = document.createElement('div');
             div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md";
             div.innerHTML = `
@@ -5980,11 +6242,12 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     </button>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded">${src.data.length} rows</span>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded">${rowCount} rows</span>
                     <label class="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 uppercase cursor-pointer hover:text-blue-600 transition-colors">
                         <input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleMergeHeader('${id}', this.checked)" ${src.hasHeader ? 'checked' : ''}> Has Header
                     </label>
                 </div>
+                ${imageStatusHTML}
             `;
             container.appendChild(div);
         });
@@ -6082,6 +6345,19 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 <h4 class="text-xs font-bold text-red-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Missing from CSV</h4>
             </div>`;
             
+            // missingAssets.forEach(filename => {
+            //     const safeName = filename.replace(/'/g, "\\'");
+            //     html += `
+            //         <div class="bg-red-50 border border-red-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm relative">
+            //             <div class="h-28 w-full bg-white border border-red-200 border-dashed rounded-lg flex flex-col items-center justify-center overflow-hidden text-red-400">
+            //                 <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            //                 <span class="text-[9px] font-bold px-2 text-center break-all w-full leading-tight text-red-600">${filename}</span>
+            //             </div>
+            //             <button onclick="triggerBankFulfill('${safeName}')" class="mt-auto py-1.5 bg-red-600 text-white hover:bg-red-700 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Fulfill Image</button>
+            //         </div>
+            //     `;
+            // });
+
             missingAssets.forEach(filename => {
                 const safeName = filename.replace(/'/g, "\\'");
                 html += `
@@ -6090,7 +6366,10 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                             <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span class="text-[9px] font-bold px-2 text-center break-all w-full leading-tight text-red-600">${filename}</span>
                         </div>
-                        <button onclick="triggerBankFulfill('${safeName}')" class="mt-auto py-1.5 bg-red-600 text-white hover:bg-red-700 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Fulfill Image</button>
+                        <div class="grid grid-cols-2 gap-1.5 mt-auto">
+                            <button onclick="placeBankImage('${safeName}')" class="py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place</button>
+                            <button onclick="triggerBankFulfill('${safeName}')" class="py-1.5 bg-red-600 text-white hover:bg-red-700 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Fulfill</button>
+                        </div>
                     </div>
                 `;
             });
@@ -6251,16 +6530,97 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         }
     }
 
+    // function placeBankImage(filename) {
+    //     const dataUrl = imageAssets[filename];
+    //     if (!dataUrl) return;
+
+    //     const tempImg = new Image();
+    //     tempImg.onload = function() {
+    //         let w = tempImg.naturalWidth;
+    //         let h = tempImg.naturalHeight;
+
+    //         const p = (val) => Math.round(val * (PX_PER_IN / 100));
+    //         const maxDim = p(200);
+    //         if (w > maxDim || h > maxDim) {
+    //             const ratio = Math.min(maxDim / w, maxDim / h);
+    //             w = Math.round(w * ratio);
+    //             h = Math.round(h * ratio);
+    //         }
+    //         w = Math.max(p(20), w);
+    //         h = Math.max(p(20), h);
+
+    //         const contentArea = document.getElementById('card-content');
+    //         if (!contentArea) return;
+
+    //         const el = document.createElement('div');
+    //         el.className = 'element-container bg-transparent';
+    //         const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
+    //         el.style.left = offset + 'px';
+    //         el.style.top = offset + 'px';
+    //         el.style.zIndex = zIndexCounter++;
+    //         el.dataset.type = 'image';
+    //         el.dataset.imageBankKey = filename; // Link to bank
+
+    //         const innerContent = getBaseImageContentHTML(w, h, dataUrl, filename);
+
+    //         el.innerHTML = getControlsHTML(false) + innerContent;
+    //         contentArea.appendChild(el);
+
+    //         setActiveElement(el);
+    //         closeImageBankModal();
+    //         saveState();
+    //     };
+    //     tempImg.src = dataUrl;
+    // }
+
+    // function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image', fit = 'contain') {
+    //     const hasUrl = !!dataUrl;
+    //     return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
+    //         <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed ${hasUrl ? 'hidden' : 'bg-gray-100 border-gray-300 text-gray-400'}" style="display: ${hasUrl ? 'none' : 'flex'};">
+    //             <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+    //             <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
+    //         </div>
+    //         <img src="${dataUrl}" class="w-full h-full pointer-events-none absolute inset-0 z-10" style="object-fit: ${fit}; display: ${hasUrl ? 'block' : 'none'};" />
+    //     </div>`;
+    // }
+
     function placeBankImage(filename) {
         const dataUrl = imageAssets[filename];
-        if (!dataUrl) return;
+        const p = (val) => Math.round(val * (PX_PER_IN / 100));
+        const contentArea = document.getElementById('card-content');
+        if (!contentArea) return;
+
+        const createEl = (w, h, dUrl) => {
+            const el = document.createElement('div');
+            el.className = 'element-container bg-transparent';
+            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
+            el.style.left = offset + 'px';
+            el.style.top = offset + 'px';
+            el.style.zIndex = zIndexCounter++;
+            el.dataset.type = 'image';
+            el.dataset.imageBankKey = filename;
+            el.dataset.objectFit = 'contain'; // Default fit for new images
+
+            const innerContent = getBaseImageContentHTML(w, h, dUrl, filename, 'contain');
+            el.innerHTML = getControlsHTML(false) + innerContent;
+            contentArea.appendChild(el);
+
+            setActiveElement(el);
+            closeImageBankModal();
+            saveState();
+        };
+
+        if (!dataUrl) {
+            // Drop a default 150x150 box if the image is missing from the bank
+            createEl(p(150), p(150), '');
+            return;
+        }
 
         const tempImg = new Image();
         tempImg.onload = function() {
             let w = tempImg.naturalWidth;
             let h = tempImg.naturalHeight;
 
-            const p = (val) => Math.round(val * (PX_PER_IN / 100));
             const maxDim = p(200);
             if (w > maxDim || h > maxDim) {
                 const ratio = Math.min(maxDim / w, maxDim / h);
@@ -6270,26 +6630,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             w = Math.max(p(20), w);
             h = Math.max(p(20), h);
 
-            const contentArea = document.getElementById('card-content');
-            if (!contentArea) return;
-
-            const el = document.createElement('div');
-            el.className = 'element-container bg-transparent';
-            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-            el.style.left = offset + 'px';
-            el.style.top = offset + 'px';
-            el.style.zIndex = zIndexCounter++;
-            el.dataset.type = 'image';
-            el.dataset.imageBankKey = filename; // Link to bank
-
-            const innerContent = getBaseImageContentHTML(w, h, dataUrl, filename);
-
-            el.innerHTML = getControlsHTML(false) + innerContent;
-            contentArea.appendChild(el);
-
-            setActiveElement(el);
-            closeImageBankModal();
-            saveState();
+            createEl(w, h, dataUrl);
         };
         tempImg.src = dataUrl;
     }
