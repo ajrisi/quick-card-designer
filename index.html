@@ -164,14 +164,17 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .element-container .controls {
             display: none;
             position: absolute;
-            top: -34px; left: -2px;
             background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px;
             padding: 4px; white-space: nowrap; z-index: 1000;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             align-items: center;
             transform: scale(var(--inverse-scale)); 
-            transform-origin: bottom left; 
         }
+
+        .element-container .controls.popover-nw { top: -34px; left: -2px; transform-origin: bottom left; }
+        .element-container .controls.popover-ne { top: -34px; right: -2px; left: auto; transform-origin: bottom right; }
+        .element-container .controls.popover-sw { bottom: -34px; top: auto; left: -2px; transform-origin: top left; }
+        .element-container .controls.popover-se { bottom: -34px; top: auto; right: -2px; left: auto; transform-origin: top right; }
         
         .element-container:hover > .controls, .element-container.active > .controls { display: flex; gap: 4px; }
 
@@ -999,6 +1002,25 @@ Check your Browserslist config to be sure that your targets are set up correctly
                         </div>
                     </div>
                 </details>
+
+            <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+    <span class="text-[9px] font-bold text-gray-400 uppercase">Justify</span>
+    <select id="text-justify-mode" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyJustifyMode(this.value)">
+        <option value="auto">Auto</option>
+        <option value="inter-word">By Word</option>
+        <option value="inter-character">By Char</option>
+    </select>
+</div>
+
+<div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+    <span class="text-[9px] font-bold text-gray-400 uppercase">Line Ht</span>
+    <input type="number" id="line-height" step="0.1" value="1.5" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('lineHeight', this.value)" title="Line Height">
+</div>
+
+<div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+    <span class="text-[9px] font-bold text-gray-400 uppercase">Spacing</span>
+    <input type="number" id="letter-spacing" step="0.5" value="0" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('letterSpacing', this.value + 'px')" title="Letter Spacing (px)">
+</div>
             
             <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
                 <select id="align-scope" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none hidden shadow-sm">
@@ -1470,6 +1492,9 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let isDragging = false;
     let startX, startY;
     let initialDragStates = [];
+
+    let popoverCorner = 'nw'; // Defaults to top-left (North-West)
+    let isDraggingPopover = false;
 
     // Rotation state variables
     let isRotating = false;
@@ -2054,11 +2079,40 @@ function updateBgSettings() {
 
         activeElements.forEach(el => drawBox(el, false));
 
-        // --- NEW MULTI-SELECT POPOVER LOGIC ---
+        // --- GLOBAL SELECTION POPOVER LOGIC ---
         const multiControls = document.getElementById('multi-select-controls');
-        if (activeElements.length > 1) {
-            // Hide individual popovers
-            activeElements.forEach(el => el.classList.add('hide-controls'));
+        
+        if (activeElements.length > 0) {
+            
+            if (activeElements.length > 1) {
+                // --- Draw Group Bounding Box ---
+                const groupBB = getGroupBoundingBox('bbox');
+                const groupBox = document.createElement('div');
+                groupBox.className = `absolute border border-indigo-500 border-dashed pointer-events-none z-[60]`;
+                groupBox.style.left = (panX + groupBB.x * canvasScale) + 'px';
+                groupBox.style.top = (panY + groupBB.y * canvasScale) + 'px';
+                groupBox.style.width = (groupBB.w * canvasScale) + 'px';
+                groupBox.style.height = (groupBB.h * canvasScale) + 'px';
+                
+                const isGroupRotating = activeElements.some(el => el.classList.contains('rotation-active'));
+                if (isGroupRotating) {
+                    groupBox.innerHTML = `
+                        <div class="rot-handle nw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                        <div class="rot-handle ne pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                        <div class="rot-handle sw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                        <div class="rot-handle se pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                    `;
+                }
+                boxesContainer.appendChild(groupBox);
+            }
+
+            // Hide the rotated internal toolbars so the global one can take over
+            activeElements.forEach(el => {
+                el.classList.add('hide-controls');
+                if (activeElements.length > 1) el.classList.add('multi-select');
+                else el.classList.remove('multi-select');
+            });
+            
             const box = getGroupBoundingBox('bbox');
 
             // Build the global popover once if it doesn't exist
@@ -2067,26 +2121,28 @@ function updateBgSettings() {
                 ms.id = 'multi-select-controls';
                 ms.className = 'controls absolute flex bg-white border border-gray-200 rounded-md p-1 shadow-md z-[1000] gap-1 items-center pointer-events-auto';
                 ms.innerHTML = `
+
                 <span class="control-btn drag-handle cursor-move" title="Drag Selection">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
                 </span>
+                
                 <span class="control-btn rot-btn" title="Rotate Selection" onclick="toggleMultiRotation(event)">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </span>
                 <span class="control-btn laser-btn" title="Toggle Alignment Lasers" onclick="toggleMultiLasers(event)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v16M16 4v16M4 8h16M4 16h16"></path></svg>
                 </span>
                 <span class="control-btn z-btn" title="Group" onclick="groupSelected(); event.stopPropagation();">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"/>
-        <circle cx="4" cy="4" r="2.5" fill="currentColor" stroke="none"/>
-        <circle cx="20" cy="4" r="2.5" fill="currentColor" stroke="none"/>
-        <circle cx="4" cy="20" r="2.5" fill="currentColor" stroke="none"/>
-        <circle cx="20" cy="20" r="2.5" fill="currentColor" stroke="none"/>
-        <rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/>
-        <rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/>
-    </svg>
-</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"/>
+                        <circle cx="4" cy="4" r="2.5" fill="currentColor" stroke="none"/>
+                        <circle cx="20" cy="4" r="2.5" fill="currentColor" stroke="none"/>
+                        <circle cx="4" cy="20" r="2.5" fill="currentColor" stroke="none"/>
+                        <circle cx="20" cy="20" r="2.5" fill="currentColor" stroke="none"/>
+                        <rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/>
+                        <rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/>
+                    </svg>
+                </span>
                 <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                 </span>
@@ -2096,27 +2152,77 @@ function updateBgSettings() {
                 <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </span>
+                
+                <!-- NEW: Restore the Merge Scrubber -->
+                <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
+                    <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
+                    <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
+                    <button onclick="scrubMergeData(1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
+                </div>
+                
+                <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+                <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
+                </span>
             `;
                 document.getElementById('ui-layer').appendChild(ms);
             }
 
-            // Position directly above the temporary bounding box bounds
             const ms = document.getElementById('multi-select-controls');
-            ms.style.display = 'flex';
-            ms.style.left = (panX + box.x * canvasScale - 2) + 'px';
-            ms.style.top = (panY + box.y * canvasScale - 34) + 'px';
+            
+            // Toggle specific buttons based on selection context
+            const grpBtn = ms.querySelector('.z-btn[title="Group"]');
+            const ungrpBtn = ms.querySelector('.z-btn[title="Ungroup"]');
+            if (grpBtn) grpBtn.style.display = activeElements.length > 1 ? 'flex' : 'none';
+            if (ungrpBtn) ungrpBtn.style.display = activeElements.some(e => e.dataset.type === 'group') ? 'flex' : 'none';
 
-            // Sync the multi-select visual states
+            // Toggle Merge Scrubber
+            const scrubber = ms.querySelector('.merge-scrubber');
+            if (scrubber) {
+                if (activeElements.length === 1 && activeElements[0].dataset.mergeData) {
+                    scrubber.classList.remove('hidden');
+                    scrubber.classList.add('flex');
+                } else {
+                    scrubber.classList.add('hidden');
+                    scrubber.classList.remove('flex');
+                }
+            }
+
+            ms.style.display = 'flex'; // Trigger display early for bounding box math
+            const msW = ms.offsetWidth || 230;
+            const msH = ms.offsetHeight || 34;
+
+            let msX = panX + box.x * canvasScale - 2;
+            let msY = panY + box.y * canvasScale - msH - 4; // nw
+
+            if (popoverCorner === 'ne') {
+                msX = panX + (box.x + box.w) * canvasScale - msW + 2;
+                msY = panY + box.y * canvasScale - msH - 4;
+            } else if (popoverCorner === 'sw') {
+                msX = panX + box.x * canvasScale - 2;
+                msY = panY + (box.y + box.h) * canvasScale + 4;
+            } else if (popoverCorner === 'se') {
+                msX = panX + (box.x + box.w) * canvasScale - msW + 2;
+                msY = panY + (box.y + box.h) * canvasScale + 4;
+            }
+
+            ms.style.left = msX + 'px';
+            ms.style.top = msY + 'px';
+
+            // Sync active states
             ms.dataset.lasers = activeElements[0]?.dataset.lasers === 'true' ? 'true' : 'false';
             ms.dataset.rotating = activeElements[0]?.classList.contains('rotation-active') ? 'true' : 'false';
 
         } else {
-            // Clear classes and hide the multi popover for single items
-            activeElements.forEach(el => el.classList.remove('hide-controls'));
+            activeElements.forEach(el => {
+                el.classList.remove('hide-controls');
+                el.classList.remove('multi-select');
+            });
             if (multiControls) multiControls.style.display = 'none';
         }
-
+        
         if (typeof updateLasers === 'function') updateLasers();
+        if (typeof updateMergeUI === 'function') updateMergeUI();
         syncGhostLive();
     }
 
@@ -2293,6 +2399,7 @@ function updateBgSettings() {
                 
                 if (data.imageAssets) imageAssets = data.imageAssets;
                 if (data.mergeSources) mergeSources = data.mergeSources;
+                if (data.globalMergeIndex !== undefined) globalMergeIndex = data.globalMergeIndex;
 
                 // Restore Snapping Options
                 if (data.snapping !== undefined && document.getElementById('enable-snapping')) {
@@ -2451,6 +2558,37 @@ function updateBgSettings() {
             if (activeElement && activeElement.dataset.type === 'table') {
                 setTimeout(() => setupTableResizers(activeElement.querySelector('.card-table')), 10);
             }
+
+            if (e.target.isContentEditable) {
+                const container = e.target.closest('.element-container');
+                if (container && container.dataset.mergeSourceId) {
+                    const sourceId = container.dataset.mergeSourceId;
+                    const colIdx = parseInt(container.dataset.mergeCol, 10);
+                    const source = mergeSources[sourceId];
+                    
+                    if (source) {
+                        // Extract cleanly formatted text with proper line breaks
+                        let updatedText = e.target.innerText.replace(/\n$/, '');
+                        const actualRowIndex = source.hasHeader ? globalMergeIndex + 1 : globalMergeIndex;
+                        
+                        // Ensure the row array exists just in case
+                        while (source.data.length <= actualRowIndex) {
+                            source.data.push([]);
+                        }
+                        
+                        // 1. Update the master CSV data
+                        source.data[actualRowIndex][colIdx] = updatedText;
+                        
+                        // 2. Update the element's local data array so it doesn't revert on scrub
+                        try {
+                            const localData = JSON.parse(container.dataset.mergeData);
+                            localData[globalMergeIndex] = updatedText;
+                            container.dataset.mergeData = JSON.stringify(localData);
+                        } catch(err) {}
+                    }
+                }
+            }
+
             saveState(true);
         });
 
@@ -2505,109 +2643,115 @@ function updateBgSettings() {
         return stripControlsFromHTML(html).replace(/ active/g, '').replace(/ rotation-active/g, '');
     }
 
-    function saveState(debounce = false) {
-        if (isRestoring) return;
-        clearTimeout(saveStateTimeout);
+    function saveState(debounce = false, skipHistory = false) {
+    
+    // 2. Allow it to bypass the isRestoring block if skipHistory is true
+    if (isRestoring && !skipHistory) return;
+    clearTimeout(saveStateTimeout);
 
-        const doSave = () => {
-            saveCurrentSideState();
-            if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
+    const doSave = () => {
+        saveCurrentSideState();
+        if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
 
-            const state = {
-                side: editingSide,
-                hasCustomBack: hasCustomBack,
-                frontHTML: frontContentHTML,
-                frontBg: frontBgClass,
-                backHTML: backContentHTML,
-                backBg: backBgClass,
-                frontBgConfig: frontBgConfig,
-                backBgConfig: backBgConfig,
-            };
-
-const autoSaveData = {
-                history: state,
-                unit: currentUnit,
-                dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
-                sizeSelect: document.getElementById('size-select').value,
-                customW: document.getElementById('custom-w').value,
-                customH: document.getElementById('custom-h').value,
-                isLandscape: isLandscape,
-                projectName: document.getElementById('project-name').value,
-                imageAssets: imageAssets,
-                mergeSources: mergeSources,
-                snapping: document.getElementById('enable-snapping')?.checked !== false,
-                resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
-                snapLines: document.getElementById('show-snap-lines')?.checked !== false,
-                panX: panX,
-                panY: panY,
-                canvasScale: canvasScale,
-                margin: {
-                    t: document.getElementById('margin-top')?.value || 0,
-                    r: document.getElementById('margin-right')?.value || 0,
-                    b: document.getElementById('margin-bottom')?.value || 0,
-                    l: document.getElementById('margin-left')?.value || 0
-                },
-                safeMargin: {
-                    t: document.getElementById('safe-margin-top')?.value || 0,
-                    r: document.getElementById('safe-margin-right')?.value || 0,
-                    b: document.getElementById('safe-margin-bottom')?.value || 0,
-                    l: document.getElementById('safe-margin-left')?.value || 0
-                },
-                guide: document.getElementById('show-margin-guide')?.checked ?? true,
-                cutLineW: document.getElementById('cut-line-width')?.value || 1,
-                cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
-                printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
-                bindingLineW: document.getElementById('binding-line-width')?.value || 1,
-                bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
-                printer: {
-                    paper: document.getElementById('paper-size')?.value || 'letter',
-                    orient: document.getElementById('paper-orientation')?.value || 'portrait',
-                    duplex: document.getElementById('print-duplex')?.checked ?? false,
-                    gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
-                    gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
-                    mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
-                    mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
-                    rotate180: document.getElementById('rotate-180')?.checked ?? false,
-                    driftX: document.getElementById('print-offset-x')?.value || 0,
-                    driftY: document.getElementById('print-offset-y')?.value || 0,
-                    targetDpi: document.getElementById('target-dpi')?.value || 300,
-                    bleed: document.getElementById('print-bleed')?.value || 0,
-                    showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
-                    cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
-                    vernier: document.getElementById('print-vernier')?.checked ?? false
-                }
-            };
-try {
-                localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
-            } catch (e) {
-                console.warn("Autosave failed, possibly due to quota exceeded", e);
-                // We catch this so the History Stack (Undo/Redo) keeps working!
-            }
-
-            if (historyIndex >= 0) {
-                const top = historyStack[historyIndex];
-                if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
-                    getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
-                    top.frontBg === state.frontBg && top.backBg === state.backBg &&
-                    top.hasCustomBack === state.hasCustomBack && top.side === state.side) {
-                    return;
-                }
-            }
-
-            historyStack = historyStack.slice(0, historyIndex + 1);
-            historyStack.push(state);
-            if (historyStack.length > 50) historyStack.shift();
-            else historyIndex++;
-
-            updateUndoRedoUI();
+        const state = {
+            side: editingSide,
+            hasCustomBack: hasCustomBack,
+            frontHTML: frontContentHTML,
+            frontBg: frontBgClass,
+            backHTML: backContentHTML,
+            backBg: backBgClass,
+            frontBgConfig: frontBgConfig,
+            backBgConfig: backBgConfig,
         };
 
-        if (debounce) {
-            saveStateTimeout = setTimeout(doSave, 500);
-        } else {
-            doSave();
+        const autoSaveData = {
+            history: state,
+            unit: currentUnit,
+            dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
+            sizeSelect: document.getElementById('size-select').value,
+            customW: document.getElementById('custom-w').value,
+            customH: document.getElementById('custom-h').value,
+            isLandscape: isLandscape,
+            projectName: document.getElementById('project-name').value,
+            imageAssets: imageAssets,
+            mergeSources: mergeSources,
+            globalMergeIndex: globalMergeIndex,
+            snapping: document.getElementById('enable-snapping')?.checked !== false,
+            resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
+            snapLines: document.getElementById('show-snap-lines')?.checked !== false,
+            panX: panX,
+            panY: panY,
+            canvasScale: canvasScale,
+            margin: {
+                t: document.getElementById('margin-top')?.value || 0,
+                r: document.getElementById('margin-right')?.value || 0,
+                b: document.getElementById('margin-bottom')?.value || 0,
+                l: document.getElementById('margin-left')?.value || 0
+            },
+            safeMargin: {
+                t: document.getElementById('safe-margin-top')?.value || 0,
+                r: document.getElementById('safe-margin-right')?.value || 0,
+                b: document.getElementById('safe-margin-bottom')?.value || 0,
+                l: document.getElementById('safe-margin-left')?.value || 0
+            },
+            guide: document.getElementById('show-margin-guide')?.checked ?? true,
+            cutLineW: document.getElementById('cut-line-width')?.value || 1,
+            cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+            printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
+            bindingLineW: document.getElementById('binding-line-width')?.value || 1,
+            bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+            printer: {
+                paper: document.getElementById('paper-size')?.value || 'letter',
+                orient: document.getElementById('paper-orientation')?.value || 'portrait',
+                duplex: document.getElementById('print-duplex')?.checked ?? false,
+                gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
+                gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
+                mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
+                mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
+                rotate180: document.getElementById('rotate-180')?.checked ?? false,
+                driftX: document.getElementById('print-offset-x')?.value || 0,
+                driftY: document.getElementById('print-offset-y')?.value || 0,
+                targetDpi: document.getElementById('target-dpi')?.value || 300,
+                bleed: document.getElementById('print-bleed')?.value || 0,
+                showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
+                cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
+                vernier: document.getElementById('print-vernier')?.checked ?? false
+            }
+        };
+
+        try {
+            localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
+        } catch (e) {
+            console.warn("Autosave failed, possibly due to quota exceeded", e);
         }
+
+        // 3. Exit here if we are only triggering a background autosave
+        if (skipHistory) return;
+
+        if (historyIndex >= 0) {
+            const top = historyStack[historyIndex];
+            if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
+                getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
+                top.frontBg === state.frontBg && top.backBg === state.backBg &&
+                top.hasCustomBack === state.hasCustomBack && top.side === state.side) {
+                return;
+            }
+        }
+
+        historyStack = historyStack.slice(0, historyIndex + 1);
+        historyStack.push(state);
+        if (historyStack.length > 50) historyStack.shift();
+        else historyIndex++;
+
+        updateUndoRedoUI();
+    };
+
+    if (debounce) {
+        saveStateTimeout = setTimeout(doSave, 500);
+    } else {
+        doSave();
     }
+}
 
     function updateUndoRedoUI() {
         document.getElementById('btn-undo').disabled = historyIndex <= 0;
@@ -2615,18 +2759,20 @@ try {
     }
 
     function undo() {
-        if (historyIndex > 0) {
-            historyIndex--;
-            restoreState(historyStack[historyIndex]);
-        }
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreState(historyStack[historyIndex]);
+        saveState(false, true); // Trigger autosave, but skip history stack modification
     }
+}
 
-    function redo() {
-        if (historyIndex < historyStack.length - 1) {
-            historyIndex++;
-            restoreState(historyStack[historyIndex]);
-        }
+function redo() {
+    if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        restoreState(historyStack[historyIndex]);
+        saveState(false, true); // Trigger autosave, but skip history stack modification
     }
+}
 
     function restoreState(state) {
         isRestoring = true;
@@ -3317,10 +3463,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
     function getControlsHTML(isGroup) {
         return `
-        <div class="controls ui-control" contenteditable="false">
-            <span class="control-btn drag-handle" title="Drag">
+        <div class="controls ui-control popover-${popoverCorner}" contenteditable="false">
+            <span class="control-btn drag-handle cursor-move" title="Drag">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
             </span>
+            
             <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </span>
@@ -3337,20 +3484,24 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
-            <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </span>
+            
             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                 <button onclick="scrubMergeData(-1)" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
                 <button onclick="scrubMergeData(1)" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
             </div>
+            <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </span>
+            <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+            <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
+            </span>
         </div>
         <div class="rot-handle nw ui-control" title="Drag to Rotate"></div>
         <div class="rot-handle ne ui-control" title="Drag to Rotate"></div>
         <div class="rot-handle sw ui-control" title="Drag to Rotate"></div>
         <div class="rot-handle se ui-control" title="Drag to Rotate"></div>
-        <!--<div class="custom-resizer ui-control" title="Drag to Resize"></div>-->
         <div class="resizer n ui-control" data-dir="n"></div>
         <div class="resizer s ui-control" data-dir="s"></div>
         <div class="resizer e ui-control" data-dir="e"></div>
@@ -3361,24 +3512,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         <div class="resizer se ui-control" data-dir="se"></div>
     `;
     }
-
-    // // Toggles rotation handles for all items in a multi-select
-    // function toggleMultiRotation(event) {
-    //     if (event) event.stopPropagation();
-        
-    //     // Check if ANY of the selected elements currently have active rotation handles
-    //     const anyActive = activeElements.some(el => el.classList.contains('rotation-active'));
-        
-    //     activeElements.forEach(el => {
-    //         if (anyActive) {
-    //             el.classList.remove('rotation-active');
-    //         } else {
-    //             el.classList.add('rotation-active');
-    //         }
-    //     });
-        
-    //     saveState(true);
-    // }
 
     function toggleMultiRotation(event) {
         if (event) event.stopPropagation();
@@ -3397,7 +3530,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         // Sync the multi-select popover visual state
         const ms = document.getElementById('multi-select-controls');
         if (ms) ms.dataset.rotating = anyActive ? 'false' : 'true';
-        
+        if (typeof updateUILayer === 'function') updateUILayer();
         saveState(true);
     }
 
@@ -3898,6 +4031,29 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState();
     }
 
+    function applyJustifyMode(mode) {
+    if (activeElements.length === 0) return;
+
+    activeElements.forEach(el => {
+        // Find the correct editable target (handles both text boxes and table cells)
+        let target = el.querySelector('div[contenteditable="true"]') || el;
+        if (el.dataset.type === 'table') {
+            const scope = document.getElementById('align-scope').value;
+            target = (activeTableCell && el.contains(activeTableCell) && scope === 'cell') 
+                ? activeTableCell.querySelector('.cell-text') 
+                : target;
+        }
+
+        if (target) {
+            // text-justify ONLY works if text-align is set to justify
+            target.style.textAlign = 'justify';
+            target.style.textJustify = mode;
+        }
+    });
+    
+    saveState(true);
+}
+
     function applyAlignment(flexVal, textVal) {
         if (activeElements.length === 0) return;
 
@@ -4381,130 +4537,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
     }
 
-    // function syncUISettingsWithActiveElement() {
-    //     const stylePanel = document.getElementById('element-settings');
-    //     const badge = document.getElementById('selection-badge');
-
-    //     document.getElementById('btn-group').disabled = activeElements.length < 2;
-    //     document.getElementById('btn-ungroup').disabled = !activeElements.some(e => e.dataset.type === 'group');
-
-    //     if (activeElements.length > 0) {
-    //         stylePanel.classList.remove('opacity-50', 'pointer-events-none');
-    //         badge.classList.remove('hidden');
-    //         badge.innerText = activeElements.length > 1 ? `${activeElements.length} Items` : (activeElement.dataset.type === 'group' ? 'Group' : 'Active');
-
-    //         updateBaseLayout();
-    //         updateLayoutInputs();
-
-    //         let target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
-    //         if (activeElement.dataset.type === 'table') {
-    //             target = activeTableCell && activeElement.contains(activeTableCell) ? (activeTableCell.querySelector('.cell-text') || activeTableCell) : (activeElement.querySelector('.cell-text') || target);
-    //         }
-
-    //         if (target.style.fontSize) {
-    //             const px = parseFloat(target.style.fontSize);
-    //             document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
-    //         }
-    //         if (target.style.fontWeight) document.getElementById('font-weight').value = target.style.fontWeight;
-
-    //         const boldBtn = document.getElementById('font-bold-btn');
-    //         if (boldBtn) {
-    //             const fw = target.style.fontWeight;
-    //             if (fw === 'bold' || parseInt(fw) > 600) {
-    //                 boldBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
-    //                 boldBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-    //             } else {
-    //                 boldBtn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
-    //                 boldBtn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-    //             }
-    //         }
-
-    //         const italicBtn = document.getElementById('font-italic-btn');
-    //         if (italicBtn) {
-    //             if (target.style.fontStyle === 'italic') {
-    //                 italicBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
-    //                 italicBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
-    //             } else {
-    //                 italicBtn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
-    //                 italicBtn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
-    //             }
-    //         }
-
-    //         let { hex: tHex, alpha: tAlpha } = parseColorToHexAndAlpha(target.style.color || '#1f2937');
-    //         document.getElementById('text-color').value = tHex;
-    //         document.getElementById('text-opacity').value = tAlpha;
-    //         document.getElementById('text-opacity-val').innerText = Math.round(tAlpha * 100) + '%';
-    //         document.getElementById('text-color-swatch').style.backgroundColor = tAlpha < 1 ? target.style.color : tHex;
-
-    //         const fontInput = document.getElementById('font-family');
-    //         fontInput.value = target.style.fontFamily ? target.style.fontFamily.replace(/"/g, "").replace(/'/g, "") : '';
-
-    //         // Clear all secondary panels first
-    //         document.getElementById('type-controls').style.display = 'none';
-    //         if (document.getElementById('shape-controls')) document.getElementById('shape-controls').style.display = 'none';
-    //         document.getElementById('table-controls').style.display = 'none';
-    //         document.getElementById('data-merge-section').style.display = 'none';
-            
-    //         document.getElementById('align-scope').classList.add('hidden');
-    //         document.getElementById('vertical-align-group').classList.add('hidden');
-    //         document.getElementById('vertical-align-group').classList.remove('flex');
-            
-    //         let shouldShowSecondary = false;
-
-    //         if (activeElements.length === 1 && activeElement.dataset.type === 'shape') {
-    //             shouldShowSecondary = true;
-    //             document.getElementById('shape-controls').style.display = 'flex';
-    //             syncShapeSettingsUI();
-    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'table') {
-    //             shouldShowSecondary = true;
-    //             document.getElementById('table-controls').style.display = 'flex';
-    //             document.getElementById('radius-control-group').style.display = 'flex';
-    //             document.getElementById('table-options-btn').style.display = 'block';
-    //             document.getElementById('cell-fill-group').style.display = 'flex';
-    //             document.getElementById('table-structure-group').style.display = 'flex';
-    //             document.getElementById('align-scope').classList.remove('hidden');
-    //             document.getElementById('vertical-align-group').classList.remove('hidden');
-    //             document.getElementById('vertical-align-group').classList.add('flex');
-    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'divider') {
-    //             shouldShowSecondary = true;
-    //             document.getElementById('table-controls').style.display = 'flex';
-    //             document.getElementById('radius-control-group').style.display = 'none';
-    //             document.getElementById('table-options-btn').style.display = 'none';
-    //             document.getElementById('cell-fill-group').style.display = 'none';
-    //             document.getElementById('table-structure-group').style.display = 'none';
-    //             document.getElementById('align-scope').classList.add('hidden');
-    //             document.getElementById('vertical-align-group').classList.add('hidden');
-    //             document.getElementById('vertical-align-group').classList.remove('flex');
-    //         } else if (activeElements.length === 1 && activeElement.dataset.type === 'image') {
-    //             shouldShowSecondary = true;
-    //             document.getElementById('data-merge-section').style.display = 'flex';
-    //             document.getElementById('data-merge-section').classList.remove('border-l', 'border-gray-200', 'pl-3', 'ml-1');
-    //             updateMergeUI();
-    //         } else {
-    //             if (activeElements.length === 1 && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title')) {
-    //                 shouldShowSecondary = true;
-    //                 document.getElementById('type-controls').style.display = 'flex';
-    //                 document.getElementById('data-merge-section').style.display = 'flex';
-    //                 document.getElementById('data-merge-section').classList.add('border-l', 'border-gray-200', 'pl-3', 'ml-1');
-    //                 updateMergeUI();
-    //             } else {
-    //                 document.getElementById('data-merge-section').style.display = 'none';
-    //             }
-    //         }
-
-    //         if (shouldShowSecondary) showSecondaryToolbar();
-    //         else hideSecondaryToolbar();
-
-    //     } else {
-    //         stylePanel.classList.add('opacity-50', 'pointer-events-none');
-    //         badge.classList.add('hidden');
-    //         document.getElementById('align-scope').classList.add('hidden');
-    //         document.getElementById('vertical-align-group').classList.add('hidden');
-    //         document.getElementById('vertical-align-group').classList.remove('flex');
-    //         document.getElementById('data-merge-section').style.display = 'none';
-    //         hideSecondaryToolbar();
-    //     }
-    // }
 
     function syncUISettingsWithActiveElement() {
         const stylePanel = document.getElementById('element-settings');
@@ -4534,6 +4566,21 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
             }
             if (target.style.fontWeight) document.getElementById('font-weight').value = target.style.fontWeight;
+
+            // Sync Letter Spacing
+const tracking = parseFloat(target.style.letterSpacing);
+document.getElementById('letter-spacing').value = isNaN(tracking) ? 0 : tracking;
+
+// Sync Justify Mode
+if (target.style.textAlign === 'justify' && target.style.textJustify) {
+    document.getElementById('text-justify-mode').value = target.style.textJustify;
+} else {
+    document.getElementById('text-justify-mode').value = 'auto';
+}
+
+// Sync Line Height
+const leading = parseFloat(target.style.lineHeight);
+document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             const boldBtn = document.getElementById('font-bold-btn');
             if (boldBtn) {
@@ -5244,6 +5291,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             }
         }
 
+
+
         if (e.shiftKey && (e.target.id === 'canvas-container' || e.target.id === 'canvas-wrapper' || e.target.id === 'card-canvas' || e.target.id === 'ghost-layer' || e.target.id === 'ui-layer' || e.target.id === 'ui-active-boxes')) {
             isPanning = true;
             panStartX = e.clientX;
@@ -5307,15 +5356,17 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             return;
         }
 
-        // Check for rotation handle interaction first
+// Check for rotation handle interaction first
         if (e.target.classList.contains('rot-handle')) {
                 let container = e.target.closest('.element-container');
-                if (container) {
+                
+                // Accept rotation if it's on a specific element OR our new multi-select bounding box
+                if (container || activeElements.length > 1) {
                     isRotating = true;
                     e.preventDefault();
                     
                     // Fallback: If clicked container isn't active, make it active
-                    if (!activeElements.includes(container)) {
+                    if (container && !activeElements.includes(container)) {
                         setActiveElement(container, false);
                     }
 
@@ -5396,6 +5447,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 uiMarquee.style.display = 'block';
                 e.preventDefault();
             }
+        }
+
+        if (e.target.closest('.popover-drag-handle')) {
+            isDraggingPopover = true;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
         }
 
         // 1. Intercept ANY drag handle click globally
@@ -5712,6 +5770,47 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 return;
             }
 
+            if (isDraggingPopover) {
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const mouseX = e.clientX - containerRect.left;
+            const mouseY = e.clientY - containerRect.top;
+
+            const box = getGroupBoundingBox('bbox');
+            const screenX = panX + box.x * canvasScale;
+            const screenY = panY + box.y * canvasScale;
+            const screenW = box.w * canvasScale;
+            const screenH = box.h * canvasScale;
+
+            // Calculate distance from mouse to each of the 4 corners
+            const distNW = Math.hypot(mouseX - screenX, mouseY - screenY);
+            const distNE = Math.hypot(mouseX - (screenX + screenW), mouseY - screenY);
+            const distSW = Math.hypot(mouseX - screenX, mouseY - (screenY + screenH));
+            const distSE = Math.hypot(mouseX - (screenX + screenW), mouseY - (screenY + screenH));
+
+            const minDist = Math.min(distNW, distNE, distSW, distSE);
+            
+            // Snap to the closest corner
+            let newCorner = popoverCorner;
+            if (minDist === distNW) newCorner = 'nw';
+            else if (minDist === distNE) newCorner = 'ne';
+            else if (minDist === distSW) newCorner = 'sw';
+            else if (minDist === distSE) newCorner = 'se';
+
+            // Only update DOM if the corner actually changed
+            if (newCorner !== popoverCorner) {
+                popoverCorner = newCorner;
+                
+                // Live-update any individual element toolbars currently on canvas
+                document.querySelectorAll('.element-container .controls').forEach(c => {
+                    c.classList.remove('popover-nw', 'popover-ne', 'popover-sw', 'popover-se');
+                    c.classList.add(`popover-${popoverCorner}`);
+                });
+                
+                if (typeof updateUILayer === 'function') updateUILayer();
+            }
+            return;
+        }
+
             // --- DRAG EVENT LOGIC ---
         if (!isDragging || initialDragStates.length === 0) return;
         
@@ -5847,6 +5946,11 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 updateBaseLayout();
                 saveState();
             }
+
+            if (isDraggingPopover) {
+            isDraggingPopover = false;
+            return;
+        }
 
         if (isDragging) {
             initialDragStates.forEach(state => {
@@ -6158,6 +6262,29 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
     }
 
     function updateMergeUI() {
+        let globalMaxRows = 0;
+        document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    if (data.length > globalMaxRows) globalMaxRows = data.length;
+                } catch (e) {}
+            }
+        });
+
+        const globalScrubber = document.querySelector('#multi-select-controls .merge-scrubber');
+        if (globalScrubber) {
+            if (activeElements.length === 1 && activeElements[0].dataset.mergeData) {
+                globalScrubber.classList.remove('hidden');
+                globalScrubber.classList.add('flex');
+                globalScrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1} / ${globalMaxRows}`;
+            } else {
+                globalScrubber.classList.add('hidden');
+                globalScrubber.classList.remove('flex');
+            }
+        }
+
+        // Abort here if no element is actively selected, saving us from errors below
         if (!activeElement) return;
 
         const select = document.getElementById('merge-source-select');
@@ -6174,16 +6301,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             select.appendChild(opt);
         }
 
-        let globalMaxRows = 0;
-        document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > globalMaxRows) globalMaxRows = data.length;
-                } catch (e) {}
-            }
-        });
-
         const activeId = activeElement.dataset.mergeSourceId;
         if (activeId && mergeSources[activeId]) {
             select.value = activeId;
@@ -6193,7 +6310,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             colSelect.innerHTML = '';
             const numCols = source.data.length > 0 ? source.data[0].length : 1;
             
-            // Provide better column names using headers if available
             for (let i = 0; i < numCols; i++) {
                 let opt = document.createElement('option');
                 opt.value = i;
@@ -6217,18 +6333,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             statusContainer.classList.add('hidden');
             statusContainer.classList.remove('flex');
         }
-
-        document.getElementById('card-content').querySelectorAll('.merge-scrubber').forEach(scrubber => {
-            const el = scrubber.closest('.element-container');
-            if (el.dataset.mergeData) {
-                scrubber.classList.remove('hidden');
-                scrubber.classList.add('flex');
-                scrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1}/${globalMaxRows}`;
-            } else {
-                scrubber.classList.add('hidden');
-                scrubber.classList.remove('flex');
-            }
-        });
     }
 
     function handleMergeSourceChange(val) {
@@ -6416,28 +6520,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         
         updateMergeUI();
     }
-
-    // function handleImageAssetsUpload(event) {
-    //     const files = event.target.files;
-    //     if (!files.length) return;
-        
-    //     let loaded = 0;
-    //     for (let i = 0; i < files.length; i++) {
-    //         const file = files[i];
-    //         const reader = new FileReader();
-    //         reader.onload = (e) => {
-    //             imageAssets[file.name] = e.target.result;
-    //             loaded++;
-    //             if (loaded === files.length) {
-    //                 showToast(`Added ${files.length} images to Image Bank!`);
-    //                 applyMergePreview();
-    //                 saveState(true);
-    //             }
-    //         };
-    //         reader.readAsDataURL(file);
-    //     }
-    //     event.target.value = ''; // reset input
-    // }
 
     /* --- IMAGE BANK ENGINE --- */
     function openImageBankModal() {
@@ -6725,20 +6807,23 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         </div>`;
     }
 
-    function updateImageElementDisplay(el, val) {
+    function updateImageElementDisplay(el, val, isPrint = false) {
         const img = el.querySelector('img');
         if (!img) return;
 
-        // Forcefully recreate the placeholder shell to clear any stale HTML
+        // Only recreate the placeholder if we are NOT in print mode
         let placeholder = el.querySelector('.image-placeholder');
-        if (!placeholder) {
+        if (!placeholder && !isPrint) {
             placeholder = document.createElement('div');
             el.querySelector('.resizable').insertBefore(placeholder, img);
         }
 
-        placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
-        placeholder.innerHTML = `<svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none"></span>`;
-        const pText = placeholder.querySelector('.placeholder-text');
+        if (placeholder) {
+            placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
+            placeholder.innerHTML = `<svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none"></span>`;
+        }
+
+        const pText = placeholder ? placeholder.querySelector('.placeholder-text') : null;
 
         const fit = el.dataset.objectFit || 'contain';
         const posX = el.dataset.objectPositionX || 'center';
@@ -6755,9 +6840,9 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         img.style.left = '50%';
         img.style.transform = `translate(-50%, -50%) scale(${scale})`;
         img.style.transformOrigin = 'center';
+        img.style.position = 'absolute'; // Critical fix for the SVG Print Engine!
 
-        img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0');
-        img.classList.add('absolute');
+        img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0', 'absolute');
 
         let displayVal = val;
         if (!displayVal && el.dataset.imageBankKey) {
@@ -6767,30 +6852,33 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         if (!displayVal) {
             img.style.display = 'none';
             img.removeAttribute('src'); 
-            placeholder.style.display = 'flex';
-            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
-            
-            if (pText) {
-                if (el.dataset.mergeSourceId && mergeSources[el.dataset.mergeSourceId]) {
-                    const src = mergeSources[el.dataset.mergeSourceId];
-                    const colIdx = parseInt(el.dataset.mergeCol, 10);
-                    const rawColName = src.data[0] ? src.data[0][colIdx] : `Col ${colIdx}`;
-                    const cleanColName = rawColName.replace(/^Images:\s*/i, '');
-                    pText.innerText = `Images: ${src.filename}, column ${cleanColName}`;
-                } else {
-                    pText.innerText = 'Empty';
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+                if (pText) {
+                    if (el.dataset.mergeSourceId && mergeSources[el.dataset.mergeSourceId]) {
+                        const src = mergeSources[el.dataset.mergeSourceId];
+                        const colIdx = parseInt(el.dataset.mergeCol, 10);
+                        const rawColName = src.data[0] ? src.data[0][colIdx] : `Col ${colIdx}`;
+                        const cleanColName = rawColName.replace(/^Images:\s*/i, '');
+                        pText.innerText = `Images: ${src.filename}, column ${cleanColName}`;
+                    } else {
+                        pText.innerText = 'Empty';
+                    }
                 }
             }
         } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
             img.src = imageAssets[displayVal] || displayVal;
             img.style.display = 'block';
-            placeholder.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'none';
         } else {
             img.style.display = 'none';
             img.removeAttribute('src'); 
-            placeholder.style.display = 'flex';
-            placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
-            if (pText) pText.innerText = 'Missing: ' + displayVal;
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+                if (pText) pText.innerText = 'Missing: ' + displayVal;
+            }
         }
     }
 
@@ -6982,83 +7070,9 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
     function scrubMergeData(delta) {
         globalMergeIndex += delta;
         applyMergePreview();
+        if (typeof updateUILayer === 'function') updateUILayer();
         saveState(true);
     }
-
-    // function updateMergeUI() {
-    //     if (!activeElement) return;
-
-    //     const select = document.getElementById('merge-source-select');
-    //     const colSelect = document.getElementById('merge-col-select');
-    //     const skipHdr = document.getElementById('merge-skip-header');
-    //     const optionsDiv = document.getElementById('merge-options');
-    //     const statusContainer = document.getElementById('merge-status-container');
-    //     const statusText = document.getElementById('merge-status');
-
-    //     select.innerHTML = '<option value="">None</option>';
-    //     for (let id in mergeSources) {
-    //         let opt = document.createElement('option');
-    //         opt.value = id;
-    //         opt.innerText = mergeSources[id].filename;
-    //         select.appendChild(opt);
-    //     }
-    //     select.innerHTML += '<option value="new">+ Upload File...</option>';
-
-    //     let globalMaxRows = 0;
-    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-    //         if (el.dataset.mergeData) {
-    //             try {
-    //                 const data = JSON.parse(el.dataset.mergeData);
-    //                 if (data.length > globalMaxRows) globalMaxRows = data.length;
-    //             } catch (e) {}
-    //         }
-    //     });
-
-    //     const activeId = activeElement.dataset.mergeSourceId;
-    //     if (activeId && mergeSources[activeId]) {
-    //         select.value = activeId;
-    //         optionsDiv.classList.remove('hidden');
-
-    //         const source = mergeSources[activeId];
-    //         colSelect.innerHTML = '';
-    //         const numCols = source.data.length > 0 ? source.data[0].length : 1;
-    //         for (let i = 0; i < numCols; i++) {
-    //             let opt = document.createElement('option');
-    //             opt.value = i;
-    //             let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
-    //             let headerName = rawText !== "" ? rawText.substring(0, 15) : `Col ${i+1}`;
-    //             opt.innerText = headerName;
-    //             colSelect.appendChild(opt);
-    //         }
-
-    //         colSelect.value = activeElement.dataset.mergeCol || "0";
-    //         skipHdr.checked = activeElement.dataset.mergeSkipHeader === "true";
-    //     } else {
-    //         select.value = "";
-    //         optionsDiv.classList.add('hidden');
-    //     }
-
-    //     if (globalMaxRows > 0) {
-    //         statusText.innerText = `${globalMaxRows} rows`;
-    //         statusContainer.classList.remove('hidden');
-    //         statusContainer.classList.add('flex');
-    //     } else {
-    //         statusContainer.classList.add('hidden');
-    //         statusContainer.classList.remove('flex');
-    //     }
-
-    //     document.getElementById('card-content').querySelectorAll('.merge-scrubber').forEach(scrubber => {
-    //         const el = scrubber.closest('.element-container');
-    //         if (el.dataset.mergeData) {
-    //             scrubber.classList.remove('hidden');
-    //             scrubber.classList.add('flex');
-    //             scrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1}/${globalMaxRows}`;
-    //         } else {
-    //             scrubber.classList.add('hidden');
-    //             scrubber.classList.remove('flex');
-    //         }
-    //     });
-    // }
 
     function stripControlsFromHTML(htmlString) {
         if (!htmlString) return '';
@@ -7075,6 +7089,14 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         temp.innerHTML = htmlString;
 
         temp.querySelectorAll('.element-container').forEach(el => {
+            // Restore contenteditable to text and table cells so data merging can find them
+            if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+                const target = el.querySelector('.resizable');
+                if (target) target.setAttribute('contenteditable', 'true');
+            } else if (el.dataset.type === 'table') {
+                el.querySelectorAll('.cell-text').forEach(c => c.setAttribute('contenteditable', 'true'));
+            }
+
             // Ensure all old UI is stripped before regenerating
             el.querySelectorAll(':scope > .ui-control, :scope > .controls, :scope > .rot-handle').forEach(ctrl => ctrl.remove());
 
@@ -7170,9 +7192,10 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             frontBg: frontBgClass,
             backBg: backBgClass,
             mergeSources: mergeSources,
+            globalMergeIndex: globalMergeIndex,
             bgConfigFront: frontBgConfig,
             bgConfigBack: backBgConfig,
-            imageAssets: imageAssets
+            imageAssets: imageAssets,
         };
 
         const xmlSerializer = new XMLSerializer();
@@ -7222,95 +7245,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
         showToast("Card File Downloaded!");
     }
 
-    // function downloadPNG(side = 'front') {
-    //     saveCurrentSideState();
-    //     const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
-    //     const scale = dpi / PX_PER_IN;
-
-    //     const width = currentWidth;
-    //     const height = currentHeight;
-    //     const canvasW = width * scale;
-    //     const canvasH = height * scale;
-
-    //     const activeBgClass = side === 'front' ? frontBgClass : backBgClass;
-    //     const rawHtml = side === 'front' ? frontContentHTML : backContentHTML;
-
-    //     let activeContent = getCleanPrintHTML(rawHtml);
-    //     let maxMergeRows = 0;
-    //     const temp = document.createElement('div');
-    //     temp.innerHTML = activeContent;
-
-    //     temp.querySelectorAll('.element-container').forEach(el => {
-    //         if (el.dataset.mergeData) {
-    //             try {
-    //                 const data = JSON.parse(el.dataset.mergeData);
-    //                 if (data.length > maxMergeRows) maxMergeRows = data.length;
-    //                 const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-    //                 const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-    //                 if (target) {
-    //                     target.textContent = val;
-    //                     parseMarkdownInElement(target);
-    //                     target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
-    //                 }
-    //             } catch (e) {}
-    //         }
-    //     });
-    //     activeContent = temp.innerHTML;
-
-    //     const customStyleTag = document.querySelector('style').innerHTML;
-
-    //     const svgContent = `
-    //             <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
-    //                 <foreignObject x="0" y="0" width="100%" height="100%">
-    //                     <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; transform: scale(${scale}); transform-origin: top left; margin: 0; padding: 0;">
-    //                         <style>
-    //                             <![CDATA[
-    //                             ${customStyleTag}
-    //                             .bg-blank { background-color: white; }
-    //                             .element-container { outline: none !important; }
-    //                             ]]>
-    //                         </style>
-    //                         <div class="${activeBgClass}" style="width: 100%; height: 100%; position: relative; overflow: hidden; background-color: white;">
-    //                             ${activeContent}
-    //                         </div>
-    //                     </div>
-    //                 </foreignObject>
-    //             </svg>
-    //         `;
-
-    //     const img = new Image();
-        
-    //     // Crucial: Tell the browser we aren't trying to steal cross-domain credentials
-    //     img.crossOrigin = 'anonymous'; 
-        
-    //     img.onload = () => {
-    //         const canvas = document.createElement('canvas');
-    //         canvas.width = canvasW;
-    //         canvas.height = canvasH;
-    //         const ctx = canvas.getContext('2d');
-            
-    //         // Fill with a white background first to prevent transparent PNG rendering issues
-    //         ctx.fillStyle = "#ffffff";
-    //         ctx.fillRect(0, 0, canvasW, canvasH);
-    //         ctx.drawImage(img, 0, 0);
-
-    //         try {
-    //             const a = document.createElement('a');
-    //             // Use the custom project name here too!
-    //             const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
-    //             a.download = `${projName}-${side}-${dpi}dpi.png`;
-    //             a.href = canvas.toDataURL('image/png');
-    //             a.click();
-    //             showToast(`Downloaded ${dpi} DPI PNG!`);
-    //         } catch (err) {
-    //             console.error(err);
-    //             showToast("Export failed: Canvas tainted by external cross-origin image.", true);
-    //         }
-    //     };
-        
-    //     // Encode the SVG as a direct data URI instead of a Blob to bypass strict origin locking
-    //     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
-    // }
 
     function renderSvgToDataUri(svgContent, width, height) {
         return new Promise((resolve, reject) => {
@@ -7326,7 +7260,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 ctx.drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/png'));
             };
-            img.onerror = () => reject(new Error("Canvas tainted by external cross-origin image."));
+            img.onerror = () => reject(new Error("Image failed to load (SVG markup may be invalid or contains unresolvable external images)."));
             img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
         });
     }
@@ -7350,9 +7284,8 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     const data = JSON.parse(el.dataset.mergeData);
                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
                     
-                    // Split logic to protect images from being overwritten by text!
                     if (el.dataset.type === 'image') {
-                        updateImageElementDisplay(el, val);
+                        updateImageElementDisplay(el, val, true);
                     } else {
                         const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
                         if (target) {
@@ -7364,7 +7297,10 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 } catch (e) {}
             }
         });
-        activeContent = temp.innerHTML;
+        
+        // NEW: Guarantee perfectly formed XML for the SVG Engine!
+        temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+        activeContent = new XMLSerializer().serializeToString(temp);
 
         const customStyleTag = document.querySelector('style').innerHTML;
         const svgContent = `
@@ -7379,12 +7315,17 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 </foreignObject>
             </svg>`;
 
-        const dataUri = await renderSvgToDataUri(svgContent, canvasW, canvasH);
-        const a = document.createElement('a');
-        const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
-        a.download = `${projName}-${side}-${dpi}dpi.png`;
-        a.href = dataUri;
-        a.click();
+        try {
+            const dataUri = await renderSvgToDataUri(svgContent, canvasW, canvasH);
+            const a = document.createElement('a');
+            const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
+            a.download = `${projName}-${side}-${dpi}dpi.png`;
+            a.href = dataUri;
+            a.click();
+        } catch (e) {
+            console.error(e);
+            showToast(`Failed to export ${side} face.`, true);
+        }
     }
 
     async function renderPagesToImages(mode, dpi) {
@@ -7557,18 +7498,18 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                             }
 
                             let activeContent = getCleanPrintHTML(rawHtml);
+                            const temp = document.createElement('div');
+                            temp.innerHTML = activeContent;
+
                             if (isDataMerge) {
-                                const temp = document.createElement('div');
-                                temp.innerHTML = activeContent;
                                 temp.querySelectorAll('.element-container').forEach(el => {
                                     if (el.dataset.mergeData) {
                                         try {
                                             const data = JSON.parse(el.dataset.mergeData);
-                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; // Use globalMergeIndex for downloadSingleCardPNG
+                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
                                             
-                                            // Split logic to protect images from being overwritten by text!
                                             if (el.dataset.type === 'image') {
-                                                updateImageElementDisplay(el, val);
+                                                updateImageElementDisplay(el, val, true);
                                             } else {
                                                 const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
                                                 if (target) {
@@ -7580,8 +7521,11 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                                         } catch (e) {}
                                     }
                                 });
-                                activeContent = temp.innerHTML;
                             }
+                            
+                            // NEW: Guarantee perfectly formed XML for the SVG Engine!
+                            temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+                            activeContent = new XMLSerializer().serializeToString(temp);
 
                             const bleedPx = bleedIn * PX_PER_IN;
                             let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
@@ -7591,25 +7535,25 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
 
                             pageContent += `
                                 <div class="bleed-clip" style="
-                                    position: absolute; top: ${-maxBleedTop}in; left: ${-maxBleedLeft}in;
-                                    width: ${totalCardWin + maxBleedLeft + maxBleedRight}in; height: ${totalCardHin + maxBleedTop + maxBleedBottom}in; overflow: hidden;
-                                ">
-                                    <div class="content-layer" style="
-                                        position: absolute; top: ${maxBleedTop + activeMtIn - bleedIn}in; left: ${maxBleedLeft + activeMlIn - bleedIn}in;
-                                        width: ${baseCardWin + 2 * bleedIn}in; height: ${baseCardHin + 2 * bleedIn}in; overflow: hidden; background: transparent;
+                                        position: absolute; top: ${-maxBleedTop}in; left: ${-maxBleedLeft}in;
+                                        width: ${totalCardWin + maxBleedLeft + maxBleedRight}in; height: ${totalCardHin + maxBleedTop + maxBleedBottom}in; overflow: hidden;
                                     ">
-                                        <div class="${activeBgClass}" style="
-                                            width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
-                                            transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
-                                            background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
+                                        <div class="content-layer" style="
+                                            position: absolute; top: ${maxBleedTop + activeMtIn - bleedIn}in; left: ${maxBleedLeft + activeMlIn - bleedIn}in;
+                                           width: ${baseCardWin + 2 * bleedIn}in; height: ${baseCardHin + 2 * bleedIn}in; overflow: hidden; background: transparent;
                                         ">
-                                            <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
-                                                ${activeContent}
+                                            <div class="${activeBgClass}" style="
+                                                width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
+                                                transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
+                                                background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
+                                            ">
+                                                <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
+                                                   ${activeContent}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            `;
+                                `;
                         }
 
                         const activeBorderRight = (gapXIn === 0 && c < cols - 1) ? 0 : cutLineWidth;
@@ -7675,6 +7619,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
 
                 pageContent += `</div>`;
 
+                const sideLabel = isBack ? 'Back' : 'Front';
                 const canvasW = paperW * dpi;
                 const canvasH = paperH * dpi;
                 const scaleStr = `transform: scale(${dpi / 96}); transform-origin: top left;`; 
@@ -7692,7 +7637,6 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                 try {
                     const dataUri = await renderSvgToDataUri(svgWrap, canvasW, canvasH);
                     const a = document.createElement('a');
-                    const sideLabel = isBack ? 'Back' : 'Front';
                     a.download = `${projName}-Sheet${sheet + 1}-${sideLabel}-${dpi}dpi.png`;
                     a.href = dataUri;
                     a.click();
@@ -7812,6 +7756,7 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                     hasCustomBack = settings.hasCustomBack || false;
                     mergeSources = settings.mergeSources || {};
                     imageAssets = settings.imageAssets || {};
+                    globalMergeIndex = settings.globalMergeIndex || 0;
                     
                     // RECOVERY SCRIPT: Rebuild lost CSV data from orphaned elements
                     if (Object.keys(mergeSources).length === 0) {
@@ -8021,6 +7966,18 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
             el.removeAttribute('contenteditable');
             el.style.cursor = 'default';
         });
+
+        // NEW: Convert vital Tailwind layout classes to inline styles for the SVG rendering engine
+        temp.querySelectorAll('.w-full').forEach(el => el.style.width = '100%');
+        temp.querySelectorAll('.h-full').forEach(el => el.style.height = '100%');
+        temp.querySelectorAll('.relative').forEach(el => el.style.position = 'relative');
+        temp.querySelectorAll('.absolute').forEach(el => el.style.position = 'absolute');
+        temp.querySelectorAll('.inset-0').forEach(el => {
+            el.style.top = '0'; el.style.left = '0'; el.style.right = '0'; el.style.bottom = '0';
+        });
+        temp.querySelectorAll('.z-10').forEach(el => el.style.zIndex = '10');
+        temp.querySelectorAll('.z-20').forEach(el => el.style.zIndex = '20');
+
         return temp.innerHTML;
     }
 
@@ -8203,12 +8160,18 @@ const snappingEnabled = document.getElementById('enable-resize-snapping')?.check
                                     if (el.dataset.mergeData) {
                                         try {
                                             const data = JSON.parse(el.dataset.mergeData);
-                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : '';
-                                            const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                                            if (target) {
-                                                target.textContent = val;
-                                                parseMarkdownInElement(target);
-                                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
+                                            
+                                            // Split logic to protect images from being overwritten by text!
+                                            if (el.dataset.type === 'image') {
+                                                updateImageElementDisplay(el, val, true);
+                                            } else {
+                                                const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                                if (target) {
+                                                    target.textContent = val;
+                                                    parseMarkdownInElement(target);
+                                                    target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                                }
                                             }
                                         } catch (e) {}
                                     }
