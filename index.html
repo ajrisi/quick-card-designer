@@ -1145,31 +1145,19 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
             <div id="data-merge-section" style="display: none;" class="shrink-0 ml-1 border-l border-gray-200 pl-3">
                 <div class="flex items-center gap-2 h-full">
-                    
-                    <!-- Flattened horizontal flex container -->
                     <div class="flex items-center gap-2">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-[9px] font-bold text-gray-400 uppercase">Data</span>
-                            <select id="merge-source-select" class="w-28 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="handleMergeSourceChange(this.value)">
+                            <span class="text-[9px] font-bold text-gray-400 uppercase">Link Data</span>
+                            <select id="merge-source-select" class="w-24 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="handleMergeSourceChange(this.value)">
                                 <option value="">None</option>
-                                <option value="new">+ Upload File...</option>
                             </select>
-                            <input type="file" id="merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
                         </div>
-                        
-                       <!-- Added left border to separate the options smoothly -->
                         <div id="merge-options" class="flex items-center gap-1.5 hidden border-l border-gray-200 pl-2">
                             <span class="text-[9px] font-bold text-gray-400 uppercase">Col</span>
                             <select id="merge-col-select" class="w-20 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="applyMergeOptions()">
                             </select>
-                            <label class="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase cursor-pointer" title="Skip Header Row">
-                                <input type="checkbox" id="merge-skip-header" class="rounded text-blue-600" onchange="applyMergeOptions()"> Skip Hdr
-                            </label>
-                            
-                            <button onclick="openImageBankModal()" class="ml-1 px-1.5 py-1 bg-white border border-gray-300 rounded text-[9px] font-bold hover:bg-blue-50 text-blue-600 transition-colors uppercase shadow-sm whitespace-nowrap" title="Manage images mapped from CSV">Image Bank</button>
                         </div>
                     </div>
-
                     <div id="merge-status-container" class="hidden items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 shadow-sm h-full">
                         <span id="merge-status" class="text-[9px] font-bold text-gray-600">0 rows</span>
                     </div>
@@ -1410,8 +1398,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
         <span class="text-[10px] font-bold text-gray-400 tracking-wider group-hover:text-blue-500">Images</span>
     </button>
     
+    <button onclick="openDataBankModal()" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Data Sources">
+        <svg class="w-6 h-6 text-gray-600 group-hover:text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+        </svg>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider group-hover:text-blue-500">Data</span>
+    </button>
     
 </div>
+
         <div id="ui-bleed" class="absolute hidden border border-red-500 border-dashed bg-red-500/10 pointer-events-none z-0"></div>
         <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0;">
             <div id="card-canvas" class="bg-blank">
@@ -1452,9 +1447,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <span class="text-xs text-gray-500 font-medium">Use the exact filename in your CSV for Data Merging.</span>
-                    <button onclick="document.getElementById('merge-file-input').click()" class="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded text-[10px] font-bold uppercase transition-colors shadow-sm">
-                        + Upload CSV
-                    </button>
+                    
                 </div>
                 <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors">
                     + Upload Images
@@ -1462,6 +1455,36 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <input type="file" id="bank-upload-input" accept="image/*,.svg" multiple class="hidden" onchange="handleBankUpload(event)">
                 <input type="file" id="bank-replace-input" accept="image/*,.svg" class="hidden" onchange="handleBankReplace(event)">
                 <input type="file" id="bank-fulfill-input" accept="image/*,.svg" class="hidden" onchange="handleBankFulfill(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Central Data Bank Modal -->
+    <div id="data-bank-modal" class="fixed inset-0 z-[200] hidden bg-gray-900/40 backdrop-blur-sm flex items-center justify-center transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-2xl max-h-[85vh] overflow-hidden border border-gray-200">
+            <!-- Header -->
+            <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <h2 class="text-base font-bold text-gray-800">Data Sources</h2>
+                </div>
+                <button onclick="closeDataBankModal()" class="text-gray-400 hover:text-gray-700 transition-colors p-1 bg-white hover:bg-gray-200 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Body Grid -->
+            <div class="p-5 flex-1 overflow-y-auto bg-gray-100">
+                <div id="data-sources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Dynamic Items Inject Here -->
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+                <span class="text-xs text-gray-500 font-medium">Link these files to text or images using the Top Toolbar.</span>
+                <button onclick="document.getElementById('global-merge-file-input').click()" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors">
+                    + Upload CSV
+                </button>
+                <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
             </div>
         </div>
     </div>
@@ -2228,7 +2251,13 @@ function updateBgSettings() {
                 const data = JSON.parse(savedData);
                 
                 if (data.imageAssets) imageAssets = data.imageAssets;
-
+                if (data.mergeSources) mergeSources = data.mergeSources;
+                
+                // Backwards compatibility for older saves without the header property
+                Object.values(mergeSources).forEach(src => {
+                    if (src.hasHeader === undefined) src.hasHeader = true;
+                });
+                renderDataSourcesList();
                 // Restore DPI early so the DOM aligns perfectly before initialization
                 if (data.dpi) {
                     PX_PER_IN = data.dpi;
@@ -2408,6 +2437,7 @@ const autoSaveData = {
                 isLandscape: isLandscape,
                 projectName: document.getElementById('project-name').value,
                 imageAssets: imageAssets,
+                mergeSources: mergeSources,
                 panX: panX,
                 panY: panY,
                 canvasScale: canvasScale
@@ -5578,17 +5608,211 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         return arr;
     }
 
+    // function handleMergeSourceChange(val) {
+    //     if (!activeElement) return;
+    //     if (val === 'new') {
+    //         document.getElementById('merge-file-input').click();
+    //         document.getElementById('merge-source-select').value = activeElement.dataset.mergeSourceId || "";
+    //         return;
+    //     }
+    //     if (!val) {
+    //         delete activeElement.dataset.mergeSourceId;
+    //         delete activeElement.dataset.mergeCol;
+    //         delete activeElement.dataset.mergeSkipHeader;
+    //         delete activeElement.dataset.mergeData;
+    //         const target = activeElement.querySelector('div[contenteditable="true"]');
+    //         if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+    //         updateMergeUI();
+    //         saveState(true);
+    //         return;
+    //     }
+    //     activeElement.dataset.mergeSourceId = val;
+    //     activeElement.dataset.mergeCol = "0";
+    //     activeElement.dataset.mergeSkipHeader = "false";
+    //     recomputeMergeData();
+    // }
+
+    // function handleNewMergeFile(event) {
+    //     const file = event.target.files[0];
+    //     if (!file) {
+    //         if (activeElement) {
+    //             document.getElementById('merge-source-select').value = activeElement.dataset.mergeSourceId || "";
+    //         }
+    //         return;
+    //     }
+    //     const reader = new FileReader();
+    //     reader.onload = function(e) {
+    //         const text = e.target.result;
+    //         let data = [];
+    //         if (file.name.toLowerCase().endsWith('.csv')) {
+    //             data = parseCSV(text);
+    //         } else {
+    //             data = text.split(/\r?\n/).map(line => [line]);
+    //         }
+    //         const id = 'src_' + Date.now();
+    //         mergeSources[id] = { filename: file.name, data: data };
+
+    //         if (activeElement) {
+    //             activeElement.dataset.mergeSourceId = id;
+    //             activeElement.dataset.mergeCol = "0";
+    //             activeElement.dataset.mergeSkipHeader = "false";
+    //             recomputeMergeData();
+    //         }
+            
+    //         // Force the Image Bank to render live if it's currently open
+    //         if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+    //             renderImageBankItems();
+    //         }
+    //     };
+    //     reader.readAsText(file);
+    //     event.target.value = '';
+    // }
+
+    /* --- GLOBAL DATA MERGE ENGINE --- */
+    function applyMergeOptions() {
+        if (!activeElement) return;
+        activeElement.dataset.mergeCol = document.getElementById('merge-col-select').value;
+        recomputeAllMergeData();
+        saveState(true);
+    }
+
+    function recomputeAllMergeData() {
+        document.querySelectorAll('#card-content .element-container').forEach(el => {
+            const sourceId = el.dataset.mergeSourceId;
+            if (sourceId && mergeSources[sourceId]) {
+                const source = mergeSources[sourceId];
+                let colIdx = parseInt(el.dataset.mergeCol || "0", 10);
+                let startIndex = source.hasHeader ? 1 : 0;
+                let extracted = [];
+                for (let i = startIndex; i < source.data.length; i++) {
+                    extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+                }
+                el.dataset.mergeData = JSON.stringify(extracted);
+            }
+        });
+        applyMergePreview();
+        updateMergeUI();
+    }
+
+    function applyMergePreview() {
+        let maxRows = 0;
+        const elements = document.getElementById('card-content').querySelectorAll('.element-container');
+        elements.forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    if (data.length > maxRows) maxRows = data.length;
+                } catch (e) {}
+            }
+        });
+
+        if (maxRows > 0) {
+            if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
+            if (globalMergeIndex < 0) globalMergeIndex = 0;
+
+            elements.forEach(el => {
+                if (el.dataset.mergeData) {
+                    try {
+                        const data = JSON.parse(el.dataset.mergeData);
+                        const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
+                        
+                        if (el.dataset.type === 'image') {
+                            updateImageElementDisplay(el, val);
+                        } else {
+                            const target = el.querySelector('div[contenteditable="true"]');
+                            if (target) {
+                                target.textContent = val;
+                                parseMarkdownInElement(target);
+                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                            }
+                        }
+                    } catch (e) {}
+                }
+            });
+        }
+        updateMergeUI();
+        if (typeof updateUILayer === 'function') updateUILayer();
+    }
+
+    function updateMergeUI() {
+        if (!activeElement) return;
+
+        const select = document.getElementById('merge-source-select');
+        const colSelect = document.getElementById('merge-col-select');
+        const optionsDiv = document.getElementById('merge-options');
+        const statusContainer = document.getElementById('merge-status-container');
+        const statusText = document.getElementById('merge-status');
+
+        select.innerHTML = '<option value="">None</option>';
+        for (let id in mergeSources) {
+            let opt = document.createElement('option');
+            opt.value = id;
+            opt.innerText = mergeSources[id].filename;
+            select.appendChild(opt);
+        }
+
+        let globalMaxRows = 0;
+        document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+            if (el.dataset.mergeData) {
+                try {
+                    const data = JSON.parse(el.dataset.mergeData);
+                    if (data.length > globalMaxRows) globalMaxRows = data.length;
+                } catch (e) {}
+            }
+        });
+
+        const activeId = activeElement.dataset.mergeSourceId;
+        if (activeId && mergeSources[activeId]) {
+            select.value = activeId;
+            optionsDiv.classList.remove('hidden');
+
+            const source = mergeSources[activeId];
+            colSelect.innerHTML = '';
+            const numCols = source.data.length > 0 ? source.data[0].length : 1;
+            
+            // Provide better column names using headers if available
+            for (let i = 0; i < numCols; i++) {
+                let opt = document.createElement('option');
+                opt.value = i;
+                let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
+                let headerName = (source.hasHeader && rawText !== "") ? rawText.substring(0, 15) : `Col ${i+1}`;
+                opt.innerText = headerName;
+                colSelect.appendChild(opt);
+            }
+
+            colSelect.value = activeElement.dataset.mergeCol || "0";
+        } else {
+            select.value = "";
+            optionsDiv.classList.add('hidden');
+        }
+
+        if (globalMaxRows > 0) {
+            statusText.innerText = `${globalMaxRows} rows`;
+            statusContainer.classList.remove('hidden');
+            statusContainer.classList.add('flex');
+        } else {
+            statusContainer.classList.add('hidden');
+            statusContainer.classList.remove('flex');
+        }
+
+        document.getElementById('card-content').querySelectorAll('.merge-scrubber').forEach(scrubber => {
+            const el = scrubber.closest('.element-container');
+            if (el.dataset.mergeData) {
+                scrubber.classList.remove('hidden');
+                scrubber.classList.add('flex');
+                scrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1}/${globalMaxRows}`;
+            } else {
+                scrubber.classList.add('hidden');
+                scrubber.classList.remove('flex');
+            }
+        });
+    }
+
     function handleMergeSourceChange(val) {
         if (!activeElement) return;
-        if (val === 'new') {
-            document.getElementById('merge-file-input').click();
-            document.getElementById('merge-source-select').value = activeElement.dataset.mergeSourceId || "";
-            return;
-        }
         if (!val) {
             delete activeElement.dataset.mergeSourceId;
             delete activeElement.dataset.mergeCol;
-            delete activeElement.dataset.mergeSkipHeader;
             delete activeElement.dataset.mergeData;
             const target = activeElement.querySelector('div[contenteditable="true"]');
             if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
@@ -5598,18 +5822,14 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
         activeElement.dataset.mergeSourceId = val;
         activeElement.dataset.mergeCol = "0";
-        activeElement.dataset.mergeSkipHeader = "false";
-        recomputeMergeData();
+        recomputeAllMergeData();
+        saveState(true);
     }
 
     function handleNewMergeFile(event) {
         const file = event.target.files[0];
-        if (!file) {
-            if (activeElement) {
-                document.getElementById('merge-source-select').value = activeElement.dataset.mergeSourceId || "";
-            }
-            return;
-        }
+        if (!file) return;
+
         const reader = new FileReader();
         reader.onload = function(e) {
             const text = e.target.result;
@@ -5620,22 +5840,100 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 data = text.split(/\r?\n/).map(line => [line]);
             }
             const id = 'src_' + Date.now();
-            mergeSources[id] = { filename: file.name, data: data };
+            mergeSources[id] = { filename: file.name, data: data, hasHeader: true };
 
-            if (activeElement) {
-                activeElement.dataset.mergeSourceId = id;
-                activeElement.dataset.mergeCol = "0";
-                activeElement.dataset.mergeSkipHeader = "false";
-                recomputeMergeData();
-            }
-            
+            renderDataSourcesList();
+            recomputeAllMergeData();
+
             // Force the Image Bank to render live if it's currently open
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
+            saveState(true);
         };
         reader.readAsText(file);
         event.target.value = '';
+    }
+
+    function toggleMergeHeader(id, hasHeader) {
+        if (mergeSources[id]) {
+            mergeSources[id].hasHeader = hasHeader;
+            recomputeAllMergeData();
+            renderDataSourcesList();
+            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                renderImageBankItems();
+            }
+            saveState(true);
+        }
+    }
+
+    function deleteMergeSource(id) {
+        if (confirm("Delete this data source? Elements using it will be cleared.")) {
+            delete mergeSources[id];
+            // Clear merge data from elements using it
+            document.querySelectorAll('#card-content .element-container').forEach(el => {
+                if (el.dataset.mergeSourceId === id) {
+                    delete el.dataset.mergeSourceId;
+                    delete el.dataset.mergeCol;
+                    delete el.dataset.mergeData;
+                    const target = el.querySelector('div[contenteditable="true"]');
+                    if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+                }
+            });
+            recomputeAllMergeData();
+            renderDataSourcesList();
+            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                renderImageBankItems();
+            }
+            saveState(true);
+        }
+    }
+
+    /* --- DATA BANK ENGINE --- */
+    function openDataBankModal() {
+        document.getElementById('data-bank-modal').classList.remove('hidden');
+        renderDataSourcesList();
+    }
+
+    function closeDataBankModal() {
+        document.getElementById('data-bank-modal').classList.add('hidden');
+    }
+
+    function renderDataSourcesList() {
+        const container = document.getElementById('data-sources-list');
+        container.innerHTML = '';
+        const keys = Object.keys(mergeSources);
+        
+        if (keys.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No data sources loaded. Upload a CSV to get started!</div>';
+            return;
+        }
+
+        keys.forEach(id => {
+            const src = mergeSources[id];
+            const div = document.createElement('div');
+            div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md";
+            div.innerHTML = `
+                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-xs font-bold text-gray-700 truncate" title="${src.filename}">${src.filename}</span>
+                    </div>
+                    <button onclick="deleteMergeSource('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors shrink-0" title="Delete Source">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded">${src.data.length} rows</span>
+                    <label class="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 uppercase cursor-pointer hover:text-blue-600 transition-colors">
+                        <input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleMergeHeader('${id}', this.checked)" ${src.hasHeader ? 'checked' : ''}> Has Header
+                    </label>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        updateMergeUI();
     }
 
     // function handleImageAssetsUpload(event) {
@@ -5692,6 +5990,24 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             // NEW: Capture missing native images directly on canvas
             if (el.dataset.imageBankKey && !el.dataset.imageBankKey.startsWith('http') && !el.dataset.imageBankKey.startsWith('data:')) {
                 requiredAssets.add(el.dataset.imageBankKey);
+            }
+        });
+
+        // NEW: Gather Missing Assets directly from loaded CSV columns prefixed with "Images:"
+        Object.values(mergeSources).forEach(source => {
+            if (source.hasHeader && source.data.length > 0) {
+                const headers = source.data[0];
+                headers.forEach((hdr, colIdx) => {
+                    if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
+                        // Extract all values in this column
+                        for (let i = 1; i < source.data.length; i++) {
+                            const val = source.data[i][colIdx];
+                            if (val && typeof val === 'string' && val.trim() !== '' && !val.startsWith('http') && !val.startsWith('data:')) {
+                                requiredAssets.add(val.trim());
+                            }
+                        }
+                    }
+                });
             }
         });
 
@@ -5933,78 +6249,78 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     }
 
 
-    function applyMergeOptions() {
-        if (!activeElement) return;
-        activeElement.dataset.mergeCol = document.getElementById('merge-col-select').value;
-        activeElement.dataset.mergeSkipHeader = document.getElementById('merge-skip-header').checked;
-        recomputeMergeData();
-    }
+    // function applyMergeOptions() {
+    //     if (!activeElement) return;
+    //     activeElement.dataset.mergeCol = document.getElementById('merge-col-select').value;
+    //     activeElement.dataset.mergeSkipHeader = document.getElementById('merge-skip-header').checked;
+    //     recomputeMergeData();
+    // }
 
-    function recomputeMergeData() {
-        if (!activeElement) return;
-        const sourceId = activeElement.dataset.mergeSourceId;
-        const source = mergeSources[sourceId];
-        if (source) {
-            let colIdx = parseInt(activeElement.dataset.mergeCol || "0", 10);
-            let skipHdr = activeElement.dataset.mergeSkipHeader === "true";
-            let startIndex = skipHdr ? 1 : 0;
+    // function recomputeMergeData() {
+    //     if (!activeElement) return;
+    //     const sourceId = activeElement.dataset.mergeSourceId;
+    //     const source = mergeSources[sourceId];
+    //     if (source) {
+    //         let colIdx = parseInt(activeElement.dataset.mergeCol || "0", 10);
+    //         let skipHdr = activeElement.dataset.mergeSkipHeader === "true";
+    //         let startIndex = skipHdr ? 1 : 0;
 
-            let extracted = [];
-            for (let i = startIndex; i < source.data.length; i++) {
-                extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
-            }
+    //         let extracted = [];
+    //         for (let i = startIndex; i < source.data.length; i++) {
+    //             extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+    //         }
 
-            activeElement.dataset.mergeData = JSON.stringify(extracted);
-            applyMergePreview();
+    //         activeElement.dataset.mergeData = JSON.stringify(extracted);
+    //         applyMergePreview();
             
-            // Sync the Missing Assets scanner instantly
-            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
-                renderImageBankItems();
-            }
-        }
-        updateMergeUI();
-        saveState(true);
-    }
+    //         // Sync the Missing Assets scanner instantly
+    //         if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+    //             renderImageBankItems();
+    //         }
+    //     }
+    //     updateMergeUI();
+    //     saveState(true);
+    // }
 
-    function applyMergePreview() {
-        let maxRows = 0;
-        const elements = document.getElementById('card-content').querySelectorAll('.element-container');
-        elements.forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxRows) maxRows = data.length;
-                } catch (e) {}
-            }
-        });
+    // function applyMergePreview() {
+    //     let maxRows = 0;
+    //     const elements = document.getElementById('card-content').querySelectorAll('.element-container');
+    //     elements.forEach(el => {
+    //         if (el.dataset.mergeData) {
+    //             try {
+    //                 const data = JSON.parse(el.dataset.mergeData);
+    //                 if (data.length > maxRows) maxRows = data.length;
+    //             } catch (e) {}
+    //         }
+    //     });
 
-        if (maxRows > 0) {
-            if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
-            if (globalMergeIndex < 0) globalMergeIndex = 0;
+    //     if (maxRows > 0) {
+    //         if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
+    //         if (globalMergeIndex < 0) globalMergeIndex = 0;
 
-            elements.forEach(el => {
-                if (el.dataset.mergeData) {
-                    try {
-                        const data = JSON.parse(el.dataset.mergeData);
-                        const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
+    //         elements.forEach(el => {
+    //             if (el.dataset.mergeData) {
+    //                 try {
+    //                     const data = JSON.parse(el.dataset.mergeData);
+    //                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
                         
-                        if (el.dataset.type === 'image') {
-                            updateImageElementDisplay(el, val);
-                        } else {
-                            const target = el.querySelector('div[contenteditable="true"]');
-                            if (target) {
-                                target.textContent = val;
-                                parseMarkdownInElement(target);
-                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
-                            }
-                        }
-                    } catch (e) {}
-                }
-            });
-        }
-        updateMergeUI();
-        if (typeof updateUILayer === 'function') updateUILayer();
-    }
+    //                     if (el.dataset.type === 'image') {
+    //                         updateImageElementDisplay(el, val);
+    //                     } else {
+    //                         const target = el.querySelector('div[contenteditable="true"]');
+    //                         if (target) {
+    //                             target.textContent = val;
+    //                             parseMarkdownInElement(target);
+    //                             target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+    //                         }
+    //                     }
+    //                 } catch (e) {}
+    //             }
+    //         });
+    //     }
+    //     updateMergeUI();
+    //     if (typeof updateUILayer === 'function') updateUILayer();
+    // }
 
     function scrubMergeData(delta) {
         globalMergeIndex += delta;
@@ -6012,80 +6328,80 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState(true);
     }
 
-    function updateMergeUI() {
-        if (!activeElement) return;
+    // function updateMergeUI() {
+    //     if (!activeElement) return;
 
-        const select = document.getElementById('merge-source-select');
-        const colSelect = document.getElementById('merge-col-select');
-        const skipHdr = document.getElementById('merge-skip-header');
-        const optionsDiv = document.getElementById('merge-options');
-        const statusContainer = document.getElementById('merge-status-container');
-        const statusText = document.getElementById('merge-status');
+    //     const select = document.getElementById('merge-source-select');
+    //     const colSelect = document.getElementById('merge-col-select');
+    //     const skipHdr = document.getElementById('merge-skip-header');
+    //     const optionsDiv = document.getElementById('merge-options');
+    //     const statusContainer = document.getElementById('merge-status-container');
+    //     const statusText = document.getElementById('merge-status');
 
-        select.innerHTML = '<option value="">None</option>';
-        for (let id in mergeSources) {
-            let opt = document.createElement('option');
-            opt.value = id;
-            opt.innerText = mergeSources[id].filename;
-            select.appendChild(opt);
-        }
-        select.innerHTML += '<option value="new">+ Upload File...</option>';
+    //     select.innerHTML = '<option value="">None</option>';
+    //     for (let id in mergeSources) {
+    //         let opt = document.createElement('option');
+    //         opt.value = id;
+    //         opt.innerText = mergeSources[id].filename;
+    //         select.appendChild(opt);
+    //     }
+    //     select.innerHTML += '<option value="new">+ Upload File...</option>';
 
-        let globalMaxRows = 0;
-        document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > globalMaxRows) globalMaxRows = data.length;
-                } catch (e) {}
-            }
-        });
+    //     let globalMaxRows = 0;
+    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+    //         if (el.dataset.mergeData) {
+    //             try {
+    //                 const data = JSON.parse(el.dataset.mergeData);
+    //                 if (data.length > globalMaxRows) globalMaxRows = data.length;
+    //             } catch (e) {}
+    //         }
+    //     });
 
-        const activeId = activeElement.dataset.mergeSourceId;
-        if (activeId && mergeSources[activeId]) {
-            select.value = activeId;
-            optionsDiv.classList.remove('hidden');
+    //     const activeId = activeElement.dataset.mergeSourceId;
+    //     if (activeId && mergeSources[activeId]) {
+    //         select.value = activeId;
+    //         optionsDiv.classList.remove('hidden');
 
-            const source = mergeSources[activeId];
-            colSelect.innerHTML = '';
-            const numCols = source.data.length > 0 ? source.data[0].length : 1;
-            for (let i = 0; i < numCols; i++) {
-                let opt = document.createElement('option');
-                opt.value = i;
-                let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
-                let headerName = rawText !== "" ? rawText.substring(0, 15) : `Col ${i+1}`;
-                opt.innerText = headerName;
-                colSelect.appendChild(opt);
-            }
+    //         const source = mergeSources[activeId];
+    //         colSelect.innerHTML = '';
+    //         const numCols = source.data.length > 0 ? source.data[0].length : 1;
+    //         for (let i = 0; i < numCols; i++) {
+    //             let opt = document.createElement('option');
+    //             opt.value = i;
+    //             let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
+    //             let headerName = rawText !== "" ? rawText.substring(0, 15) : `Col ${i+1}`;
+    //             opt.innerText = headerName;
+    //             colSelect.appendChild(opt);
+    //         }
 
-            colSelect.value = activeElement.dataset.mergeCol || "0";
-            skipHdr.checked = activeElement.dataset.mergeSkipHeader === "true";
-        } else {
-            select.value = "";
-            optionsDiv.classList.add('hidden');
-        }
+    //         colSelect.value = activeElement.dataset.mergeCol || "0";
+    //         skipHdr.checked = activeElement.dataset.mergeSkipHeader === "true";
+    //     } else {
+    //         select.value = "";
+    //         optionsDiv.classList.add('hidden');
+    //     }
 
-        if (globalMaxRows > 0) {
-            statusText.innerText = `${globalMaxRows} rows`;
-            statusContainer.classList.remove('hidden');
-            statusContainer.classList.add('flex');
-        } else {
-            statusContainer.classList.add('hidden');
-            statusContainer.classList.remove('flex');
-        }
+    //     if (globalMaxRows > 0) {
+    //         statusText.innerText = `${globalMaxRows} rows`;
+    //         statusContainer.classList.remove('hidden');
+    //         statusContainer.classList.add('flex');
+    //     } else {
+    //         statusContainer.classList.add('hidden');
+    //         statusContainer.classList.remove('flex');
+    //     }
 
-        document.getElementById('card-content').querySelectorAll('.merge-scrubber').forEach(scrubber => {
-            const el = scrubber.closest('.element-container');
-            if (el.dataset.mergeData) {
-                scrubber.classList.remove('hidden');
-                scrubber.classList.add('flex');
-                scrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1}/${globalMaxRows}`;
-            } else {
-                scrubber.classList.add('hidden');
-                scrubber.classList.remove('flex');
-            }
-        });
-    }
+    //     document.getElementById('card-content').querySelectorAll('.merge-scrubber').forEach(scrubber => {
+    //         const el = scrubber.closest('.element-container');
+    //         if (el.dataset.mergeData) {
+    //             scrubber.classList.remove('hidden');
+    //             scrubber.classList.add('flex');
+    //             scrubber.querySelector('.scrubber-status').innerText = `${globalMergeIndex + 1}/${globalMaxRows}`;
+    //         } else {
+    //             scrubber.classList.add('hidden');
+    //             scrubber.classList.remove('flex');
+    //         }
+    //     });
+    // }
 
     function stripControlsFromHTML(htmlString) {
         if (!htmlString) return '';
@@ -6813,6 +7129,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
                     hasCustomBack = settings.hasCustomBack || false;
                     mergeSources = settings.mergeSources || {};
+                    Object.values(mergeSources).forEach(src => {
+                        if (src.hasHeader === undefined) src.hasHeader = true;
+                    });
+                    renderDataSourcesList();
 
                     document.getElementById('enable-custom-back').checked = hasCustomBack;
                     const sideToggles = document.getElementById('side-toggles');
