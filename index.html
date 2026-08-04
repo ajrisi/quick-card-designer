@@ -364,13 +364,21 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <span class="hidden md:inline">New Card</span>
             </button>
 
-            <label class="p-1.5 md:px-3 md:py-1.5 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap shrink-0 mb-0" title="Open Card">
-                <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                </svg>
-                <span class="hidden md:inline">Open Card</span>
-                <input type="file" id="upload-svg" accept=".qcd,.svg" class="hidden" onchange="uploadCard(event)">
-            </label>
+            <div class="relative group shrink-0">
+                <label id="btn-open-card" class="p-1.5 md:px-3 md:py-1.5 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap shrink-0 mb-0 select-none" title="Open Card (Hold for options)">
+                    <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    <span class="hidden md:inline">Open Card</span>
+                    <input type="file" id="upload-svg" accept=".qcd,.svg" class="hidden" onchange="uploadCard(event)">
+                </label>
+                <!-- Hidden long-press menu -->
+                <div id="open-menu" class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                    <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Open Options</div>
+                    <button onpointerup="document.getElementById('upload-svg').click(); closeOpenMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Open in Current Workspace</button>
+                    <button onpointerup="openInNewWorkspace(); closeOpenMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Open in New Workspace</button>
+                </div>
+            </div>
 
             <button onclick="downloadCard()" class="p-1.5 md:px-3 md:py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0" title="Save Card">
                 <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1536,12 +1544,41 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
             <!-- Footer -->
             <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
-                <span class="text-xs text-gray-500 font-medium">Link these files to text or images using the Top Toolbar.</span>
-                <button onclick="document.getElementById('global-merge-file-input').click()" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors">
-                    + Upload CSV
-                </button>
+                <span class="text-xs text-gray-500 font-medium">Use CSVs via the Toolbar, or Templates via <code class="bg-gray-100 px-1 rounded">{{name,var}}</code>.</span>
+                <div class="flex gap-2">
+                    <button onclick="createNewPluginStub()" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-purple-700 transition-colors">
+                        + Add Plugin
+                    </button>
+                    <button onclick="document.getElementById('global-merge-file-input').click()" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors">
+                        + Upload CSV
+                    </button>
+                </div>
                 <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
                 <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
+                <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugin Code Editor Modal -->
+    <div id="plugin-editor-modal" class="fixed inset-0 z-[300] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-4xl h-[85vh] overflow-hidden border border-gray-200">
+            <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80">
+                <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    Edit Plugin Script
+                </h2>
+                <button onclick="closePluginEditor()" class="text-gray-400 hover:text-gray-700 p-1 bg-white hover:bg-gray-200 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <textarea id="plugin-code-textarea" class="flex-1 w-full p-4 font-mono text-sm bg-gray-900 text-gray-100 outline-none resize-none" spellcheck="false"></textarea>
+            <div class="px-5 py-3 border-t bg-gray-50 flex justify-between items-center">
+                <span class="text-xs text-gray-500 font-medium">Script must return an object (e.g. wrap in an IIFE).</span>
+                <div class="flex gap-3">
+                    <button onclick="closePluginEditor()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-xs uppercase rounded shadow-sm hover:bg-gray-50">Cancel</button>
+                    <button onclick="savePluginScript()" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase rounded shadow hover:bg-purple-700">Save & Run</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1672,7 +1709,50 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let imageAssets = {};
     let globalMergeIndex = 0;
 
+    let pluginsData = {};
+    let pluginInstances = {};
+    let activeEditPluginId = null;
+    let isNewPluginBeingCreated = false;
+
     const c2aCache = new Map();
+
+    // --- WORKSPACE & URL PARAMETER PARSING ---
+    const urlParams = new URLSearchParams(window.location.search);
+    let openUrl = urlParams.get('open');
+    let loadTransfer = urlParams.get('load_transfer');
+    let urlWorkspace = urlParams.get('workspace');
+
+    // 1. Establish Workspace from URL, fallback to Tab Session, fallback to 'default'
+    let currentWorkspace = urlWorkspace || sessionStorage.getItem('tab_workspace_id');
+
+    if (!currentWorkspace || currentWorkspace === '_blank' || (openUrl && !urlWorkspace)) {
+        currentWorkspace = 'default';
+    }
+
+    // Always lock the current workspace to this browser tab
+    sessionStorage.setItem('tab_workspace_id', currentWorkspace);
+    
+    // Clean up the URL so it looks nice
+    if (urlWorkspace === '_blank' || !urlWorkspace) {
+        urlParams.set('workspace', currentWorkspace);
+        window.history.replaceState({}, '', `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`);
+    }
+
+    const SAVE_KEY = `card_designer_autosave_${currentWorkspace}`;
+
+    let openPressTimer;
+    function closeOpenMenu() {
+        const menu = document.getElementById('open-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    function openInNewWorkspace() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.qcd,.svg';
+        input.onchange = (e) => uploadCard(e, true);
+        input.click();
+    }
 
     function processColorToAlpha(src, hexColor, tol) {
         const key = src + hexColor + tol;
@@ -1788,6 +1868,63 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
     };
 
+    // --- DUPLICATE TAB PREVENTION (BROADCAST FORKING) ---
+    const tabStartupTime = Date.now();
+    let isForking = false;
+    const wsChannel = new BroadcastChannel('qcd_lock_' + currentWorkspace);
+
+    async function forkWorkspace() {
+        if (isForking) return;
+        isForking = true;
+        wsChannel.close();
+
+        // 1. Generate a new workspace ID
+        const forkedWorkspace = 'ws_' + Math.random().toString(36).substring(2, 15);
+        const forkedSaveKey = `card_designer_autosave_${forkedWorkspace}`;
+        
+        // 2. Clone the database so the user doesn't lose context
+        try {
+            let existingData = await StorageDB.load(SAVE_KEY);
+            if (!existingData) existingData = localStorage.getItem(SAVE_KEY);
+            if (existingData) await StorageDB.save(forkedSaveKey, existingData);
+        } catch(err) { console.warn("Failed to fork database", err); }
+
+        // 3. Bind new workspace and update URL
+        sessionStorage.setItem('tab_workspace_id', forkedWorkspace);
+        urlParams.set('workspace', forkedWorkspace);
+        
+        // 4. Inject a raw toast (since the DOM may not be fully parsed yet)
+        const toast = document.createElement('div');
+        toast.style.cssText = "position:fixed; top:80px; right:24px; padding:12px 16px; border-radius:4px; font-family:system-ui, sans-serif; font-size:14px; z-index:99999; background:#2563eb; color:white; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);";
+        toast.innerText = "Workspace active in another tab. Forking to prevent conflicts...";
+        document.documentElement.appendChild(toast);
+        
+        // 5. Reload cleanly into the new fork
+        setTimeout(() => {
+            window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
+        }, 1500);
+    }
+
+    wsChannel.onmessage = (e) => {
+        if (isForking) return;
+
+        if (e.data.type === 'PING') {
+            // Race condition protection: The older tab always wins.
+            if (e.data.time > tabStartupTime) {
+                wsChannel.postMessage({ type: 'PONG' });
+            } else if (e.data.time < tabStartupTime) {
+                forkWorkspace();
+            }
+        } else if (e.data.type === 'PONG') {
+            // Someone else claimed the workspace.
+            forkWorkspace();
+        }
+    };
+
+    // Announce our arrival
+    wsChannel.postMessage({ type: 'PING', time: tabStartupTime });
+    // ----------------------------------------------------
+
     const resizeObserver = new ResizeObserver(() => {
         // Block the observer from resetting coordinates mid-drag!
         if (activeElements.length > 0 && !isApplyingLayout && !isResizingContainer && !isDragging && !isRotating) {
@@ -1825,6 +1962,11 @@ Check your Browserslist config to be sure that your targets are set up correctly
         const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
         if (isInput) {
             e.target.dataset.originalValue = e.target.isContentEditable ? e.target.innerHTML : e.target.value;
+            
+            // Swap rendered template back to raw for editing
+            if (e.target.isContentEditable && e.target.hasAttribute('data-template-raw')) {
+                e.target.innerHTML = e.target.getAttribute('data-template-raw');
+            }
         }
     });
 
@@ -2629,21 +2771,94 @@ function updateBgSettings() {
 
         });
 
-// Flush any debounced saves instantly if the user refreshes or closes the tab
-        window.addEventListener('beforeunload', () => {
-            if (saveStateTimeout) {
-                clearTimeout(saveStateTimeout);
-                saveState();
+    // Flush any debounced saves instantly if the user refreshes or closes the tab
+    window.addEventListener('beforeunload', () => {
+        if (saveStateTimeout) {
+            clearTimeout(saveStateTimeout);
+            // Force a synchronous localStorage write right before the thread dies
+            const stateStr = JSON.stringify({
+                history: historyStack[historyIndex],
+                // ... (grab your other autosave properties here)
+            });
+            localStorage.setItem(SAVE_KEY, stateStr); 
+        }
+    });
+
+        // Setup Long Press on Open button
+        const openBtn = document.getElementById('btn-open-card');
+        const openMenu = document.getElementById('open-menu');
+
+        if (openBtn) {
+            openBtn.addEventListener('pointerdown', (e) => {
+                if(e.button !== 0) return;
+                openPressTimer = setTimeout(() => {
+                    if (openMenu) openMenu.classList.remove('hidden');
+                }, 400);
+            });
+            openBtn.addEventListener('pointerup', () => clearTimeout(openPressTimer));
+            openBtn.addEventListener('pointerleave', () => clearTimeout(openPressTimer));
+            openBtn.addEventListener('click', (e) => {
+                if (openMenu && !openMenu.classList.contains('hidden')) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (openMenu && !openMenu.classList.contains('hidden') && !openBtn.contains(e.target) && !openMenu.contains(e.target)) {
+                closeOpenMenu();
             }
         });
 
+        let didRemoteLoad = false;
+
+        // 1. Check for Internal Transfers (Open in New Workspace via file)
+        if (loadTransfer) {
+            const transferData = localStorage.getItem(loadTransfer);
+            const transferName = localStorage.getItem(loadTransfer + '_name') || 'New Card';
+            if (transferData) {
+                localStorage.removeItem(loadTransfer);
+                localStorage.removeItem(loadTransfer + '_name');
+                processCardXML(transferData, transferName.replace(/\.[^/.]+$/, ""));
+                
+                urlParams.delete('load_transfer');
+                window.history.replaceState({}, '', `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`);
+                didRemoteLoad = true;
+            }
+        }
+
+        // 2. Check for Remote Fetch (?open=https://...)
+        if (!didRemoteLoad && openUrl) {
+            try {
+                showToast("Downloading template...");
+                const response = await fetch(openUrl);
+                if (response.ok) {
+                    const contents = await response.text();
+                    const filename = openUrl.split('/').pop().split('?')[0] || 'Template';
+                    processCardXML(contents, filename.replace(/\.[^/.]+$/, ""));
+                    
+                    urlParams.delete('open');
+                    window.history.replaceState({}, '', `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`);
+                    didRemoteLoad = true;
+                } else {
+                    showToast("Failed to fetch template URL.", true);
+                }
+            } catch (e) {
+                console.error(e);
+                showToast("Error downloading template.", true);
+            }
+        }
+
+        // 3. Fallback to IDB / LocalStorage Autosaves
         let savedData = null;
-        try {
-            savedData = await StorageDB.load('card_designer_autosave');
-        } catch (e) { console.warn("IDB load failed", e); }
-        
-        if (!savedData) {
-            savedData = localStorage.getItem('card_designer_autosave');
+        if (!didRemoteLoad) {
+            try {
+                savedData = await StorageDB.load(SAVE_KEY);
+            } catch (e) { console.warn("IDB load failed", e); }
+            
+            if (!savedData) {
+                savedData = localStorage.getItem(SAVE_KEY);
+            }
         }
 
         if (savedData) {
@@ -2657,6 +2872,14 @@ function updateBgSettings() {
                 if (data.imageAssets) imageAssets = data.imageAssets;
                 if (data.mergeSources) mergeSources = data.mergeSources;
                 if (data.globalMergeIndex !== undefined) globalMergeIndex = data.globalMergeIndex;
+                
+                if (data.pluginsData) {
+                    pluginsData = {};
+                    pluginInstances = {};
+                    for(let id in data.pluginsData) {
+                        loadPlugin(id, data.pluginsData[id].code, data.pluginsData[id].filename);
+                    }
+                }
 
                 // Restore Snapping Options
                 if (data.snapping !== undefined && document.getElementById('enable-snapping')) {
@@ -2781,9 +3004,9 @@ function updateBgSettings() {
 
             } catch (e) {
                 console.error("Autosave recovery failed, loading default.", e);
-                initDefaultCanvas();
+                if (!didRemoteLoad) initDefaultCanvas();
             }
-        } else {
+        } else if (!didRemoteLoad) {
             initDefaultCanvas();
         }
 
@@ -2864,6 +3087,16 @@ function updateBgSettings() {
 
         document.getElementById('card-content').addEventListener('focusout', (e) => {
             if (e.target.isContentEditable) {
+                let html = e.target.innerHTML;
+                
+                // If it contains template bindings, parse them before generating markdown
+                if (html.includes('{{') && html.includes('}}')) {
+                    e.target.setAttribute('data-template-raw', html);
+                    e.target.innerHTML = renderTemplateString(html, globalMergeIndex);
+                } else {
+                    e.target.removeAttribute('data-template-raw');
+                }
+                
                 parseMarkdownInElement(e.target);
                 saveState();
             }
@@ -2945,6 +3178,7 @@ function updateBgSettings() {
             projectName: document.getElementById('project-name').value,
             imageAssets: imageAssets,
             mergeSources: mergeSources,
+            pluginsData: pluginsData,
             globalMergeIndex: globalMergeIndex,
             snapping: document.getElementById('enable-snapping')?.checked !== false,
             resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
@@ -2996,9 +3230,9 @@ function updateBgSettings() {
         };
 
         const serializedData = JSON.stringify(autoSaveData);
-        StorageDB.save('card_designer_autosave', serializedData).catch(err => {
+        StorageDB.save(SAVE_KEY, serializedData).catch(err => {
             console.warn("IndexedDB Autosave failed", err);
-            try { localStorage.setItem('card_designer_autosave', serializedData); } catch (e) {
+            try { localStorage.setItem(SAVE_KEY, serializedData); } catch (e) {
                 console.warn("LocalStorage Autosave failed, quota exceeded", e);
             }
         });
@@ -6778,6 +7012,253 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
     });
 
+    /* --- PLUGIN & TEMPLATE ENGINE --- */
+    function loadPlugin(id, code, filename) {
+        try {
+            const inst = eval(code);
+            if (!inst || typeof inst.register !== 'function') throw new Error("Plugin must return an object with a register() function.");
+            const reg = inst.register();
+            
+            pluginsData[id] = {
+                filename: filename,
+                code: code,
+                name: reg.name || filename.replace('.js', ''),
+                varnames: reg.varnames || [],
+                images: reg.images || []
+            };
+            pluginInstances[id] = inst;
+            return true;
+        } catch(e) {
+            console.error("Failed to load plugin", e);
+            showToast("Plugin Error: " + e.message, true);
+            return false;
+        }
+    }
+
+    function getPluginContext(activeRow) {
+        return {
+            rowIndex: activeRow,
+            getCSVValue: (filename, col, row) => evaluateTemplateExpression(`${filename},${col}` + (row !== undefined ? `,${row}` : ''), activeRow),
+            getPluginValue: (pName, vName, ...pArgs) => evaluateTemplateExpression([pName, vName, ...pArgs].join(','), activeRow)
+        };
+    }
+
+    function evaluateTemplateExpression(inner, activeRow) {
+        const parts = [];
+        let current = '';
+        let inQuotes = false;
+        let quoteChar = '';
+        
+        for(let i=0; i<inner.length; i++) {
+            const char = inner[i];
+            if ((char === '"' || char === "'") && (i === 0 || inner[i-1] !== '\\')) {
+                if (inQuotes && quoteChar === char) {
+                    inQuotes = false;
+                } else if (!inQuotes) {
+                    inQuotes = true;
+                    quoteChar = char;
+                } else {
+                    current += char;
+                }
+            } else if ((char === ',' || char === ':') && !inQuotes) {
+                parts.push(current.trim());
+                current = '';
+            } else {
+                if (char === '\\' && (inner[i+1] === '"' || inner[i+1] === "'")) {
+                    // skip adding backslash if it's escaping a quote
+                } else {
+                    current += char;
+                }
+            }
+        }
+        parts.push(current.trim());
+        
+        const prefix = parts[0];
+        if (!prefix) return `{{${inner}}}`;
+        
+        if (prefix.toLowerCase().endsWith('.csv')) {
+            let sourceId = null;
+            for (let id in mergeSources) {
+                if (mergeSources[id].filename === prefix) {
+                    sourceId = id;
+                    break;
+                }
+            }
+            if (sourceId) {
+                const source = mergeSources[sourceId];
+                const colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+                const rowReq = parts[2] ? parseInt(parts[2]) : null;
+                
+                let colIdx = -1;
+                if (source.hasHeader && source.data.length > 0) {
+                    colIdx = source.data[0].findIndex(h => h && String(h).trim() === colName);
+                }
+                if (colIdx === -1 && !isNaN(parseInt(colName))) {
+                    colIdx = parseInt(colName);
+                }
+                
+                if (colIdx !== -1) {
+                    let activeCount = 0;
+                    let startIndex = source.hasHeader ? 1 : 0;
+                    let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
+                    let actualRowIndex = -1;
+                    
+                    for (let i = startIndex; i < source.data.length; i++) {
+                        if (source.excludedRows && source.excludedRows[i]) continue;
+                        if (activeCount === targetCount) {
+                            actualRowIndex = i;
+                            break;
+                        }
+                        activeCount++;
+                    }
+                    if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
+                        return source.data[actualRowIndex][colIdx] !== undefined ? source.data[actualRowIndex][colIdx] : '';
+                    }
+                }
+            }
+            return `{{${inner}}}`;
+        }
+        
+        let pluginInstance = null;
+        for (let id in pluginsData) {
+            if (pluginsData[id].name === prefix) {
+                pluginInstance = pluginInstances[id];
+                break;
+            }
+        }
+        
+        if (pluginInstance && typeof pluginInstance.renderTemplateVariable === 'function') {
+            try {
+                const varName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+                const args = parts.slice(2).map(a => a.replace(/^['"]+|['"]+$/g, ''));
+                const context = getPluginContext(activeRow);
+                
+                const res = pluginInstance.renderTemplateVariable(varName, context, ...args);
+                return res !== undefined ? res : `{{${inner}}}`;
+            } catch(e) {
+                console.error("Plugin template error", e);
+                return `<span style="color:red;">[Error]</span>`;
+            }
+        }
+        
+        return `{{${inner}}}`;
+    }
+
+    function renderTemplateString(rawHtml, targetRowIndex = null) {
+        let activeRow = targetRowIndex !== null ? targetRowIndex : globalMergeIndex;
+        let result = rawHtml;
+        const braceRegex = /\{\{([^{}]+)\}\}/g;
+        
+        let maxIterations = 50;
+        while (braceRegex.test(result) && maxIterations-- > 0) {
+            result = result.replace(braceRegex, (match, inner) => {
+                return evaluateTemplateExpression(inner.trim(), activeRow);
+            });
+        }
+        return result;
+    }
+
+    function createNewPluginStub() {
+        const plugCount = Object.keys(pluginsData).length + 1;
+        const defaultName = `plugin${plugCount}`;
+        const stubCode = `// Quick Card Designer Plugin\n// This script runs in the browser and provides dynamic variables/images.\n(function() {\n    return {\n        // Register the plugin's name and available template variables/images\n        register: function() {\n            return {\n                name: "${defaultName}",\n                varnames: ["example_var"],\n                images: ["example_img"]\n            };\n        },\n        \n        // Return text or HTML for {{${defaultName},varname}}\n        renderTemplateVariable: function(varName, context, ...args) {\n            if (varName === "example_var") {\n                return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');\n            }\n            return "";\n        },\n        \n        // Return an image URL, path, SVG string, or data URI for images\n        renderTemplateImage: function(imgName, context, ...args) {\n            if (imgName === "example_img") {\n                return '<svg width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';\n            }\n            return "";\n        }\n    };\n})();`;
+        
+        activeEditPluginId = 'plug_' + Date.now();
+        isNewPluginBeingCreated = true;
+        document.getElementById('plugin-code-textarea').value = stubCode;
+        document.getElementById('plugin-editor-modal').classList.remove('hidden');
+    }
+
+    let replaceTargetPluginId = null;
+    function triggerPluginReplace(id) {
+        replaceTargetPluginId = id;
+        document.getElementById('plugin-replace-input').click();
+    }
+
+    function handlePluginReplace(event) {
+        const file = event.target.files[0];
+        if (!file || !replaceTargetPluginId) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const code = e.target.result;
+            if (loadPlugin(replaceTargetPluginId, code, file.name)) {
+                showToast(`Replaced plugin with "${file.name}"`);
+                renderDataSourcesList();
+                updateImageBankMergeUI();
+                recomputeAllMergeData();
+                updateAllCanvasImages();
+                saveState();
+            }
+            replaceTargetPluginId = null;
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function runPlugin(id) {
+        const p = pluginsData[id];
+        if (loadPlugin(id, p.code, p.filename)) {
+            renderDataSourcesList();
+            updateImageBankMergeUI();
+            recomputeAllMergeData();
+            updateAllCanvasImages();
+            saveState();
+            showToast(`Re-ran plugin: ${p.name}`);
+        }
+    }
+
+    function openPluginEditor(id) {
+        activeEditPluginId = id;
+        isNewPluginBeingCreated = false;
+        document.getElementById('plugin-code-textarea').value = pluginsData[id].code;
+        document.getElementById('plugin-editor-modal').classList.remove('hidden');
+    }
+
+    function closePluginEditor() {
+        if (isNewPluginBeingCreated) {
+            isNewPluginBeingCreated = false;
+        } else if (activeEditPluginId && pluginsData[activeEditPluginId]) {
+            document.getElementById('plugin-code-textarea').value = pluginsData[activeEditPluginId].code;
+        }
+        activeEditPluginId = null;
+        document.getElementById('plugin-editor-modal').classList.add('hidden');
+    }
+
+    function savePluginScript() {
+        if (!activeEditPluginId) return;
+        const code = document.getElementById('plugin-code-textarea').value;
+        
+        let filename = "plugin.js";
+        if (pluginsData[activeEditPluginId]) {
+            filename = pluginsData[activeEditPluginId].filename;
+        } else {
+            const match = code.match(/name:\s*['"]([^'"]+)['"]/);
+            if (match && match[1]) filename = match[1] + ".js";
+        }
+        
+        if (loadPlugin(activeEditPluginId, code, filename)) {
+            isNewPluginBeingCreated = false;
+            closePluginEditor();
+            renderDataSourcesList();
+            updateImageBankMergeUI();
+            recomputeAllMergeData();
+            updateAllCanvasImages();
+            saveState();
+            showToast("Script saved & executed!");
+        }
+    }
+
+    function deletePlugin(id) {
+        if (confirm("Remove this plugin from the document?")) {
+            delete pluginsData[id];
+            delete pluginInstances[id];
+            renderDataSourcesList();
+            updateImageBankMergeUI();
+            recomputeAllMergeData();
+            saveState();
+        }
+    }
+
     function parseCSV(str) {
         const arr = [];
         let quote = false;
@@ -6848,18 +7329,29 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             });
         };
 
+        const processTemplates = (container) => {
+            container.querySelectorAll('[data-template-raw]').forEach(el => {
+                el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
+                // After templates merge down, re-run simple markdown processing over the DOM nodes securely
+                parseMarkdownInElement(el); 
+            });
+        };
+
         // 1. Update the active, visible canvas
         processContainer(document.getElementById('card-content'));
+        processTemplates(document.getElementById('card-content'));
 
         // 2. Update the background HTML states so the Print Engine gets the filtered data
         const tempFront = document.createElement('div');
         tempFront.innerHTML = frontContentHTML;
         processContainer(tempFront);
+        processTemplates(tempFront);
         frontContentHTML = tempFront.innerHTML;
 
         const tempBack = document.createElement('div');
         tempBack.innerHTML = backContentHTML;
         processContainer(tempBack);
+        processTemplates(tempBack);
         backContentHTML = tempBack.innerHTML;
 
         applyMergePreview();
@@ -7215,11 +7707,59 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         container.innerHTML = '';
         const keys = Object.keys(mergeSources);
         
-        if (keys.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No data sources loaded. Upload a CSV to get started!</div>';
+        const plugKeys = Object.keys(pluginsData);
+        if (keys.length === 0 && plugKeys.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No data sources loaded. Upload a CSV or Plugin to get started!</div>';
             return;
         }
 
+        // 1. Render Plugins
+        plugKeys.forEach(id => {
+            const p = pluginsData[id];
+            
+            // Check DOM to find usages
+            let usageCount = 0;
+            const fullHtml = (document.getElementById('card-content')?.innerHTML || '') + frontContentHTML + backContentHTML;
+            if (fullHtml.includes(`{{${p.name}:`) || fullHtml.includes(`data-plugin-image-id="${id}"`)) usageCount++;
+
+            let varList = p.varnames.map(v => `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">${v}</span>`).join('');
+            let imgList = p.images.map(img => `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">${img}</span>`).join('');
+
+            const div = document.createElement('div');
+            div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 border-l-purple-500";
+            div.innerHTML = `
+                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <svg class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        <span class="text-xs font-bold text-gray-700 truncate" title="${p.filename}">${p.filename} <span class="text-gray-400 font-normal ml-1">(${p.name})</span></span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openPluginEditor('${id}')" class="text-gray-400 hover:text-gray-600 p-1 bg-gray-50 hover:bg-gray-100 rounded transition-colors" title="Edit Script">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        <button onclick="triggerPluginReplace('${id}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace Plugin File">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                        <button onclick="runPlugin('${id}')" class="text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100 rounded transition-colors" title="Re-run Plugin">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        <button onclick="deletePlugin('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Delete Plugin">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    ${p.varnames.length > 0 ? `<div class="text-[9px] font-mono flex flex-wrap gap-1 leading-tight"><span class="font-bold text-gray-500 uppercase mt-0.5 mr-1">Vars:</span> ${varList}</div>` : ''}
+                    ${p.images.length > 0 ? `<div class="text-[9px] font-mono flex flex-wrap gap-1 leading-tight mt-1"><span class="font-bold text-gray-500 uppercase mt-0.5 mr-1">Imgs:</span> ${imgList}</div>` : ''}
+                </div>
+                <div class="mt-auto pt-2 border-t border-gray-100 text-[9px] font-bold text-gray-400 uppercase">
+                    ${usageCount > 0 ? `<span class="text-purple-600">Active on Canvas</span>` : 'Inactive'}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        // 2. Render standard CSVs
         keys.forEach(id => {
             const src = mergeSources[id];
             const startIndex = src.hasHeader ? 1 : 0;
@@ -7356,7 +7896,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         for (let id in mergeSources) {
             const src = mergeSources[id];
             if (src.hasHeader && src.data.length > 0) {
-                // Only show sources that actually contain an "Images:" column
                 const hasImageCols = src.data[0].some(h => h && typeof h === 'string' && h.trim().toLowerCase().startsWith('images:'));
                 if (hasImageCols) {
                     let opt = document.createElement('option');
@@ -7364,6 +7903,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     opt.innerText = src.filename;
                     sourceSelect.appendChild(opt);
                 }
+            }
+        }
+        
+        for (let id in pluginsData) {
+            if (pluginsData[id].images && pluginsData[id].images.length > 0) {
+                let opt = document.createElement('option');
+                opt.value = "plugin:" + id;
+                opt.innerText = "[Plugin] " + pluginsData[id].name;
+                sourceSelect.appendChild(opt);
             }
         }
     }
@@ -7374,25 +7922,39 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         colSelect.innerHTML = '<option value="">Select Column...</option>';
         
-        if (!sourceId || !mergeSources[sourceId]) {
+        if (!sourceId) {
             colSelect.disabled = true;
             return;
         }
-
-        const src = mergeSources[sourceId];
-        let added = 0;
-        if (src.hasHeader && src.data.length > 0) {
-            src.data[0].forEach((hdr, colIdx) => {
-                if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
-                    let opt = document.createElement('option');
-                    opt.value = colIdx;
-                    opt.innerText = hdr.trim();
-                    colSelect.appendChild(opt);
-                    added++;
-                }
+        
+        if (sourceId.startsWith("plugin:")) {
+            const pId = sourceId.split(":")[1];
+            pluginsData[pId].images.forEach(imgName => {
+                let opt = document.createElement('option');
+                opt.value = imgName;
+                opt.innerText = imgName;
+                colSelect.appendChild(opt);
             });
+            colSelect.disabled = false;
+            return;
         }
-        colSelect.disabled = added === 0;
+
+        if (mergeSources[sourceId]) {
+            const src = mergeSources[sourceId];
+            let added = 0;
+            if (src.hasHeader && src.data.length > 0) {
+                src.data[0].forEach((hdr, colIdx) => {
+                    if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
+                        let opt = document.createElement('option');
+                        opt.value = colIdx;
+                        opt.innerText = hdr.trim();
+                        colSelect.appendChild(opt);
+                        added++;
+                    }
+                });
+            }
+            colSelect.disabled = added === 0;
+        }
     }
 
     function renderImageBankItems() {
@@ -7609,11 +8171,62 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     const data = JSON.parse(el.dataset.mergeData);
                     val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
                 } catch(e) {}
+            } else if (el.dataset.pluginImageId) {
+                const inst = pluginInstances[el.dataset.pluginImageId];
+                if (inst && typeof inst.renderTemplateImage === 'function') {
+                    try {
+                        const ctx = getPluginContext(globalMergeIndex);
+                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                        if (pImg && pImg.trim().startsWith('<')) {
+                            val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
+                        } else {
+                            val = pImg || '';
+                        }
+                    } catch(e) {}
+                }
             } else if (el.dataset.imageBankKey) {
                 val = el.dataset.imageBankKey;
             }
             updateImageElementDisplay(el, val);
         });
+    }
+    
+    function placePluginImage(pluginId, imgName) {
+        const p = (val) => Math.round(val * (PX_PER_IN / 100));
+        const contentArea = document.getElementById('card-content');
+        if (!contentArea) return;
+
+        const el = document.createElement('div');
+        el.className = 'element-container bg-transparent';
+        el.style.zIndex = zIndexCounter++;
+        el.dataset.type = 'image';
+        
+        el.dataset.pluginImageId = pluginId;
+        el.dataset.pluginImageName = imgName;
+
+        el.dataset.objectFit = 'contain';
+        el.dataset.objectPositionX = 'center';
+        el.dataset.objectPositionY = 'center';
+        el.dataset.imageScale = '1';
+
+        const innerContent = getBaseImageContentHTML(p(150), p(150), '', `Plugin: ${imgName}`, 'contain', 'center', 'center');
+        el.innerHTML = getControlsHTML(false) + innerContent;
+        contentArea.appendChild(el);
+
+        const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        const centerX = (containerRect.width / 2 - panX) / canvasScale;
+        const centerY = (containerRect.height / 2 - panY) / canvasScale;
+        const res = el.querySelector('.resizable');
+        const elW = res ? res.offsetWidth : el.offsetWidth;
+        const elH = res ? res.offsetHeight : el.offsetHeight;
+        const cascade = (zIndexCounter % 10) * (PX_PER_IN / 40);
+        el.style.left = (centerX - (elW / 2) + cascade) + 'px';
+        el.style.top = (centerY - (elH / 2) + cascade) + 'px';
+
+        setActiveElement(el);
+        closeImageBankModal();
+        updateAllCanvasImages();
+        saveState();
     }
     
 
@@ -7840,12 +8453,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             showToast("Please select a data source and an image column.", true);
             return;
         }
+        
+        if (sourceId.startsWith("plugin:")) {
+            const pId = sourceId.split(":")[1];
+            placePluginImage(pId, colIdxStr);
+        } else {
+            const colIdx = parseInt(colIdxStr, 10);
+            const source = mergeSources[sourceId];
+            const columnName = source.data[0][colIdx].trim();
 
-        const colIdx = parseInt(colIdxStr, 10);
-        const source = mergeSources[sourceId];
-        const columnName = source.data[0][colIdx].trim();
-
-        placeDataImage(columnName, sourceId, colIdx);
+            placeDataImage(columnName, sourceId, colIdx);
+        }
         
         // Reset dropdowns for next time
         sourceSelect.value = '';
@@ -8016,8 +8634,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
     function startNewCard() {
         if (confirm("Are you sure you want to start a new card? All unsaved progress will be lost.")) {
-            localStorage.removeItem('card_designer_autosave');
-            StorageDB.delete('card_designer_autosave').finally(() => {
+            localStorage.removeItem(SAVE_KEY);
+            StorageDB.delete(SAVE_KEY).finally(() => {
                 location.reload();
             });
         }
@@ -8101,6 +8719,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             frontBg: frontBgClass,
             backBg: backBgClass,
             mergeSources: mergeSources,
+            pluginsData: pluginsData,
             globalMergeIndex: globalMergeIndex,
             bgConfigFront: frontBgConfig,
             bgConfigBack: backBgConfig,
@@ -8197,14 +8816,29 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         updateImageElementDisplay(el, val, true);
                     } else {
                         const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                        if (target) {
+                        if (target && !target.hasAttribute('data-template-raw')) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
                             target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                         }
                     }
                 } catch (e) {}
+            } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
+                const inst = pluginInstances[el.dataset.pluginImageId];
+                if (inst && typeof inst.renderTemplateImage === 'function') {
+                    try {
+                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, globalMergeIndex);
+                        let val = pImg || '';
+                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                        updateImageElementDisplay(el, val, true);
+                    } catch(e) {}
+                }
             }
+        });
+
+        temp.querySelectorAll('[data-template-raw]').forEach(el => {
+            el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
+            parseMarkdownInElement(el);
         });
         
         // format xml for svg engine
@@ -8640,291 +9274,300 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         if (typeof updateUILayer === 'function') updateUILayer();
     }
 
-    function uploadCard(event) {
+    function uploadCard(event, newWorkspace = false) {
         const file = event.target.files[0];
         if (!file) return;
 
-        // Set the input field to the name of the file being loaded
-        const baseName = file.name.replace(/\.[^/.]+$/, "");
-        const nameInput = document.getElementById('project-name');
-        if (nameInput) nameInput.value = baseName;
-
         const reader = new FileReader();
         reader.onload = function(e) {
-            // Temporarily disable the canvas animation for a snappy load
-            const canvas = document.getElementById('card-canvas');
-            if (canvas) canvas.style.transition = 'none';
-
-            let contents = e.target.result;
-
-            // Repair old save files that had unescaped single quotes inside the JSON attribute
-            contents = contents.replace(/data-card-settings='(\{[\s\S]*?\})'\s+(data-card-html(?:-front)?=)/, (match, jsonStr, nextAttr) => {
-                const escaped = jsonStr.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return `data-card-settings="${escaped}" ${nextAttr}`;
-            });
-
-            const svgDoc = new DOMParser().parseFromString(contents, "image/svg+xml");
-            const svgEl = svgDoc.querySelector('svg');
-
-            if (!svgEl) { showToast("Invalid SVG.", true); return; }
-
-            try {
-                const settingsStr = svgEl.getAttribute('data-card-settings');
-                if (settingsStr) {
-                    const settings = JSON.parse(settingsStr);
-
-                    if (settings.unit) {
-                        currentUnit = settings.unit;
-                        if (document.getElementById('global-unit')) document.getElementById('global-unit').value = settings.unit;
-                        document.querySelectorAll('.unit-lbl').forEach(el => el.innerText = currentUnit === 'mm' ? '(mm)' : '(in)');
-                        ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'gap-x', 'gap-y', 'custom-w', 'custom-h', 'print-offset-x', 'print-offset-y', 'print-bleed'].forEach(id => {
-                            if (document.getElementById(id)) document.getElementById(id).step = currentUnit === 'mm' ? '1' : '0.125';
-                        });
-                    }
-
-                    if (settings.w && settings.h) {
-                        let oldDpi = settings.printer?.targetDpi || 100;
-                        let wInches = settings.w / oldDpi;
-                        let hInches = settings.h / oldDpi;
-                        
-                        let baseW = settings.land ? Math.max(wInches, hInches) : Math.min(wInches, hInches);
-                        let baseH = settings.land ? Math.min(wInches, hInches) : Math.max(wInches, hInches);
-                        
-                        baseW = Math.round(baseW * 100) / 100;
-                        baseH = Math.round(baseH * 100) / 100;
-                        let matchStr = `${baseW}x${baseH}`;
-
-                        let found = Array.from(document.getElementById('size-select').options).some(opt => opt.value === matchStr);
-
-                        if (found) {
-                            document.getElementById('size-select').value = matchStr;
-                            document.getElementById('custom-size-inputs').classList.add('hidden');
-                            document.getElementById('custom-size-inputs').classList.remove('grid', 'grid-cols-1');
-                        } else {
-                            document.getElementById('size-select').value = 'custom';
-                            document.getElementById('custom-size-inputs').classList.remove('hidden');
-                            document.getElementById('custom-size-inputs').classList.add('grid', 'grid-cols-1');
-
-                            let mult = settings.unit === 'mm' ? 25.4 : 1;
-                            document.getElementById('custom-w').value = +(baseW * mult).toFixed(3);
-                            document.getElementById('custom-h').value = +(baseH * mult).toFixed(3);
-                        }
-                    }
-
-                    isLandscape = settings.land !== undefined ? !settings.land : false;
-                    toggleOrientation();
-
-                    frontBgClass = settings.frontBg || settings.bg || 'bg-blank';
-                    backBgClass = settings.backBg || 'bg-blank';
-
-                    frontBgConfig = settings.bgConfigFront || { ...defaultBgConfig };
-                    backBgConfig = settings.bgConfigBack || { ...defaultBgConfig };
-
-
-                    hasCustomBack = settings.hasCustomBack || false;
-                    mergeSources = settings.mergeSources || {};
-                    imageAssets = settings.imageAssets || {};
-                    globalMergeIndex = settings.globalMergeIndex || 0;
-                    
-                    // RECOVERY SCRIPT: Rebuild lost CSV data from orphaned elements
-                    if (Object.keys(mergeSources).length === 0) {
-                        const tempFront = decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || '');
-                        const tempBack = decodeURIComponent(svgEl.getAttribute('data-card-html-back') || '');
-                        
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = tempFront + tempBack;
-                        
-                        const orphanedElements = Array.from(tempDiv.querySelectorAll('[data-merge-data]'));
-                        if (orphanedElements.length > 0) {
-                            let maxRows = 0;
-                            orphanedElements.forEach(el => {
-                                try {
-                                    const colData = JSON.parse(el.dataset.mergeData);
-                                    if (colData.length > maxRows) maxRows = colData.length;
-                                } catch(e) {}
-                            });
-                            
-                            let mockData = Array.from({length: maxRows}, () => []);
-                            let colIdx = 0;
-                            
-                            const processHTML = (html) => {
-                                if (!html) return '';
-                                const t = document.createElement('div');
-                                t.innerHTML = html;
-                                t.querySelectorAll('[data-merge-data]').forEach(el => {
-                                    try {
-                                        const colData = JSON.parse(el.dataset.mergeData);
-                                        for(let i=0; i<maxRows; i++) mockData[i][colIdx] = colData[i] || '';
-                                        
-                                        // Re-link the elements to our new recovered source
-                                        el.dataset.mergeSourceId = 'src_recovered';
-                                        el.dataset.mergeCol = colIdx.toString();
-                                        colIdx++;
-                                    } catch(e) {}
-                                });
-                                return t.innerHTML;
-                            };
-                            
-                            frontContentHTML = injectControlsIntoHTML(processHTML(tempFront));
-                            backContentHTML = injectControlsIntoHTML(processHTML(tempBack));
-                            
-                            if (colIdx > 0) {
-                                mergeSources['src_recovered'] = {
-                                    filename: "Recovered_Data.csv",
-                                    data: mockData,
-                                    hasHeader: false
-                                };
-                                setTimeout(() => showToast("Recovered missing CSV data from card elements!"), 500);
-                            }
-                        } else {
-                            frontContentHTML = injectControlsIntoHTML(tempFront);
-                            backContentHTML = injectControlsIntoHTML(tempBack);
-                        }
-                    } else {
-                        // Normal loading path
-                        frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || ''));
-                        backContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-back') || ''));
-                    }
-
-                    Object.values(mergeSources).forEach(src => {
-                        if (src.hasHeader === undefined) src.hasHeader = true;
-                    });
-                    renderDataSourcesList();
-
-                    document.getElementById('enable-custom-back').checked = hasCustomBack;
-                    const sideToggles = document.getElementById('side-toggles');
-                    const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
-                    const btnPngBack = document.getElementById('btn-png-back');
-
-                    if (hasCustomBack) {
-                        sideToggles.classList.remove('opacity-50', 'pointer-events-none');
-                        if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
-                        if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
-                    } else {
-                        sideToggles.classList.add('opacity-50', 'pointer-events-none');
-                        if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
-                        if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
-                        const enableGhost = document.getElementById('enable-ghost');
-                        if (enableGhost) enableGhost.checked = false;
-                    }
-
-                    if (settings.margin) {
-                        if (typeof settings.margin === 'object') {
-                            if (document.getElementById('margin-top')) document.getElementById('margin-top').value = settings.margin.t || 0.25;
-                            if (document.getElementById('margin-right')) document.getElementById('margin-right').value = settings.margin.r || 0.25;
-                            if (document.getElementById('margin-bottom')) document.getElementById('margin-bottom').value = settings.margin.b || 0.25;
-                            if (document.getElementById('margin-left')) document.getElementById('margin-left').value = settings.margin.l || 0.25;
-                        } else {
-                            ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'].forEach(id => {
-                                if (document.getElementById(id)) document.getElementById(id).value = settings.margin;
-                            });
-                        }
-                    }
-
-                    if (settings.safeMargin) {
-                        if (typeof settings.safeMargin === 'object') {
-                            if (document.getElementById('safe-margin-top')) document.getElementById('safe-margin-top').value = settings.safeMargin.t || 0.125;
-                            if (document.getElementById('safe-margin-right')) document.getElementById('safe-margin-right').value = settings.safeMargin.r || 0.125;
-                            if (document.getElementById('safe-margin-bottom')) document.getElementById('safe-margin-bottom').value = settings.safeMargin.b || 0.125;
-                            if (document.getElementById('safe-margin-left')) document.getElementById('safe-margin-left').value = settings.safeMargin.l || 0.125;
-                        } else {
-                            // Backwards compatibility with the old single safe margin
-                            ['safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left'].forEach(id => {
-                                if (document.getElementById(id)) document.getElementById(id).value = settings.safeMargin;
-                            });
-                        }
-                    }
-
-                    const printerOpts = settings.printer || {};
-                    if (document.getElementById('paper-size')) document.getElementById('paper-size').value = printerOpts.paper || 'letter';
-                    if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = printerOpts.orient || 'portrait';
-                    if (document.getElementById('grid-align-x')) document.getElementById('grid-align-x').value = printerOpts.alignX || 'center';
-                    if (document.getElementById('grid-align-y')) document.getElementById('grid-align-y').value = printerOpts.alignY || 'center';
-
-                    const duplexCb = document.getElementById('print-duplex');
-                    if (duplexCb) {
-                        duplexCb.checked = printerOpts.duplex || false;
-                        document.getElementById('duplex-settings').style.display = printerOpts.duplex ? 'block' : 'none';
-                    }
-
-                    if (document.getElementById('grid-reverse-col')) document.getElementById('grid-reverse-col').checked = printerOpts.gridRevCol !== undefined ? printerOpts.gridRevCol : true;
-                    if (document.getElementById('grid-reverse-row')) document.getElementById('grid-reverse-row').checked = printerOpts.gridRevRow || false;
-                    if (document.getElementById('mirror-horizontal')) document.getElementById('mirror-horizontal').checked = printerOpts.mirrorH || false;
-                    if (document.getElementById('mirror-vertical')) document.getElementById('mirror-vertical').checked = printerOpts.mirrorV || false;
-                    if (document.getElementById('rotate-180')) document.getElementById('rotate-180').checked = printerOpts.rotate180 || false;
-                    if (document.getElementById('print-offset-x')) document.getElementById('print-offset-x').value = printerOpts.driftX || 0;
-                    if (document.getElementById('print-offset-y')) document.getElementById('print-offset-y').value = printerOpts.driftY || 0;
-                    if (document.getElementById('print-bleed') && printerOpts.bleed !== undefined) document.getElementById('print-bleed').value = printerOpts.bleed;
-                    if (document.getElementById('show-bleed-editor') && printerOpts.showBleed !== undefined) document.getElementById('show-bleed-editor').checked = printerOpts.showBleed;
-                    if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = printerOpts.cropMarks !== undefined ? printerOpts.cropMarks : true;
-                    if (document.getElementById('print-internal-marks')) document.getElementById('print-internal-marks').checked = printerOpts.internalMarks !== undefined ? printerOpts.internalMarks : false;
-                    if (document.getElementById('mark-color')) document.getElementById('mark-color').value = printerOpts.markColor || '#000000';
-                    if (document.getElementById('print-vernier')) document.getElementById('print-vernier').checked = printerOpts.vernier || false;
-                    if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
-
-                    if (document.getElementById('cut-line-width') && settings.cutLineW !== undefined) document.getElementById('cut-line-width').value = settings.cutLineW;
-                    if (document.getElementById('cut-line-style') && settings.cutLineStyle !== undefined) document.getElementById('cut-line-style').value = settings.cutLineStyle;
-                    if (document.getElementById('cut-line-color') && settings.cutLineColor !== undefined) document.getElementById('cut-line-color').value = settings.cutLineColor;
-                    if (document.getElementById('print-cut-line') && settings.printCutLine !== undefined) document.getElementById('print-cut-line').checked = settings.printCutLine;
-                    
-                    // Note: Check for old 'safeLineW' to maintain backwards compatibility with older save files
-                    const bLineW = settings.bindingLineW !== undefined ? settings.bindingLineW : settings.safeLineW;
-                    if (document.getElementById('binding-line-width') && bLineW !== undefined) document.getElementById('binding-line-width').value = bLineW;
-                    if (document.getElementById('binding-line-style') && settings.bindingLineStyle !== undefined) document.getElementById('binding-line-style').value = settings.bindingLineStyle;
-                    if (document.getElementById('binding-line-color') && settings.bindingLineColor !== undefined) document.getElementById('binding-line-color').value = settings.bindingLineColor;
-                }
-
-                if (svgEl.hasAttribute('data-card-html-front')) {
-                    frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-front')));
-                    backContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-back') || ''));
-                } else if (svgEl.hasAttribute('data-card-html')) {
-                    frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html')));
-                    backContentHTML = '';
-                } else {
-                    throw new Error("Missing content data attributes.");
-                }
-
-                editingSide = 'front';
-                document.getElementById('card-content').innerHTML = frontContentHTML;
-                document.getElementById('bg-select').value = frontBgClass;
-                updateCanvasSettings();
-
-                const btnFront = document.getElementById('btn-edit-front');
-                const btnBack = document.getElementById('btn-edit-back');
-                if (btnFront && btnBack) {
-                    btnFront.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors";
-                    btnBack.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors";
-                }
-
-                let maxZ = 100;
-                document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-                    let z = parseInt(el.style.zIndex) || 100;
-                    if (z > maxZ) maxZ = z;
-                });
-                zIndexCounter = maxZ + 1;
-
-                migrateTableCells();
-                document.getElementById('card-content').querySelectorAll('.card-table').forEach(setupTableResizers);
-
-                applyMergePreview();
-                updateAllCanvasImages();
-                updateGhostLayer();
-                saveState();
-                showToast("Card Restored Successfully!");
-            } catch (err) {
-                console.error(err);
-                showToast("Failed to parse the SVG data.", true);
+            if (newWorkspace) {
+                const transferId = 'transfer_' + Math.random().toString(36).substring(2, 15);
+                localStorage.setItem(transferId, e.target.result);
+                localStorage.setItem(transferId + '_name', file.name);
+                window.open(window.location.pathname + '?load_transfer=' + transferId, '_blank');
+                event.target.value = '';
+                return;
             }
             
-            // Force a browser reflow, then restore smooth animations
-            if (canvas) {
-                canvas.offsetHeight; 
-                canvas.style.transition = ''; 
-            }
-            
+            processCardXML(e.target.result, file.name.replace(/\.[^/.]+$/, ""));
             event.target.value = '';
         };
         reader.readAsText(file);
+    }
+
+    function processCardXML(contents, baseName) {
+        const canvas = document.getElementById('card-canvas');
+        if (canvas) canvas.style.transition = 'none';
+
+        const nameInput = document.getElementById('project-name');
+        if (nameInput && baseName) nameInput.value = baseName;
+
+        // Repair old save files that had unescaped single quotes inside the JSON attribute
+        contents = contents.replace(/data-card-settings='(\{[\s\S]*?\})'\s+(data-card-html(?:-front)?=)/, (match, jsonStr, nextAttr) => {
+            const escaped = jsonStr.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `data-card-settings="${escaped}" ${nextAttr}`;
+        });
+
+        const svgDoc = new DOMParser().parseFromString(contents, "image/svg+xml");
+        const svgEl = svgDoc.querySelector('svg');
+
+        if (!svgEl) { showToast("Invalid SVG.", true); return; }
+
+        try {
+            const settingsStr = svgEl.getAttribute('data-card-settings');
+            if (settingsStr) {
+                const settings = JSON.parse(settingsStr);
+
+                if (settings.unit) {
+                    currentUnit = settings.unit;
+                    if (document.getElementById('global-unit')) document.getElementById('global-unit').value = settings.unit;
+                    document.querySelectorAll('.unit-lbl').forEach(el => el.innerText = currentUnit === 'mm' ? '(mm)' : '(in)');
+                    ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'gap-x', 'gap-y', 'custom-w', 'custom-h', 'print-offset-x', 'print-offset-y', 'print-bleed'].forEach(id => {
+                        if (document.getElementById(id)) document.getElementById(id).step = currentUnit === 'mm' ? '1' : '0.125';
+                    });
+                }
+
+                if (settings.w && settings.h) {
+                    let oldDpi = settings.printer?.targetDpi || 100;
+                    let wInches = settings.w / oldDpi;
+                    let hInches = settings.h / oldDpi;
+                    
+                    let baseW = settings.land ? Math.max(wInches, hInches) : Math.min(wInches, hInches);
+                    let baseH = settings.land ? Math.min(wInches, hInches) : Math.max(wInches, hInches);
+                    
+                    baseW = Math.round(baseW * 100) / 100;
+                    baseH = Math.round(baseH * 100) / 100;
+                    let matchStr = `${baseW}x${baseH}`;
+
+                    let found = Array.from(document.getElementById('size-select').options).some(opt => opt.value === matchStr);
+
+                    if (found) {
+                        document.getElementById('size-select').value = matchStr;
+                        document.getElementById('custom-size-inputs').classList.add('hidden');
+                        document.getElementById('custom-size-inputs').classList.remove('grid', 'grid-cols-1');
+                    } else {
+                        document.getElementById('size-select').value = 'custom';
+                        document.getElementById('custom-size-inputs').classList.remove('hidden');
+                        document.getElementById('custom-size-inputs').classList.add('grid', 'grid-cols-1');
+
+                        let mult = settings.unit === 'mm' ? 25.4 : 1;
+                        document.getElementById('custom-w').value = +(baseW * mult).toFixed(3);
+                        document.getElementById('custom-h').value = +(baseH * mult).toFixed(3);
+                    }
+                }
+
+                isLandscape = settings.land !== undefined ? !settings.land : false;
+                toggleOrientation();
+
+                frontBgClass = settings.frontBg || settings.bg || 'bg-blank';
+                backBgClass = settings.backBg || 'bg-blank';
+
+                frontBgConfig = settings.bgConfigFront || { ...defaultBgConfig };
+                backBgConfig = settings.bgConfigBack || { ...defaultBgConfig };
+
+                hasCustomBack = settings.hasCustomBack || false;
+                mergeSources = settings.mergeSources || {};
+                imageAssets = settings.imageAssets || {};
+                globalMergeIndex = settings.globalMergeIndex || 0;
+                
+                if (settings.pluginsData) {
+                    pluginsData = {};
+                    pluginInstances = {};
+                    for(let id in settings.pluginsData) {
+                        loadPlugin(id, settings.pluginsData[id].code, settings.pluginsData[id].filename);
+                    }
+                }
+                
+                // RECOVERY SCRIPT: Rebuild lost CSV data from orphaned elements
+                if (Object.keys(mergeSources).length === 0) {
+                    const tempFront = decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || '');
+                    const tempBack = decodeURIComponent(svgEl.getAttribute('data-card-html-back') || '');
+                    
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = tempFront + tempBack;
+                    
+                    const orphanedElements = Array.from(tempDiv.querySelectorAll('[data-merge-data]'));
+                    if (orphanedElements.length > 0) {
+                        let maxRows = 0;
+                        orphanedElements.forEach(el => {
+                            try {
+                                const colData = JSON.parse(el.dataset.mergeData);
+                                if (colData.length > maxRows) maxRows = colData.length;
+                            } catch(e) {}
+                        });
+                        
+                        let mockData = Array.from({length: maxRows}, () => []);
+                        let colIdx = 0;
+                        
+                        const processHTML = (html) => {
+                            if (!html) return '';
+                            const t = document.createElement('div');
+                            t.innerHTML = html;
+                            t.querySelectorAll('[data-merge-data]').forEach(el => {
+                                try {
+                                    const colData = JSON.parse(el.dataset.mergeData);
+                                    for(let i=0; i<maxRows; i++) mockData[i][colIdx] = colData[i] || '';
+                                    
+                                    el.dataset.mergeSourceId = 'src_recovered';
+                                    el.dataset.mergeCol = colIdx.toString();
+                                    colIdx++;
+                                } catch(e) {}
+                            });
+                            return t.innerHTML;
+                        };
+                        
+                        frontContentHTML = injectControlsIntoHTML(processHTML(tempFront));
+                        backContentHTML = injectControlsIntoHTML(processHTML(tempBack));
+                        
+                        if (colIdx > 0) {
+                            mergeSources['src_recovered'] = {
+                                filename: "Recovered_Data.csv",
+                                data: mockData,
+                                hasHeader: false
+                            };
+                            setTimeout(() => showToast("Recovered missing CSV data from card elements!"), 500);
+                        }
+                    } else {
+                        frontContentHTML = injectControlsIntoHTML(tempFront);
+                        backContentHTML = injectControlsIntoHTML(tempBack);
+                    }
+                } else {
+                    frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-front') || svgEl.getAttribute('data-card-html') || ''));
+                    backContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-back') || ''));
+                }
+
+                Object.values(mergeSources).forEach(src => {
+                    if (src.hasHeader === undefined) src.hasHeader = true;
+                });
+                renderDataSourcesList();
+
+                document.getElementById('enable-custom-back').checked = hasCustomBack;
+                const sideToggles = document.getElementById('side-toggles');
+                const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
+                const btnPngBack = document.getElementById('btn-png-back');
+
+                if (hasCustomBack) {
+                    sideToggles.classList.remove('opacity-50', 'pointer-events-none');
+                    if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
+                    if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
+                } else {
+                    sideToggles.classList.add('opacity-50', 'pointer-events-none');
+                    if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
+                    if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
+                    const enableGhost = document.getElementById('enable-ghost');
+                    if (enableGhost) enableGhost.checked = false;
+                }
+
+                if (settings.margin) {
+                    if (typeof settings.margin === 'object') {
+                        if (document.getElementById('margin-top')) document.getElementById('margin-top').value = settings.margin.t || 0.25;
+                        if (document.getElementById('margin-right')) document.getElementById('margin-right').value = settings.margin.r || 0.25;
+                        if (document.getElementById('margin-bottom')) document.getElementById('margin-bottom').value = settings.margin.b || 0.25;
+                        if (document.getElementById('margin-left')) document.getElementById('margin-left').value = settings.margin.l || 0.25;
+                    } else {
+                        ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'].forEach(id => {
+                            if (document.getElementById(id)) document.getElementById(id).value = settings.margin;
+                        });
+                    }
+                }
+
+                if (settings.safeMargin) {
+                    if (typeof settings.safeMargin === 'object') {
+                        if (document.getElementById('safe-margin-top')) document.getElementById('safe-margin-top').value = settings.safeMargin.t || 0.125;
+                        if (document.getElementById('safe-margin-right')) document.getElementById('safe-margin-right').value = settings.safeMargin.r || 0.125;
+                        if (document.getElementById('safe-margin-bottom')) document.getElementById('safe-margin-bottom').value = settings.safeMargin.b || 0.125;
+                        if (document.getElementById('safe-margin-left')) document.getElementById('safe-margin-left').value = settings.safeMargin.l || 0.125;
+                    } else {
+                        ['safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left'].forEach(id => {
+                            if (document.getElementById(id)) document.getElementById(id).value = settings.safeMargin;
+                        });
+                    }
+                }
+
+                const printerOpts = settings.printer || {};
+                if (document.getElementById('paper-size')) document.getElementById('paper-size').value = printerOpts.paper || 'letter';
+                if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = printerOpts.orient || 'portrait';
+                if (document.getElementById('grid-align-x')) document.getElementById('grid-align-x').value = printerOpts.alignX || 'center';
+                if (document.getElementById('grid-align-y')) document.getElementById('grid-align-y').value = printerOpts.alignY || 'center';
+
+                const duplexCb = document.getElementById('print-duplex');
+                if (duplexCb) {
+                    duplexCb.checked = printerOpts.duplex || false;
+                    document.getElementById('duplex-settings').style.display = printerOpts.duplex ? 'block' : 'none';
+                }
+
+                if (document.getElementById('grid-reverse-col')) document.getElementById('grid-reverse-col').checked = printerOpts.gridRevCol !== undefined ? printerOpts.gridRevCol : true;
+                if (document.getElementById('grid-reverse-row')) document.getElementById('grid-reverse-row').checked = printerOpts.gridRevRow || false;
+                if (document.getElementById('mirror-horizontal')) document.getElementById('mirror-horizontal').checked = printerOpts.mirrorH || false;
+                if (document.getElementById('mirror-vertical')) document.getElementById('mirror-vertical').checked = printerOpts.mirrorV || false;
+                if (document.getElementById('rotate-180')) document.getElementById('rotate-180').checked = printerOpts.rotate180 || false;
+                if (document.getElementById('print-offset-x')) document.getElementById('print-offset-x').value = printerOpts.driftX || 0;
+                if (document.getElementById('print-offset-y')) document.getElementById('print-offset-y').value = printerOpts.driftY || 0;
+                if (document.getElementById('print-bleed') && printerOpts.bleed !== undefined) document.getElementById('print-bleed').value = printerOpts.bleed;
+                if (document.getElementById('show-bleed-editor') && printerOpts.showBleed !== undefined) document.getElementById('show-bleed-editor').checked = printerOpts.showBleed;
+                if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = printerOpts.cropMarks !== undefined ? printerOpts.cropMarks : true;
+                if (document.getElementById('print-internal-marks')) document.getElementById('print-internal-marks').checked = printerOpts.internalMarks !== undefined ? printerOpts.internalMarks : false;
+                if (document.getElementById('mark-color')) document.getElementById('mark-color').value = printerOpts.markColor || '#000000';
+                if (document.getElementById('print-vernier')) document.getElementById('print-vernier').checked = printerOpts.vernier || false;
+                if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
+
+                if (document.getElementById('cut-line-width') && settings.cutLineW !== undefined) document.getElementById('cut-line-width').value = settings.cutLineW;
+                if (document.getElementById('cut-line-style') && settings.cutLineStyle !== undefined) document.getElementById('cut-line-style').value = settings.cutLineStyle;
+                if (document.getElementById('cut-line-color') && settings.cutLineColor !== undefined) document.getElementById('cut-line-color').value = settings.cutLineColor;
+                if (document.getElementById('print-cut-line') && settings.printCutLine !== undefined) document.getElementById('print-cut-line').checked = settings.printCutLine;
+                
+                const bLineW = settings.bindingLineW !== undefined ? settings.bindingLineW : settings.safeLineW;
+                if (document.getElementById('binding-line-width') && bLineW !== undefined) document.getElementById('binding-line-width').value = bLineW;
+                if (document.getElementById('binding-line-style') && settings.bindingLineStyle !== undefined) document.getElementById('binding-line-style').value = settings.bindingLineStyle;
+                if (document.getElementById('binding-line-color') && settings.bindingLineColor !== undefined) document.getElementById('binding-line-color').value = settings.bindingLineColor;
+            }
+
+            if (svgEl.hasAttribute('data-card-html-front')) {
+                frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-front')));
+                backContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html-back') || ''));
+            } else if (svgEl.hasAttribute('data-card-html')) {
+                frontContentHTML = injectControlsIntoHTML(decodeURIComponent(svgEl.getAttribute('data-card-html')));
+                backContentHTML = '';
+            } else {
+                throw new Error("Missing content data attributes.");
+            }
+
+            editingSide = 'front';
+            document.getElementById('card-content').innerHTML = frontContentHTML;
+            document.getElementById('bg-select').value = frontBgClass;
+            updateCanvasSettings();
+
+            const btnFront = document.getElementById('btn-edit-front');
+            const btnBack = document.getElementById('btn-edit-back');
+            if (btnFront && btnBack) {
+                btnFront.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors";
+                btnBack.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors";
+            }
+
+            let maxZ = 100;
+            document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+                let z = parseInt(el.style.zIndex) || 100;
+                if (z > maxZ) maxZ = z;
+            });
+            zIndexCounter = maxZ + 1;
+
+            migrateTableCells();
+            document.getElementById('card-content').querySelectorAll('.card-table').forEach(setupTableResizers);
+
+            applyMergePreview();
+            updateAllCanvasImages();
+            updateGhostLayer();
+            saveState();
+            showToast("Card Restored Successfully!");
+        } catch (err) {
+            console.error(err);
+            showToast("Failed to parse the SVG data.", true);
+        }
+        
+        if (canvas) {
+            canvas.offsetHeight; 
+            canvas.style.transition = ''; 
+        }
     }
 
     function getCleanPrintHTML(rawHTML) {
@@ -9162,20 +9805,36 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                             const data = JSON.parse(el.dataset.mergeData);
                                             const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
                                             
-                                            // Split logic to protect images from being overwritten by text!
                                             if (el.dataset.type === 'image') {
                                                 updateImageElementDisplay(el, val, true);
                                             } else {
                                                 const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                                                if (target) {
+                                                if (target && !target.hasAttribute('data-template-raw')) {
                                                     target.textContent = val;
                                                     parseMarkdownInElement(target);
                                                     target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                                                 }
                                             }
                                         } catch (e) {}
-                                    }
+                                    } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
+                                const inst = pluginInstances[el.dataset.pluginImageId];
+                                if (inst && typeof inst.renderTemplateImage === 'function') {
+                                    try {
+                                        const ctx = getPluginContext(globalMergeIndex);
+                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                        let val = pImg || '';
+                                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                                        updateImageElementDisplay(el, val, true);
+                                    } catch(e) {}
+                                }
+                            }
                                 });
+                                
+                                temp.querySelectorAll('[data-template-raw]').forEach(el => {
+                                    el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+                                    parseMarkdownInElement(el);
+                                });
+                                
                                 activeContent = temp.innerHTML;
                             }
 
