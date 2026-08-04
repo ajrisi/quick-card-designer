@@ -252,7 +252,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .element-container.active > .custom-resizer { display: block; }
         
         /* Content Edits & Shapes */
-        [contenteditable="true"] { outline: none; cursor: text; }
+        /*[contenteditable="true"] { outline: none; cursor: text; }
         div[contenteditable="true"] { width: 100%; height: 100%; min-height: 20px; }
         [contenteditable="true"]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
         .element-container[data-merge-source-id] [contenteditable="true"]:empty:before { display: none !important; }
@@ -262,6 +262,19 @@ Check your Browserslist config to be sure that your targets are set up correctly
         
         .element-container[data-merge-source-id]:not(.active) .image-placeholder.data-empty { display: none !important; }
         .element-container[data-merge-source-id].active .image-placeholder.data-empty { opacity: 0.5; }
+
+        td div[contenteditable="true"], th div[contenteditable="true"] { min-height: 0 !important; }*/
+
+        /* Content Edits & Shapes */
+        [contenteditable="true"] { outline: none; cursor: text; }
+        div[contenteditable="true"] { width: 100%; height: 100%; min-height: 20px; }
+        [contenteditable="true"]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
+        
+        .element-container[data-merge-source-id]:not(.active) [contenteditable="true"]:empty:before { display: none !important; }
+        .element-container[data-merge-source-id].active [contenteditable="true"]:empty:before { content: "Empty Data Field"; color: #d1d5db; font-style: italic; display: block !important; }
+        
+        .element-container[data-merge-source-id]:not(.active) .image-placeholder { display: none !important; }
+        .element-container[data-merge-source-id].active .image-placeholder { opacity: 0.5; }
 
         td div[contenteditable="true"], th div[contenteditable="true"] { min-height: 0 !important; }
         
@@ -812,6 +825,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                                 <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
                                 <input type="number" id="cut-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
                             </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                                <input type="color" id="cut-line-color" value="#d1d5db" class="w-full h-[26px] border border-gray-300 p-0.5 rounded cursor-pointer shadow-sm bg-white">
+                            </div>
                         </div>
                     </div>
 
@@ -830,17 +847,37 @@ Check your Browserslist config to be sure that your targets are set up correctly
                                     <option value="solid">Solid</option>
                                 </select>
                             </div>
+
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Thickness <span class="normal-case">(px)</span></label>
                                 <input type="number" id="binding-line-width" step="0.1" min="0" value="1" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
                             </div>
+
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                                <input type="color" id="binding-line-color" value="#9ca3af" class="w-full h-[26px] border border-gray-300 p-0.5 rounded cursor-pointer shadow-sm bg-white">
+                            </div>
                         </div>
                     </div>
 
-                    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-5">
-                        <input type="checkbox" id="print-crop-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
-                        Print External Crop Marks
-                    </label>
+                    <div class="mb-5 border border-gray-200 rounded p-2 bg-gray-50/50">
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-2">
+                            <input type="checkbox" id="print-crop-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                            Print External Crop Marks
+                        </label>
+
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3">
+                            <input type="checkbox" id="print-internal-marks" class="rounded text-blue-600 focus:ring-blue-500" checked>
+                            Print Internal Corner Dots
+                        </label>
+                                                <div class="grid grid-cols-2 gap-2 pl-5">
+
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                            <input type="color" id="mark-color" value="#9ca3af" class="w-full h-[26px] border border-gray-300 p-0.5 rounded cursor-pointer shadow-sm bg-white">
+                        </div>
+                    </div>
+                    </div>
 
                     <!-- 4. DUPLEX & CALIBRATION -->
                     <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
@@ -2447,7 +2484,7 @@ function updateBgSettings() {
             if(el) el.addEventListener('input', updatePrintStats);
         });
 
-        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left', 'gap-x', 'gap-y', 'print-bleed', 'cut-line-width', 'cut-line-style', 'binding-line-width', 'binding-line-style', 'print-offset-x', 'print-offset-y', 'target-dpi', 'show-bleed-editor', 'print-cut-line', 'show-margin-guide', 'print-crop-marks', 'print-duplex', 'grid-reverse-col', 'grid-reverse-row', 'mirror-horizontal', 'mirror-vertical', 'rotate-180', 'print-vernier'].forEach(id => {
+        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left', 'gap-x', 'gap-y', 'print-bleed', 'cut-line-width', 'cut-line-style', 'binding-line-width', 'binding-line-style', 'print-offset-x', 'print-offset-y', 'target-dpi', 'show-bleed-editor', 'print-cut-line', 'show-margin-guide', 'print-crop-marks', 'mark-color', 'print-duplex', 'grid-reverse-col', 'grid-reverse-row', 'mirror-horizontal', 'mirror-vertical', 'rotate-180', 'print-vernier', 'binding-line-color', 'cut-line-color'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.addEventListener('change', () => { saveState(true); });
         });
@@ -2863,9 +2900,11 @@ function updateBgSettings() {
             guide: document.getElementById('show-margin-guide')?.checked ?? true,
             cutLineW: document.getElementById('cut-line-width')?.value || 1,
             cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+            cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
             printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
             bindingLineW: document.getElementById('binding-line-width')?.value || 1,
             bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+            bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
             printer: {
                 paper: document.getElementById('paper-size')?.value || 'letter',
                 orient: document.getElementById('paper-orientation')?.value || 'portrait',
@@ -2881,6 +2920,8 @@ function updateBgSettings() {
                 bleed: document.getElementById('print-bleed')?.value || 0,
                 showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
                 cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
+                internalMarks: document.getElementById('print-internal-marks')?.checked ?? false,
+                markColor: document.getElementById('mark-color')?.value || '#000000',
                 vernier: document.getElementById('print-vernier')?.checked ?? false
             }
         };
@@ -7578,9 +7619,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             guide: document.getElementById('show-margin-guide').checked,
             cutLineW: document.getElementById('cut-line-width')?.value || 1,
             cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+            cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
             printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
             bindingLineW: document.getElementById('binding-line-width')?.value || 1,
             bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+            bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
             printer: {
                 paper: document.getElementById('paper-size').value,
                 orient: document.getElementById('paper-orientation').value,
@@ -7596,6 +7639,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 bleed: document.getElementById('print-bleed') ? document.getElementById('print-bleed').value : 0,
                 showBleed: document.getElementById('show-bleed-editor') ? document.getElementById('show-bleed-editor').checked : false,
                 cropMarks: document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false,
+                internalMarks: document.getElementById('print-internal-marks') ? document.getElementById('print-internal-marks').checked : false,
+                markColor: document.getElementById('mark-color') ? document.getElementById('mark-color').value : '#000000',
                 vernier: document.getElementById('print-vernier') ? document.getElementById('print-vernier').checked : false
             },
             hasCustomBack: hasCustomBack,
@@ -7744,11 +7789,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const printCutLine = document.getElementById('print-cut-line')?.checked ?? true;
         const cutLineWidth = printCutLine ? (parseFloat(document.getElementById('cut-line-width').value) || 0) : 0;
         const cutLineStyleValue = document.getElementById('cut-line-style')?.value || 'dashed';
-
+        const cutLineColor = document.getElementById('cut-line-color')?.value || '#d1d5db';
+        
         const showInnerGuide = document.getElementById('show-margin-guide').checked;
         const bindingLineWidth = parseFloat(document.getElementById('binding-line-width')?.value) || 0;
         const bindingLineStyle = document.getElementById('binding-line-style')?.value || 'dashed';
+        const bindingLineColor = document.getElementById('binding-line-color')?.value || '#9ca3af';
         const printCropMarks = document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false;
+        const printInternalMarks = document.getElementById('print-internal-marks') ? document.getElementById('print-internal-marks').checked : false;
+
         
         const paperSizeStr = document.getElementById('paper-size').value;
         const isPaperLand = document.getElementById('paper-orientation').value === 'landscape';
@@ -7993,38 +8042,57 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     }
                 }
 
-                if (printCropMarks) {
-                    let cropMarksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
+                if (printCropMarks || printInternalMarks) {
+                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
                     const cmLen = 0.25;
                     const cmOff = 0.05;
-                    const strokeColor = "#000";
+                    const strokeColor = document.getElementById('mark-color')?.value || "#000000";
                     const strokeWidth = "0.5px";
+                    const dotRadius = "1px";
 
-                    for (let c = 0; c < cols; c++) {
-                        let leftX = printStartX + c * (totalCardWin + gapXIn);
-                        let rightX = leftX + totalCardWin;
-                        let topY = printStartY;
-                        let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
+                    if (printCropMarks) {
+                        for (let c = 0; c < cols; c++) {
+                            let leftX = printStartX + c * (totalCardWin + gapXIn);
+                            let rightX = leftX + totalCardWin;
+                            let topY = printStartY;
+                            let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
 
-                        cropMarksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        }
+
+                        for (let r = 0; r < rows; r++) {
+                            let topY = printStartY + r * (totalCardHin + gapYIn);
+                            let bottomY = topY + totalCardHin;
+                            let leftX = printStartX;
+                            let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
+
+                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        }
                     }
 
-                    for (let r = 0; r < rows; r++) {
-                        let topY = printStartY + r * (totalCardHin + gapYIn);
-                        let bottomY = topY + totalCardHin;
-                        let leftX = printStartX;
-                        let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
+                    if (printInternalMarks) {
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < cols; c++) {
+                                let leftX = printStartX + c * (totalCardWin + gapXIn);
+                                let rightX = leftX + totalCardWin;
+                                let topY = printStartY + r * (totalCardHin + gapYIn);
+                                let bottomY = topY + totalCardHin;
 
-                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                                marksSvg += `<circle cx="${leftX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${rightX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${leftX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${rightX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                            }
+                        }
                     }
-                    cropMarksSvg += `</svg>`;
-                    pageContent += cropMarksSvg;
+                    marksSvg += `</svg>`;
+                    pageContent += marksSvg;
                 }
 
                 pageContent += `</div>`;
@@ -8297,18 +8365,21 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     if (document.getElementById('print-bleed') && printerOpts.bleed !== undefined) document.getElementById('print-bleed').value = printerOpts.bleed;
                     if (document.getElementById('show-bleed-editor') && printerOpts.showBleed !== undefined) document.getElementById('show-bleed-editor').checked = printerOpts.showBleed;
                     if (document.getElementById('print-crop-marks')) document.getElementById('print-crop-marks').checked = printerOpts.cropMarks !== undefined ? printerOpts.cropMarks : true;
+                    if (document.getElementById('print-internal-marks')) document.getElementById('print-internal-marks').checked = printerOpts.internalMarks !== undefined ? printerOpts.internalMarks : false;
+                    if (document.getElementById('mark-color')) document.getElementById('mark-color').value = printerOpts.markColor || '#000000';
                     if (document.getElementById('print-vernier')) document.getElementById('print-vernier').checked = printerOpts.vernier || false;
+                    if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
 
-                    if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
-                    if (document.getElementById('show-margin-guide')) document.getElementById('show-margin-guide').checked = settings.guide !== undefined ? settings.guide : true;
                     if (document.getElementById('cut-line-width') && settings.cutLineW !== undefined) document.getElementById('cut-line-width').value = settings.cutLineW;
                     if (document.getElementById('cut-line-style') && settings.cutLineStyle !== undefined) document.getElementById('cut-line-style').value = settings.cutLineStyle;
+                    if (document.getElementById('cut-line-color') && settings.cutLineColor !== undefined) document.getElementById('cut-line-color').value = settings.cutLineColor;
                     if (document.getElementById('print-cut-line') && settings.printCutLine !== undefined) document.getElementById('print-cut-line').checked = settings.printCutLine;
                     
                     // Note: Check for old 'safeLineW' to maintain backwards compatibility with older save files
                     const bLineW = settings.bindingLineW !== undefined ? settings.bindingLineW : settings.safeLineW;
                     if (document.getElementById('binding-line-width') && bLineW !== undefined) document.getElementById('binding-line-width').value = bLineW;
                     if (document.getElementById('binding-line-style') && settings.bindingLineStyle !== undefined) document.getElementById('binding-line-style').value = settings.bindingLineStyle;
+                    if (document.getElementById('binding-line-color') && settings.bindingLineColor !== undefined) document.getElementById('binding-line-color').value = settings.bindingLineColor;
                 }
 
                 if (svgEl.hasAttribute('data-card-html-front')) {
@@ -8402,12 +8473,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const printCutLine = document.getElementById('print-cut-line')?.checked ?? true;
         const cutLineWidth = printCutLine ? (parseFloat(document.getElementById('cut-line-width').value) || 0) : 0;
         const cutLineStyleValue = document.getElementById('cut-line-style')?.value || 'dashed';
-        
+        const cutLineColor = document.getElementById('cut-line-color')?.value || '#d1d5db';
+
         const showInnerGuide = document.getElementById('show-margin-guide').checked;
         const bindingLineWidth = parseFloat(document.getElementById('binding-line-width')?.value) || 0;
         const bindingLineStyle = document.getElementById('binding-line-style')?.value || 'dashed';
+        const bindingLineColor = document.getElementById('binding-line-color')?.value || '#9ca3af';
         const printVernier = document.getElementById('print-vernier').checked;
         const printCropMarks = document.getElementById('print-crop-marks') ? document.getElementById('print-crop-marks').checked : false;
+        const printInternalMarks = document.getElementById('print-internal-marks') ? document.getElementById('print-internal-marks').checked : false;
         const paperSizeStr = document.getElementById('paper-size').value;
         const isPaperLand = document.getElementById('paper-orientation').value === 'landscape';
         const isDuplex = document.getElementById('print-duplex').checked;
@@ -8624,7 +8698,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
                         let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
                         if (cutLineWidth > 0) {
-                            cutLineStyle += ` border-style: ${cutLineStyleValue}; border-color: #d1d5db; border-top-width: ${cutLineWidth}px; border-left-width: ${cutLineWidth}px; border-right-width: ${activeBorderRight}px; border-bottom-width: ${activeBorderBottom}px;`;
+                            cutLineStyle += ` border-style: ${cutLineStyleValue}; border-color: ${cutLineColor}; border-top-width: ${cutLineWidth}px; border-left-width: ${cutLineWidth}px; border-right-width: ${activeBorderRight}px; border-bottom-width: ${activeBorderBottom}px;`;
                         } else {
                             cutLineStyle += ` border: none;`;
                         }
@@ -8639,7 +8713,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             let bLeft = activeMlIn > 0 ? bindingLineWidth : 0;
                             
                             if (bTop > 0 || bRight > 0 || bBottom > 0 || bLeft > 0) {
-                                let bindingCSS = `position: absolute; top: ${activeMtIn}in; left: ${activeMlIn}in; width: ${baseCardWin}in; height: ${baseCardHin}in; box-sizing: border-box; pointer-events: none; z-index: 10000; border-color: #9ca3af; border-style: ${bindingLineStyle};`;
+                                let bindingCSS = `position: absolute; top: ${activeMtIn}in; left: ${activeMlIn}in; width: ${baseCardWin}in; height: ${baseCardHin}in; box-sizing: border-box; pointer-events: none; z-index: 10000; border-color: ${bindingLineColor}; border-style: ${bindingLineStyle};`;
                                 bindingCSS += ` border-top-width: ${bTop}px; border-right-width: ${bRight}px; border-bottom-width: ${bBottom}px; border-left-width: ${bLeft}px;`;
                                 pageContent += `<div style="${bindingCSS}"></div>`;
                             }
@@ -8649,38 +8723,57 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     }
                 }
 
-                if (printCropMarks) {
-                    let cropMarksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
+                if (printCropMarks || printInternalMarks) {
+                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
                     const cmLen = 0.25;
                     const cmOff = 0.05;
-                    const strokeColor = "#000";
+                    const strokeColor = document.getElementById('mark-color')?.value || "#000000";
                     const strokeWidth = "0.5px";
+                    const dotRadius = "1px";
 
-                    for (let c = 0; c < cols; c++) {
-                        let leftX = printStartX + c * (totalCardWin + gapXIn);
-                        let rightX = leftX + totalCardWin;
-                        let topY = printStartY;
-                        let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
+                    if (printCropMarks) {
+                        for (let c = 0; c < cols; c++) {
+                            let leftX = printStartX + c * (totalCardWin + gapXIn);
+                            let rightX = leftX + totalCardWin;
+                            let topY = printStartY;
+                            let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
 
-                        cropMarksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        }
+
+                        for (let r = 0; r < rows; r++) {
+                            let topY = printStartY + r * (totalCardHin + gapYIn);
+                            let bottomY = topY + totalCardHin;
+                            let leftX = printStartX;
+                            let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
+
+                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                        }
                     }
 
-                    for (let r = 0; r < rows; r++) {
-                        let topY = printStartY + r * (totalCardHin + gapYIn);
-                        let bottomY = topY + totalCardHin;
-                        let leftX = printStartX;
-                        let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
+                    if (printInternalMarks) {
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < cols; c++) {
+                                let leftX = printStartX + c * (totalCardWin + gapXIn);
+                                let rightX = leftX + totalCardWin;
+                                let topY = printStartY + r * (totalCardHin + gapYIn);
+                                let bottomY = topY + totalCardHin;
 
-                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        cropMarksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                                marksSvg += `<circle cx="${leftX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${rightX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${leftX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${rightX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                            }
+                        }
                     }
-                    cropMarksSvg += `</svg>`;
-                    pageContent += cropMarksSvg;
+                    marksSvg += `</svg>`;
+                    pageContent += marksSvg;
                 }
 
                 if (printVernier) {
