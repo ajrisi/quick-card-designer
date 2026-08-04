@@ -1427,6 +1427,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     + Upload CSV
                 </button>
                 <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
+                <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
             </div>
         </div>
     </div>
@@ -6504,9 +6505,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function handleMergeSourceChange(val) {
         if (!activeElement) return;
         if (!val) {
-            delete activeElement.dataset.mergeSourceId;
-            delete activeElement.dataset.mergeCol;
-            delete activeElement.dataset.mergeData;
+            activeElement.removeAttribute('data-merge-source-id');
+            activeElement.removeAttribute('data-merge-col');
+            activeElement.removeAttribute('data-merge-data');
             
             // Revert based on element type
             if (activeElement.dataset.type === 'image') {
@@ -6518,13 +6519,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             }
             
             updateMergeUI();
-            saveState(true);
+            saveState();
             return;
         }
         activeElement.dataset.mergeSourceId = val;
         activeElement.dataset.mergeCol = "0";
         recomputeAllMergeData();
-        saveState(true);
+        saveState();
     }
 
     function handleNewMergeFile(event) {
@@ -6540,8 +6541,22 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             } else {
                 data = text.split(/\r?\n/).map(line => [line]);
             }
-            const id = 'src_' + Date.now();
-            mergeSources[id] = { filename: file.name, data: data, hasHeader: true };
+            
+            // Check if a source with this filename already exists to update it seamlessly
+            let id = null;
+            for (let key in mergeSources) {
+                if (mergeSources[key].filename === file.name) {
+                    id = key;
+                    break;
+                }
+            }
+            
+            if (id) {
+                mergeSources[id].data = data;
+            } else {
+                id = 'src_' + Date.now();
+                mergeSources[id] = { filename: file.name, data: data, hasHeader: true };
+            }
 
             renderDataSourcesList();
             recomputeAllMergeData();
@@ -6550,10 +6565,81 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
-            saveState(true);
+            updateImageBankMergeUI();
+            saveState();
         };
-        reader.readAsText();
+        reader.readAsText(file);
         event.target.value = '';
+    }
+
+    let replaceTargetDataId = null;
+
+    function triggerDataReplace(id) {
+        replaceTargetDataId = id;
+        document.getElementById('data-replace-input').click();
+    }
+
+    function handleDataReplace(event) {
+        const file = event.target.files[0];
+        if (!file || !replaceTargetDataId) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            let data = [];
+            if (file.name.toLowerCase().endsWith('.csv')) {
+                data = parseCSV(text);
+            } else {
+                data = text.split(/\r?\n/).map(line => [line]);
+            }
+            
+            if (mergeSources[replaceTargetDataId]) {
+                mergeSources[replaceTargetDataId].filename = file.name;
+                mergeSources[replaceTargetDataId].data = data;
+            }
+
+            renderDataSourcesList();
+            recomputeAllMergeData();
+
+            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                renderImageBankItems();
+            }
+            updateImageBankMergeUI();
+            saveState();
+            showToast(`Replaced data source with "${file.name}"`);
+            
+            replaceTargetDataId = null;
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function exportDataSource(id) {
+        const src = mergeSources[id];
+        if (!src) return;
+
+        const csvContent = src.data.map(row => 
+            row.map(cell => {
+                let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+                if (/[",\n\r]/.test(cellStr)) {
+                    cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+                }
+                return cellStr;
+            }).join(",")
+        ).join("\n");
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const exportName = src.filename.toLowerCase().endsWith('.csv') ? src.filename : src.filename + '.csv';
+        a.download = exportName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${exportName}`);
     }
 
     function toggleMergeHeader(id, hasHeader) {
@@ -6564,7 +6650,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
-            saveState(true);
+            updateImageBankMergeUI();
+            saveState();
         }
     }
 
@@ -6574,9 +6661,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             // Clear merge data from elements using it
             document.querySelectorAll('#card-content .element-container').forEach(el => {
                 if (el.dataset.mergeSourceId === id) {
-                    delete el.dataset.mergeSourceId;
-                    delete el.dataset.mergeCol;
-                    delete el.dataset.mergeData;
+                    el.removeAttribute('data-merge-source-id');
+                    el.removeAttribute('data-merge-col');
+                    el.removeAttribute('data-merge-data');
                     const target = el.querySelector('div[contenteditable="true"]');
                     if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
                 }
@@ -6586,7 +6673,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
-            saveState(true);
+            updateImageBankMergeUI();
+            saveState();
         }
     }
 
@@ -6669,9 +6757,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span class="text-xs font-bold text-gray-700 truncate" title="${src.filename}">${src.filename}</span>
                     </div>
-                    <button onclick="deleteMergeSource('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors shrink-0" title="Delete Source">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="exportDataSource('${id}')" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Export CSV">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </button>
+                        <button onclick="triggerDataReplace('${id}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace CSV">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                        <button onclick="deleteMergeSource('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Delete Source">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded">${rowCount} rows</span>
