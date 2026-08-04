@@ -7016,7 +7016,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         const colIdx = parseInt(el.dataset.mergeCol, 10);
                         const rawColName = src.data[0] ? src.data[0][colIdx] : `Col ${colIdx}`;
                         const cleanColName = rawColName.replace(/^Images:\s*/i, '');
-                        pText.innerText = `Images: ${src.filename}, column ${cleanColName}`;
+                        pText.innerText = `Images: ${src.filename}, column: ${cleanColName}`;
                     } else {
                         pText.innerText = 'Empty';
                     }
@@ -7132,7 +7132,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         // Format the placeholder text cleanly
         const cleanColName = columnName.replace(/^Images:\s*/i, '');
-        const placeholderText = `Images: ${source.filename}, column ${cleanColName}`;
+        const placeholderText = `Images: ${source.filename}, column: ${cleanColName}`;
 
         const createEl = (w, h, dUrl) => {
             const el = document.createElement('div');
