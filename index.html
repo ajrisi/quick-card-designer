@@ -158,7 +158,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
             outline: none !important;
         }
         
-        .element-container:hover, .element-container.active { z-index: 99999 !important; }
+        /*body:not(.preview-z) .element-container:hover, 
+        body:not(.preview-z) .element-container.active { z-index: 99999 !important; }*/
         
         /* Floating Element Controls */
         .element-container .controls {
@@ -932,7 +933,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div class="flex items-center gap-2 border-r border-gray-200 pr-3">
                 <div class="flex items-center gap-1 mr-1">
                     <span class="text-[9px] font-bold text-gray-400 uppercase">Z-Ord</span>
-                    <div class="flex flex-col shadow-sm border border-gray-300 rounded overflow-hidden">
+                    <div class="flex flex-col shadow-sm border border-gray-300 rounded overflow-hidden" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
                         <button onclick="changeZIndexGlobal(1)" title="Bring Forward" class="bg-white hover:bg-gray-50 text-gray-600 px-1.5 py-[1px] border-b border-gray-200 text-[8px] leading-none transition-colors">▲</button>
                         <button onclick="changeZIndexGlobal(-1)" title="Send Backward" class="bg-white hover:bg-gray-50 text-gray-600 px-1.5 py-[1px] text-[8px] leading-none transition-colors">▼</button>
                     </div>
@@ -1632,9 +1633,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
     let lastMouseX = 0;
     let lastMouseY = 0;
-    let shiftDownTime = 0;
-    let shiftDownMouseX = 0;
-    let shiftDownMouseY = 0;
 
     let hoveredElement = null;
 
@@ -2359,12 +2357,12 @@ function updateBgSettings() {
                 <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected(); event.stopPropagation();">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
                 </span>
-                <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                </span>
-                <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </span>
+                <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+            </span>
+            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </span>
                 <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </span>
@@ -3727,10 +3725,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected()">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
             </span>` : ''}
-            <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()">
+            <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
             </span>
-            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()">
+            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
             
@@ -4785,6 +4783,11 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             activeElements.forEach(e => {
                 e.classList.remove('active');
                 e.classList.remove('rotation-active');
+                // Restore baseline Z-Index on deselection
+                if (e.dataset.baselineZ !== undefined) {
+                    e.style.zIndex = e.dataset.baselineZ;
+                    delete e.dataset.baselineZ;
+                }
                 const oldRes = e.querySelector('.resizable');
                 if (oldRes) resizeObserver.unobserve(oldRes);
             });
@@ -4792,9 +4795,16 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
 
         if (el && !activeElements.includes(el)) {
+            // If already active in multi-select, don't re-trigger baseline logic
+            if (!el.dataset.baselineZ) {
+                el.dataset.baselineZ = el.style.zIndex || '100';
+            }
             activeElements.push(el);
             el.classList.add('active');
-            if (el.dataset.type !== 'group') el.style.zIndex = zIndexCounter++;
+            
+            // Bring to top for editing visibility
+            if (el.dataset.type !== 'group') el.style.zIndex = 99999;
+            
             const resizable = el.querySelector('.resizable');
             if (resizable) resizeObserver.observe(resizable);
         }
@@ -5670,8 +5680,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             }
         }
 
-        shiftDownTime = 0;
-
         // Force blur on any active input, textarea, select, or content editable if we click outside of it
         const active = document.activeElement;
         if (active && (active.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName))) {
@@ -5849,7 +5857,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         let isCanvasArea = e.target.closest('#canvas-container');
 
         if (!container && !cell && !e.target.closest('.controls') && isCanvasArea) {
-            if (!e.shiftKey) {
+            if (!e.shiftKey && !e.key) { // Exclude Tab key presses
+                // Restore baselines before clearing
+                activeElements.forEach(e => {
+                    if (e.dataset.baselineZ !== undefined) {
+                        e.style.zIndex = e.dataset.baselineZ;
+                        delete e.dataset.baselineZ;
+                    }
+                });
                 setActiveElement(null);
 
                 isMarquee = true;
@@ -6532,11 +6547,30 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         if (e.key === 'Shift') {
             document.getElementById('canvas-container').style.cursor = 'grab';
-            if (!shiftDownTime && !isInput) {
-                shiftDownTime = Date.now();
-                shiftDownMouseX = lastMouseX;
-                shiftDownMouseY = lastMouseY;
+        }
+        
+        // Cycle through overlapping elements on Tab press
+        if (e.key === 'Tab' && !isInput) {
+            e.preventDefault();
+            
+            // Gather all top-level elements under the current mouse pointer
+            const elementsUnder = document.elementsFromPoint(lastMouseX, lastMouseY)
+                .map(el => el.closest('.element-container'))
+                .filter((el, index, self) => el && self.indexOf(el) === index && el.parentElement?.id === 'card-content');
+
+            if (elementsUnder.length > 0) {
+                // Sort them by their true visual z-index stack
+                elementsUnder.sort((a, b) => {
+                    const zA = parseInt(a.dataset.baselineZ || a.style.zIndex) || 100;
+                    const zB = parseInt(b.dataset.baselineZ || b.style.zIndex) || 100;
+                    return zA - zB;
+                });
+
+                let currentIndex = elementsUnder.indexOf(activeElement);
+                let nextIndex = (currentIndex + 1) % elementsUnder.length;
+                setActiveElement(elementsUnder[nextIndex]);
             }
+            return;
         }
 
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -6668,29 +6702,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
     });
 
+
     document.addEventListener('keyup', (e) => {
         if (e.key === 'Shift') {
             if (!isPanning) {
                 document.getElementById('canvas-container').style.cursor = 'auto';
-            }
-
-            if (shiftDownTime) {
-                const timeElapsed = Date.now() - shiftDownTime;
-                const dist = Math.hypot(lastMouseX - shiftDownMouseX, lastMouseY - shiftDownMouseY);
-                const isInput = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable);
-
-                if (timeElapsed < 500 && dist < 5 && !isInput && !isDragging && !isMarquee) {
-                    const elementsUnder = document.elementsFromPoint(lastMouseX, lastMouseY)
-                        .map(el => el.closest('.element-container'))
-                        .filter((el, index, self) => el && self.indexOf(el) === index);
-
-                    if (elementsUnder.length > 1) {
-                        let currentIndex = elementsUnder.indexOf(activeElement);
-                        let nextIndex = currentIndex !== -1 ? (currentIndex + 1) % elementsUnder.length : 1;
-                        setActiveElement(elementsUnder[nextIndex]);
-                    }
-                }
-                shiftDownTime = 0;
             }
         }
     });
