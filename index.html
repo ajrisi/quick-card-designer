@@ -4428,16 +4428,92 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
     function changeZIndexGlobal(dir) {
         if (activeElements.length === 0) return;
-        activeElements.forEach(el => changeZIndex(el, dir));
-        saveState();
-    }
 
-    function changeZIndex(el, dir) {
-        let currentZ = parseInt(el.style.zIndex) || 100;
-        let newZ = currentZ + dir;
-        if (newZ < 1) newZ = 1;
-        el.style.zIndex = newZ;
-        if (newZ >= zIndexCounter) zIndexCounter = newZ + 1;
+        // Group active elements by their parent so we can safely layer nested items
+        const parentGroups = new Map();
+        activeElements.forEach(el => {
+            const p = el.parentElement;
+            if (!parentGroups.has(p)) parentGroups.set(p, []);
+            parentGroups.get(p).push(el);
+        });
+
+        parentGroups.forEach((elements, parent) => {
+            // Get all siblings and sort them visually (Z-index first, then DOM order)
+            const allSiblings = Array.from(parent.querySelectorAll(':scope > .element-container'));
+            const parentChildren = Array.from(parent.children);
+            
+            allSiblings.sort((a, b) => {
+                const zA = parseInt(a.style.zIndex) || 100;
+                const zB = parseInt(b.style.zIndex) || 100;
+                if (zA !== zB) return zA - zB;
+                return parentChildren.indexOf(a) - parentChildren.indexOf(b);
+            });
+
+            const activeZs = elements.map(e => parseInt(e.style.zIndex) || 100);
+            const minActiveZ = Math.min(...activeZs);
+            const maxActiveZ = Math.max(...activeZs);
+
+            let delta = 0;
+
+            if (dir > 0) {
+                // Moving UP: Find the highest active element, then find the first inactive element above it
+                let topActiveIdx = -1;
+                for (let i = allSiblings.length - 1; i >= 0; i--) {
+                    if (elements.includes(allSiblings[i])) {
+                        topActiveIdx = i;
+                        break;
+                    }
+                }
+                
+                let targetInactive = null;
+                for (let i = topActiveIdx + 1; i < allSiblings.length; i++) {
+                    if (!elements.includes(allSiblings[i])) {
+                        targetInactive = allSiblings[i];
+                        break;
+                    }
+                }
+
+                if (targetInactive) {
+                    const targetZ = parseInt(targetInactive.style.zIndex) || 100;
+                    delta = (targetZ + 1) - minActiveZ;
+                    if (delta < 1) delta = 1; // Ensure we always move up visually
+                } else {
+                    delta = 1; // Already at the top visually
+                }
+            } else {
+                // Moving DOWN: Find the lowest active element, then find the first inactive element below it
+                let bottomActiveIdx = allSiblings.findIndex(e => elements.includes(e));
+                
+                let targetInactive = null;
+                for (let i = bottomActiveIdx - 1; i >= 0; i--) {
+                    if (!elements.includes(allSiblings[i])) {
+                        targetInactive = allSiblings[i];
+                        break;
+                    }
+                }
+
+                if (targetInactive) {
+                    const targetZ = parseInt(targetInactive.style.zIndex) || 100;
+                    delta = (targetZ - 1) - maxActiveZ;
+                    if (delta > -1) delta = -1; // Ensure we always move down visually
+                } else {
+                    delta = -1; // Already at the bottom visually
+                }
+            }
+
+            // Safety catch: prevent elements from vanishing under the canvas base layers
+            if (minActiveZ + delta < 1) delta = 1 - minActiveZ;
+
+            // Apply the uniform visual shift to the entire selection block
+            elements.forEach(el => {
+                const currentZ = parseInt(el.style.zIndex) || 100;
+                const newZ = currentZ + delta;
+                el.style.zIndex = newZ;
+                if (newZ >= zIndexCounter) zIndexCounter = newZ + 1;
+            });
+        });
+
+        saveState();
     }
 
     function addElement(type) {
