@@ -7070,17 +7070,25 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const src = imageAssets[filename];
             const safeName = filename.replace(/'/g, "\\'");
             html += `
-                <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
+            <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
                     <div class="h-28 w-full bg-gray-100 border border-gray-200/50 rounded-lg flex items-center justify-center overflow-hidden relative">
                         <img src="${src}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />
+                        <div class="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="${src}" download="${filename}" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Download">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                            <button onclick="triggerBankReplace('${safeName}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            </button>
+                            <button onclick="deleteBankImage('${safeName}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Delete">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="text-[10px] font-mono text-gray-700 truncate w-full text-center px-1 select-all" title="${filename}">${filename}</div>
-                    <div class="grid grid-cols-2 gap-1.5 mt-auto">
-                        <button onclick="placeBankImage('${safeName}')" class="py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[9px] font-bold uppercase transition-colors col-span-2 shadow-sm">Place on Canvas</button>
-                        <button onclick="triggerBankReplace('${safeName}')" class="py-1.5 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Replace</button>
-                        <button onclick="deleteBankImage('${safeName}')" class="py-1.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Delete</button>
-                    </div>
+                    <button onclick="placeBankImage('${safeName}')" class="mt-auto py-1.5 w-full bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place on Canvas</button>
                 </div>
+
             `;
         });
 
