@@ -186,8 +186,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
         .control-btn:hover { background: #f3f4f6; color: #111827; }
         
-        .drag-handle { cursor: grab; color: #9ca3af; }
-        .drag-handle:hover { color: #4b5563; background: #f3f4f6; }
+        .drag-handle { cursor: grab; color: #4b5563; }
+        .drag-handle:hover { color: #111827; background: #f3f4f6; }
         .drag-handle:active { cursor: grabbing; }
         
         .delete-btn { color: #ef4444; }
@@ -208,16 +208,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
         .element-container:not(.active):not(:hover) .resizable { resize: none !important; }
         
-        /*.custom-resizer {
-            display: none; position: absolute; right: -6px; bottom: -6px;
-            width: 16px; height: 16px; cursor: nwse-resize; z-index: 1002;
-            transform: scale(var(--inverse-scale)); transform-origin: center;
-        }
-        .custom-resizer::after {
-            content: ''; position: absolute; right: 6px; bottom: 6px;
-            width: 6px; height: 6px; border-right: 2px solid #3b82f6;
-            border-bottom: 2px solid #3b82f6; border-radius: 1px;
-        }*/
         /* 8-Way Directional Resizers */
         .resizer { display: none; position: absolute; z-index: 1002; transform: scale(var(--inverse-scale)); }
         .element-container.active:not(.rotation-active) > .resizer { display: block; }
