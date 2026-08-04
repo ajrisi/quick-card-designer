@@ -933,7 +933,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div class="flex items-center gap-2 border-r border-gray-200 pr-3">
                 <div class="flex items-center gap-1 mr-1">
                     <span class="text-[9px] font-bold text-gray-400 uppercase">Z-Ord</span>
-                    <div class="flex flex-col shadow-sm border border-gray-300 rounded overflow-hidden" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+                    <div class="flex flex-col shadow-sm border border-gray-300 rounded overflow-hidden" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                         <button onclick="changeZIndexGlobal(1)" title="Bring Forward" class="bg-white hover:bg-gray-50 text-gray-600 px-1.5 py-[1px] border-b border-gray-200 text-[8px] leading-none transition-colors">▲</button>
                         <button onclick="changeZIndexGlobal(-1)" title="Send Backward" class="bg-white hover:bg-gray-50 text-gray-600 px-1.5 py-[1px] text-[8px] leading-none transition-colors">▼</button>
                     </div>
@@ -2357,10 +2357,10 @@ function updateBgSettings() {
                 <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected(); event.stopPropagation();">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
                 </span>
-                <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+                <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
             </span>
-            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
                 <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
@@ -3725,10 +3725,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected()">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
             </span>` : ''}
-            <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+            <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
             </span>
-            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="document.body.classList.add('preview-z')" onmouseleave="document.body.classList.remove('preview-z')">
+            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
             
@@ -4424,6 +4424,24 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         document.getElementById('text-color-swatch').style.backgroundColor = alpha < 1 ? rgba : hex;
     }
 
+    function previewZIndex(showPreview) {
+        if (showPreview) {
+            document.body.classList.add('preview-z');
+            activeElements.forEach(el => {
+                if (el.dataset.baselineZ !== undefined) {
+                    el.style.zIndex = el.dataset.baselineZ;
+                }
+            });
+        } else {
+            document.body.classList.remove('preview-z');
+            activeElements.forEach(el => {
+                if (el.dataset.type !== 'group') {
+                    el.style.zIndex = 99999;
+                }
+            });
+        }
+    }
+
     function changeZIndexGlobal(dir) {
         if (activeElements.length === 0) return;
 
@@ -4441,13 +4459,13 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             const parentChildren = Array.from(parent.children);
             
             allSiblings.sort((a, b) => {
-                const zA = parseInt(a.style.zIndex) || 100;
-                const zB = parseInt(b.style.zIndex) || 100;
+                const zA = parseInt(a.dataset.baselineZ || a.style.zIndex) || 100;
+                const zB = parseInt(b.dataset.baselineZ || b.style.zIndex) || 100;
                 if (zA !== zB) return zA - zB;
                 return parentChildren.indexOf(a) - parentChildren.indexOf(b);
             });
 
-            const activeZs = elements.map(e => parseInt(e.style.zIndex) || 100);
+            const activeZs = elements.map(e => parseInt(e.dataset.baselineZ || e.style.zIndex) || 100);
             const minActiveZ = Math.min(...activeZs);
             const maxActiveZ = Math.max(...activeZs);
 
@@ -4472,7 +4490,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 }
 
                 if (targetInactive) {
-                    const targetZ = parseInt(targetInactive.style.zIndex) || 100;
+                    const targetZ = parseInt(targetInactive.dataset.baselineZ || targetInactive.style.zIndex) || 100;
                     delta = (targetZ + 1) - minActiveZ;
                     if (delta < 1) delta = 1; // Ensure we always move up visually
                 } else {
@@ -4491,7 +4509,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
                 }
 
                 if (targetInactive) {
-                    const targetZ = parseInt(targetInactive.style.zIndex) || 100;
+                    const targetZ = parseInt(targetInactive.dataset.baselineZ || targetInactive.style.zIndex) || 100;
                     delta = (targetZ - 1) - maxActiveZ;
                     if (delta > -1) delta = -1; // Ensure we always move down visually
                 } else {
@@ -4504,9 +4522,18 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
             // Apply the uniform visual shift to the entire selection block
             elements.forEach(el => {
-                const currentZ = parseInt(el.style.zIndex) || 100;
+                const currentZ = parseInt(el.dataset.baselineZ || el.style.zIndex) || 100;
                 const newZ = currentZ + delta;
-                el.style.zIndex = newZ;
+                
+                if (el.dataset.baselineZ !== undefined) {
+                    el.dataset.baselineZ = newZ;
+                    if (document.body.classList.contains('preview-z')) {
+                        el.style.zIndex = newZ;
+                    }
+                } else {
+                    el.style.zIndex = newZ;
+                }
+                
                 if (newZ >= zIndexCounter) zIndexCounter = newZ + 1;
             });
         });
