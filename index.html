@@ -275,7 +275,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .card-table-wrapper { 
             width: 100%; height: 100%; display: flex; box-sizing: border-box;
             border-radius: var(--tbl-br, 0px); overflow: hidden;
-            background-color: transparent; border: var(--tbl-bw, 1px) solid var(--tbl-bc, #9ca3af);
+            background-color: transparent; border: var(--tbl-bw, 1px) var(--tbl-bs, solid) var(--tbl-bc, #9ca3af);
             position: relative; transform: translateZ(0); backface-visibility: hidden;
         }
         
@@ -285,7 +285,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
         
         .card-table th, .card-table td {
-            box-sizing: border-box; border: var(--tbl-bw, 1px) solid var(--tbl-bc, #9ca3af);
+            box-sizing: border-box; border: var(--tbl-bw, 1px) var(--tbl-bs, solid) var(--tbl-bc, #9ca3af);
             position: relative; padding: 0 !important; min-height: 0 !important;
             background-clip: padding-box;
         }
@@ -997,6 +997,15 @@ Check your Browserslist config to be sure that your targets are set up correctly
         
         <!-- TEXT CONTROLS -->
         <div id="type-controls" class="flex items-center gap-2.5 shrink-0" style="display: none;">
+            <div id="table-scope-group" class="hidden items-center gap-1.5 border-r border-gray-200 pr-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Apply To</span>
+                <select id="align-scope" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer">
+                    <option value="cell" selected>Cell</option>
+                    <option value="row">Row</option>
+                    <option value="col">Col</option>
+                    <option value="table">Table</option>
+                </select>
+            </div>
             <input type="text" list="font-options" id="font-family" placeholder="Font" class="w-28 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onfocus="updateFontDatalist()" onchange="applyStyle('fontFamily', this.value)">
             <datalist id="font-options">
                 <option value="system-ui, sans-serif">System Sans</option>
@@ -1016,10 +1025,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <option value="900">Heavy</option>
             </select>
             <button id="font-bold-btn" onclick="toggleBold()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif font-bold ml-1" title="Bold">B</button>
-            <button id="font-italic-btn" onclick="toggleItalic()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif italic ml-1" title="Italic">I</button>
+            <button id="font-italic-btn" onclick="toggleItalic()" class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors font-serif italic" title="Italic">I</button>
 
             <details class="relative color-picker-det">
-                    <summary id="text-color-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden flex items-center justify-center" style="background-color: #1f2937;"></summary>
+                    <summary id="text-color-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden flex items-center justify-center" style="background-color: #1f2937;" title="Text Color"></summary>
                     <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 w-48 cursor-default">
                         <div class="flex flex-col gap-2">
                             <div>
@@ -1032,6 +1041,29 @@ Check your Browserslist config to be sure that your targets are set up correctly
                                     <span id="text-opacity-val" class="text-[10px] font-mono text-gray-500">100%</span>
                                 </div>
                                 <input type="range" id="text-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600" oninput="updateTextColor()">
+                            </div>
+                        </div>
+                    </div>
+                </details>
+                <details class="relative color-picker-det">
+                    <summary id="text-bg-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden relative overflow-hidden" style="background-color: transparent;" title="Background Color">
+                        <div id="text-bg-none-slash" class="absolute inset-0 pointer-events-none">
+                            <svg class="w-full h-full text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="0" y1="24" x2="24" y2="0" stroke-width="2"></line></svg>
+                        </div>
+                    </summary>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 w-48 cursor-default">
+                        <div class="flex flex-col gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                                <input type="color" id="text-bg-color" value="#ffffff" class="w-full h-8 cursor-pointer border-0 p-0 rounded" oninput="updateTextBgColor()">
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Opacity</label>
+                                    <span id="text-bg-opacity-val" class="text-[10px] font-mono text-gray-500">100%</span>
+                                </div>
+                                <input type="range" id="text-bg-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600 mb-2" oninput="updateTextBgColor()">
+                                <button onclick="applyTextBgColor(null)" class="w-full py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold uppercase rounded transition-colors border border-gray-300">Clear Bg</button>
                             </div>
                         </div>
                     </div>
@@ -1057,12 +1089,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
 </div>
             
             <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
-                <select id="align-scope" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none hidden shadow-sm">
-                    <option value="cell">Cell</option>
-                    <option value="row">Row</option>
-                    <option value="col">Col</option>
-                    <option value="table">Table</option>
-                </select>
                 <div class="flex rounded shadow-sm border border-gray-300">
                     <button onclick="applyAlignment('flex-start', 'left')" title="Align Left" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path></svg></button>
                     <button onclick="applyAlignment('center', 'center')" title="Align Center" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"></path></svg></button>
@@ -1079,7 +1105,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
 
         <!-- SHAPE CONTROLS -->
-        <div id="shape-controls" class="flex items-center gap-3" style="display: none;">
+        <div id="shape-controls" class="flex items-center gap-3 shrink-0 whitespace-nowrap" style="display: none;">
             <select id="shape-type" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyShapeStyle('shape', this.value)">
                 <option value="rect">Rectangle</option>
                 <option value="ellipse">Ellipse / Circle</option>
@@ -1154,42 +1180,46 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
 
         <!-- TABLE CONTROLS -->
-        <div id="table-controls" class="flex items-center gap-3" style="display: none;">
-            <div class="flex items-center gap-1.5">
-                <span class="text-[9px] text-gray-400 font-bold uppercase">Border</span>
-                <details class="relative color-picker-det">
-                    <summary id="border-color-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden flex items-center justify-center" style="background-color: #9ca3af;"></summary>
-                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 w-48 cursor-default">
-                        <div class="flex flex-col gap-2">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color</label>
-                                <input type="color" id="border-color" value="#9ca3af" class="w-full h-8 cursor-pointer border-0 p-0 rounded" oninput="updateTableBorderColor()">
-                            </div>
-                            <div>
-                                <div class="flex justify-between items-center mb-1">
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Opacity</label>
-                                    <span id="border-opacity-val" class="text-[10px] font-mono text-gray-500">100%</span>
-                                </div>
-                                <input type="range" id="border-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600" oninput="updateTableBorderColor()">
-                            </div>
-                        </div>
-                    </div>
-                </details>
-                <div class="flex items-center gap-1 ml-1">
-                    <input type="range" id="border-size" min="0" max="10" value="1" class="w-14 cursor-pointer accent-blue-600" onchange="applyTableStyle('borderWidth', this.value)" oninput="document.getElementById('border-val').innerText = this.value">
-                    <span class="text-[9px] text-blue-600 font-bold w-2"><span id="border-val">1</span></span>
-                </div>
-            </div>
-            <div id="radius-control-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
-                <span class="text-[9px] text-gray-400 font-bold uppercase">Rad</span>
-                <input type="range" id="border-radius" min="0" max="24" value="0" class="w-14 cursor-pointer accent-blue-600" onchange="applyTableStyle('borderRadius', this.value)" oninput="document.getElementById('radius-val').innerText = this.value">
-                <span class="text-[9px] text-blue-600 font-bold w-3"><span id="radius-val">0</span></span>
-            </div>
-            <details id="table-options-btn" class="relative group ml-1 border-l border-gray-200 pl-3">
-                <summary class="px-2 py-1 text-[10px] font-bold uppercase bg-white text-gray-700 rounded cursor-pointer hover:bg-gray-50 flex items-center gap-1 border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors">
+        <div id="table-controls" class="flex items-center gap-3 shrink-0 whitespace-nowrap border-l border-gray-200 pl-3 ml-3" style="display: none;">
+            <details id="table-options-btn" class="relative group shrink-0">
+                <summary class="px-2 py-1 text-[10px] font-bold uppercase bg-white text-gray-700 rounded cursor-pointer hover:bg-gray-50 flex items-center gap-1 border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors whitespace-nowrap">
                     Table Styles <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </summary>
                 <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-4 z-50 w-64 cursor-default">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Border Configuration</p>
+                    <div class="flex gap-2 mb-3">
+                        <div class="flex-1">
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                            <input type="color" id="border-color" value="#9ca3af" class="w-full h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateTableBorderColor()">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1 flex justify-between"><span>Opacity</span><span id="border-opacity-val">100%</span></label>
+                            <input type="range" id="border-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600" oninput="updateTableBorderColor()">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1">Style</label>
+                            <select id="border-style-select" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyTableStyle('borderStyle', this.value)">
+                                <option value="solid">Solid</option>
+                                <option value="dashed">Dashed</option>
+                                <option value="dotted">Dotted</option>
+                                <option value="double">Double</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1 flex justify-between"><span>Width</span><span id="border-val" class="text-blue-600">1</span></label>
+                            <input type="range" id="border-size" min="0" max="10" value="1" class="w-full cursor-pointer accent-blue-600" onchange="applyTableStyle('borderWidth', this.value)" oninput="document.getElementById('border-val').innerText = this.value">
+                        </div>
+                        <div class="col-span-2 mt-1">
+                            <label class="block text-[9px] font-bold text-gray-500 uppercase mb-1 flex justify-between"><span>Corner Radius</span><span id="radius-val" class="text-blue-600">0</span></label>
+                            <input type="range" id="border-radius" min="0" max="24" value="0" class="w-full cursor-pointer accent-blue-600" onchange="applyTableStyle('borderRadius', this.value)" oninput="document.getElementById('radius-val').innerText = this.value">
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 my-3"></div>
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Header Configuration</p>
                     <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer mb-2">
                         <input type="checkbox" id="toggle-header" class="rounded text-blue-600 focus:ring-blue-500" onchange="applyTableStyle('hasHeader', this.checked)"> Enable Header
@@ -1231,37 +1261,42 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     </div>
                 </div>
             </details>
-            <div id="cell-fill-group" class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
-                <span class="text-[9px] text-gray-400 font-bold uppercase">Cell Fill</span>
-                <details class="relative color-picker-det">
-                    <summary id="cell-override-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden relative overflow-hidden" style="background-color: #ffffff;">
-                        <div id="cell-override-none-slash" class="absolute inset-0 hidden pointer-events-none">
-                            <svg class="w-full h-full text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="0" y1="24" x2="24" y2="0" stroke-width="2"></line></svg>
-                        </div>
-                    </summary>
-                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 w-48 cursor-default">
-                        <div class="flex flex-col gap-2">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color</label>
-                                <input type="color" id="cell-override-color" value="#ffffff" class="w-full h-8 cursor-pointer border-0 p-0 rounded" oninput="doTableCellOverride()">
-                            </div>
-                            <div>
-                                <div class="flex justify-between items-center mb-1">
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Opacity</label>
-                                    <span id="cell-override-opacity-val" class="text-[10px] font-mono text-gray-500">100%</span>
-                                </div>
-                                <input type="range" id="cell-override-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600 mb-2" oninput="doTableCellOverride()">
-                                <button onclick="applyTableCellBackground(null)" class="w-full py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold uppercase rounded transition-colors border border-gray-300">Clear Fill</button>
-                            </div>
-                        </div>
-                    </div>
-                </details>
-            </div>
-            <div id="table-structure-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
+            
+            <div id="table-structure-group" class="flex items-center gap-1 border-l border-gray-200 pl-3 shrink-0 whitespace-nowrap">
                 <button onclick="modifyTable('addRow')" class="px-1.5 py-1 bg-white border border-gray-300 shadow-sm rounded text-[9px] font-bold hover:bg-gray-50 text-gray-700 transition-colors uppercase">+Row</button>
                 <button onclick="modifyTable('removeRow')" class="px-1.5 py-1 bg-white border border-gray-300 shadow-sm rounded text-[9px] font-bold hover:bg-red-50 text-red-600 transition-colors uppercase">-Row</button>
                 <button onclick="modifyTable('addCol')" class="px-1.5 py-1 bg-white border border-gray-300 shadow-sm rounded text-[9px] font-bold hover:bg-gray-50 text-gray-700 transition-colors uppercase ml-1">+Col</button>
                 <button onclick="modifyTable('removeCol')" class="px-1.5 py-1 bg-white border border-gray-300 shadow-sm rounded text-[9px] font-bold hover:bg-red-50 text-red-600 transition-colors uppercase">-Col</button>
+            </div>
+        </div>
+
+        <!-- DIVIDER CONTROLS -->
+        <div id="divider-controls" class="flex items-center gap-3 shrink-0 whitespace-nowrap" style="display: none;">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[9px] text-gray-400 font-bold uppercase">Color</span>
+                <details class="relative color-picker-det">
+                    <summary id="divider-color-swatch" class="w-5 h-5 rounded cursor-pointer border border-gray-300 shadow-sm list-none [&::-webkit-details-marker]:hidden flex items-center justify-center" style="background-color: #374151;"></summary>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 w-48 cursor-default">
+                        <div class="flex flex-col gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Color</label>
+                                <input type="color" id="divider-color" value="#374151" class="w-full h-8 cursor-pointer border-0 p-0 rounded" oninput="updateDividerColor()">
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Opacity</label>
+                                    <span id="divider-opacity-val" class="text-[10px] font-mono text-gray-500">100%</span>
+                                </div>
+                                <input type="range" id="divider-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-blue-600" oninput="updateDividerColor()">
+                            </div>
+                        </div>
+                    </div>
+                </details>
+                <div class="flex items-center gap-1 ml-1 border-l border-gray-200 pl-3">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase">Thickness</span>
+                    <input type="range" id="divider-size" min="1" max="20" value="2" class="w-14 cursor-pointer accent-blue-600" onchange="applyTableStyle('borderWidth', this.value)" oninput="document.getElementById('divider-val').innerText = this.value">
+                    <span class="text-[9px] text-blue-600 font-bold w-2"><span id="divider-val">2</span></span>
+                </div>
             </div>
         </div>
 
@@ -2442,7 +2477,7 @@ function updateBgSettings() {
         // 1. Unclip dropdowns by fixing them to the viewport when opened
         document.addEventListener('toggle', (e) => {
             if (e.target.tagName === 'DETAILS') {
-                const menu = e.target.querySelector('div.absolute');
+                const menu = e.target.querySelector('div.absolute.z-50');
                 if (!menu) return;
                 
                 if (e.target.open) {
@@ -2468,6 +2503,14 @@ function updateBgSettings() {
             scrollContainer.addEventListener('scroll', () => {
                 document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
             }, { passive: true });
+
+            scrollContainer.addEventListener('wheel', (e) => {
+                // If the user scrolls vertically with a standard mouse wheel, translate it to a side-swipe
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    scrollContainer.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
         });
 
 
@@ -4404,9 +4447,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         const el = document.createElement('div');
         el.className = 'element-container bg-transparent';
         el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-        el.style.left = offset + 'px';
-        el.style.top = offset + 'px';
         el.style.zIndex = zIndexCounter++;
         el.dataset.type = type;
 
@@ -4420,7 +4460,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: ${p(250)}px; min-height: ${p(50)}px; text-align: left; font-size: ${ptToPx(14)}px; display: flex; flex-direction: column; justify-content: flex-start;"></div>`;
         } else if (type === 'table') {
             innerContent = `
-                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
+                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bs: solid; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
                         <table class="card-table">
                             <tr>
                                 <td style="height: 50%; width: 50%; background-color: #f9fafb;">
@@ -4461,6 +4501,19 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         el.innerHTML = getControlsHTML(false) + innerContent;
         contentArea.appendChild(el);
+
+        // Center exactly in the current viewport
+        const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        const centerX = (containerRect.width / 2 - panX) / canvasScale;
+        const centerY = (containerRect.height / 2 - panY) / canvasScale;
+        const res = el.querySelector('.resizable');
+        const elW = res ? res.offsetWidth : el.offsetWidth;
+        const elH = res ? res.offsetHeight : el.offsetHeight;
+        
+        // Add a slight cascade offset so consecutive clicks don't perfectly hide each other
+        const cascade = (zIndexCounter % 10) * (PX_PER_IN / 40);
+        el.style.left = (centerX - (elW / 2) + cascade) + 'px';
+        el.style.top = (centerY - (elH / 2) + cascade) + 'px';
 
         if (type === 'table') setupTableResizers(el.querySelector('.card-table'));
         if (type === 'shape') drawShape(el);
@@ -4780,10 +4833,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             document.getElementById('type-controls').style.display = 'none';
             if (document.getElementById('shape-controls')) document.getElementById('shape-controls').style.display = 'none';
             document.getElementById('table-controls').style.display = 'none';
+            if (document.getElementById('divider-controls')) document.getElementById('divider-controls').style.display = 'none';
             document.getElementById('data-merge-section').style.display = 'none';
             document.getElementById('image-controls').style.display = 'none';
             
-            document.getElementById('align-scope').classList.add('hidden');
+            document.getElementById('table-scope-group').classList.add('hidden');
+            document.getElementById('table-scope-group').classList.remove('flex');
+            document.getElementById('align-scope').classList.remove('hidden'); // Clear any residual bugs
+            
             document.getElementById('vertical-align-group').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.remove('flex');
 
@@ -4791,23 +4848,75 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 document.getElementById('shape-controls').style.display = 'flex';
                 syncShapeSettingsUI();
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'table') {
+                document.getElementById('type-controls').style.display = 'flex';
                 document.getElementById('table-controls').style.display = 'flex';
-                document.getElementById('radius-control-group').style.display = 'flex';
                 document.getElementById('table-options-btn').style.display = 'block';
-                document.getElementById('cell-fill-group').style.display = 'flex';
                 document.getElementById('table-structure-group').style.display = 'flex';
-                document.getElementById('align-scope').classList.remove('hidden');
+                document.getElementById('table-scope-group').classList.remove('hidden');
+                document.getElementById('table-scope-group').classList.add('flex');
                 document.getElementById('vertical-align-group').classList.remove('hidden');
                 document.getElementById('vertical-align-group').classList.add('flex');
+                
+                const wrapper = activeElement.querySelector('.card-table-wrapper');
+                if (wrapper) {
+                    const bw = parseFloat(wrapper.style.getPropertyValue('--tbl-bw')) / (PX_PER_IN / 100);
+                    const br = parseFloat(wrapper.style.getPropertyValue('--tbl-br')) / (PX_PER_IN / 100);
+                    const bs = wrapper.style.getPropertyValue('--tbl-bs').trim() || 'solid';
+                    const bcRaw = wrapper.style.getPropertyValue('--tbl-bc').trim() || '#9ca3af';
+
+                    let { hex: bHex, alpha: bAlpha } = parseColorToHexAndAlpha(bcRaw);
+                    
+                    if (document.getElementById('border-size')) {
+                        document.getElementById('border-size').value = isNaN(bw) ? 1 : bw;
+                        document.getElementById('border-val').innerText = isNaN(bw) ? 1 : bw;
+                    }
+                    if (document.getElementById('border-radius')) {
+                        document.getElementById('border-radius').value = isNaN(br) ? 0 : br;
+                        document.getElementById('radius-val').innerText = isNaN(br) ? 0 : br;
+                    }
+                    if (document.getElementById('border-style-select')) {
+                        document.getElementById('border-style-select').value = bs;
+                    }
+                    if (document.getElementById('border-color')) {
+                        document.getElementById('border-color').value = bHex;
+                        document.getElementById('border-opacity').value = bAlpha;
+                        document.getElementById('border-opacity-val').innerText = Math.round(bAlpha * 100) + '%';
+                    }
+                    
+                    // Sync Cell Bg Swatch
+                    let override = null;
+                    if (activeTableCell && activeElement.contains(activeTableCell)) {
+                        override = activeTableCell.dataset.bgColor;
+                    } else {
+                        const firstCell = activeElement.querySelector('td, th');
+                        if (firstCell) override = firstCell.dataset.bgColor;
+                    }
+                    syncTextBgSwatch(override);
+                }
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'divider') {
-                document.getElementById('table-controls').style.display = 'flex';
-                document.getElementById('radius-control-group').style.display = 'none';
-                document.getElementById('table-options-btn').style.display = 'none';
-                document.getElementById('cell-fill-group').style.display = 'none';
-                document.getElementById('table-structure-group').style.display = 'none';
-                document.getElementById('align-scope').classList.add('hidden');
+                document.getElementById('divider-controls').style.display = 'flex';
+                document.getElementById('table-scope-group').classList.add('hidden');
+                document.getElementById('table-scope-group').classList.remove('flex');
                 document.getElementById('vertical-align-group').classList.add('hidden');
                 document.getElementById('vertical-align-group').classList.remove('flex');
+
+                const div = activeElement.querySelector('.card-divider');
+                if (div) {
+                    const h = parseFloat(div.style.height) / (PX_PER_IN / 100);
+                    const bgRaw = div.style.backgroundColor || '#374151';
+                    let { hex: dHex, alpha: dAlpha } = parseColorToHexAndAlpha(bgRaw);
+                    
+                    if (document.getElementById('divider-size')) {
+                        document.getElementById('divider-size').value = isNaN(h) ? 2 : h;
+                        document.getElementById('divider-val').innerText = isNaN(h) ? 2 : h;
+                    }
+                    if (document.getElementById('divider-color')) {
+                        document.getElementById('divider-color').value = dHex;
+                        document.getElementById('divider-opacity').value = dAlpha;
+                        document.getElementById('divider-opacity-val').innerText = Math.round(dAlpha * 100) + '%';
+                        document.getElementById('divider-color-swatch').style.backgroundColor = dAlpha < 1 ? bgRaw : dHex;
+                    }
+                }
             } else if (activeElements.length === 1 && activeElement.dataset.type === 'image') {
                 const mergeSection = document.getElementById('data-merge-section');
                 mergeSection.style.display = 'flex';
@@ -4829,10 +4938,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 mergeSection.style.display = 'flex';
                 
                 // Show the vertical align group, but keep scope hidden
-                document.getElementById('align-scope').classList.add('hidden');
+                document.getElementById('table-scope-group').classList.add('hidden');
+                document.getElementById('table-scope-group').classList.remove('flex');
                 document.getElementById('vertical-align-group').classList.remove('hidden');
                 document.getElementById('vertical-align-group').classList.add('flex');
                 
+                // Sync Background Swatch
+                const target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
+                const override = target.style.backgroundColor;
+                syncTextBgSwatch(override);
+
                 updateMergeUI();
             }
 
@@ -4841,7 +4956,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (secToolbar) secToolbar.classList.add('opacity-50', 'pointer-events-none');
             
             badge.classList.add('hidden');
-            document.getElementById('align-scope').classList.add('hidden');
+            document.getElementById('table-scope-group').classList.add('hidden');
+            document.getElementById('table-scope-group').classList.remove('flex');
             document.getElementById('vertical-align-group').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.remove('flex');
             document.getElementById('data-merge-section').style.display = 'none';
@@ -4894,13 +5010,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 wrapper.style.setProperty('--tbl-br', (parseFloat(value) * (PX_PER_IN / 100)) + 'px');
             } else if (type === 'borderColor') {
                 wrapper.style.setProperty('--tbl-bc', value);
-                document.getElementById('color-val').innerText = value;
+            } else if (type === 'borderStyle') {
+                wrapper.style.setProperty('--tbl-bs', value);
             } else if (type === 'hasHeader') {
                 wrapper.dataset.hasHeader = value;
                 updateTableAppearance(wrapper);
             } else if (type === 'headerBg') {
                 wrapper.style.setProperty('--tbl-hdr-bg', value);
-                document.getElementById('header-bg-val').innerText = value;
                 updateTableAppearance(wrapper);
             } else if (type === 'checkerboard') {
                 wrapper.dataset.checkerboard = value;
@@ -4918,7 +5034,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 div.style.height = (parseFloat(value) * (PX_PER_IN / 100)) + 'px';
             } else if (type === 'borderColor') {
                 div.style.backgroundColor = value;
-                document.getElementById('color-val').innerText = value;
             }
         }
         saveState(true);
@@ -4930,7 +5045,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const rgba = hexToRgba(hex, alpha);
         applyTableStyle('borderColor', rgba);
         document.getElementById('border-opacity-val').innerText = Math.round(alpha * 100) + '%';
-        document.getElementById('border-color-swatch').style.backgroundColor = alpha < 1 ? rgba : hex;
+    }
+
+    function updateDividerColor() {
+        const hex = document.getElementById('divider-color').value;
+        const alpha = document.getElementById('divider-opacity').value;
+        const rgba = hexToRgba(hex, alpha);
+        applyTableStyle('borderColor', rgba);
+        document.getElementById('divider-opacity-val').innerText = Math.round(alpha * 100) + '%';
+        document.getElementById('divider-color-swatch').style.backgroundColor = alpha < 1 ? rgba : hex;
     }
 
     function updateTableHeaderBg() {
@@ -4957,50 +5080,81 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         document.getElementById('cb-dark-opacity-val').innerText = Math.round(alpha * 100) + '%';
     }
 
-    function applyTableCellBackground(color) {
-        if (!activeElement || activeElement.dataset.type !== 'table') return;
-        const scope = document.getElementById('align-scope').value;
-        const wrapper = activeElement.querySelector('.card-table-wrapper');
+    function applyTextBgColor(color) {
+        if (!activeElement) return;
 
-        if (color) {
-            document.getElementById('cell-override-color').value = color;
+        if (!color) {
+            const swatch = document.getElementById('text-bg-swatch');
+            const slash = document.getElementById('text-bg-none-slash');
+            if (swatch) swatch.style.backgroundColor = 'transparent';
+            if (slash) slash.classList.remove('hidden');
         }
 
-        const setBg = (cell) => {
-            if (color) {
-                cell.dataset.bgColor = color;
-            } else {
-                delete cell.dataset.bgColor;
+        if (activeElement.dataset.type === 'table') {
+            const scope = document.getElementById('align-scope').value;
+            const wrapper = activeElement.querySelector('.card-table-wrapper');
+
+            const setBg = (cell) => {
+                if (color) {
+                    cell.dataset.bgColor = color;
+                } else {
+                    delete cell.dataset.bgColor;
+                }
+            };
+
+            if (!activeTableCell || !activeElement.contains(activeTableCell) || scope === 'table') {
+                activeElement.querySelectorAll('td, th').forEach(setBg);
+            } else if (scope === 'cell') {
+                setBg(activeTableCell);
+            } else if (scope === 'row') {
+                const row = activeTableCell.parentElement;
+                row.querySelectorAll('td, th').forEach(setBg);
+            } else if (scope === 'col') {
+                const table = activeTableCell.closest('table');
+                const row = activeTableCell.parentElement;
+                const colIndex = Array.from(row.children).indexOf(activeTableCell);
+                table.querySelectorAll('tr').forEach(r => {
+                    if (r.children[colIndex]) setBg(r.children[colIndex]);
+                });
             }
-        };
-
-        if (!activeTableCell || !activeElement.contains(activeTableCell) || scope === 'table') {
-            activeElement.querySelectorAll('td, th').forEach(setBg);
-        } else if (scope === 'cell') {
-            setBg(activeTableCell);
-        } else if (scope === 'row') {
-            const row = activeTableCell.parentElement;
-            row.querySelectorAll('td, th').forEach(setBg);
-        } else if (scope === 'col') {
-            const table = activeTableCell.closest('table');
-            const row = activeTableCell.parentElement;
-            const colIndex = Array.from(row.children).indexOf(activeTableCell);
-            table.querySelectorAll('tr').forEach(r => {
-                if (r.children[colIndex]) setBg(r.children[colIndex]);
-            });
+            updateTableAppearance(wrapper);
+        } else if (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title') {
+            const target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
+            if (target) {
+                target.style.backgroundColor = color || 'transparent';
+            }
         }
-        updateTableAppearance(wrapper);
         saveState();
     }
 
-    function doTableCellOverride() {
-        const hex = document.getElementById('cell-override-color').value;
-        const alpha = document.getElementById('cell-override-opacity').value;
+    function updateTextBgColor() {
+        const hex = document.getElementById('text-bg-color').value;
+        const alpha = document.getElementById('text-bg-opacity').value;
         const rgba = hexToRgba(hex, alpha);
-        applyTableCellBackground(rgba);
-        document.getElementById('cell-override-opacity-val').innerText = Math.round(alpha * 100) + '%';
-        document.getElementById('cell-override-swatch').style.backgroundColor = alpha < 1 ? rgba : hex;
-        document.getElementById('cell-override-none-slash').classList.add('hidden');
+        applyTextBgColor(rgba);
+        document.getElementById('text-bg-opacity-val').innerText = Math.round(alpha * 100) + '%';
+        document.getElementById('text-bg-swatch').style.backgroundColor = alpha < 1 ? rgba : hex;
+        document.getElementById('text-bg-none-slash').classList.add('hidden');
+    }
+
+    function syncTextBgSwatch(override) {
+        const swatch = document.getElementById('text-bg-swatch');
+        const slash = document.getElementById('text-bg-none-slash');
+        
+        if (override && override !== 'transparent' && override !== 'rgba(0, 0, 0, 0)' && override !== '') {
+            let { hex: oHex, alpha: oAlpha } = parseColorToHexAndAlpha(override);
+            if (document.getElementById('text-bg-color')) document.getElementById('text-bg-color').value = oHex;
+            if (document.getElementById('text-bg-opacity')) document.getElementById('text-bg-opacity').value = oAlpha;
+            if (document.getElementById('text-bg-opacity-val')) document.getElementById('text-bg-opacity-val').innerText = Math.round(oAlpha * 100) + '%';
+            if (swatch) swatch.style.backgroundColor = override;
+            if (slash) slash.classList.add('hidden');
+        } else {
+            if (document.getElementById('text-bg-color')) document.getElementById('text-bg-color').value = '#ffffff';
+            if (document.getElementById('text-bg-opacity')) document.getElementById('text-bg-opacity').value = '1';
+            if (document.getElementById('text-bg-opacity-val')) document.getElementById('text-bg-opacity-val').innerText = '100%';
+            if (swatch) swatch.style.backgroundColor = 'transparent';
+            if (slash) slash.classList.remove('hidden');
+        }
     }
 
     function updateTableAppearance(tableWrapper) {
@@ -5024,16 +5178,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
                 if (override) {
                     cell.style.backgroundColor = override;
-                    const inner = cell.querySelector('.cell-text');
-                    if (isHdrRow && inner) inner.style.fontWeight = 'bold';
-                    else if (inner && inner.style.fontWeight === 'bold') inner.style.fontWeight = '';
                 } else if (isHdrRow) {
                     cell.style.backgroundColor = hdrBg;
-                    const inner = cell.querySelector('.cell-text');
-                    if (inner) inner.style.fontWeight = 'bold';
                 } else {
-                    const inner = cell.querySelector('.cell-text');
-                    if (inner && inner.style.fontWeight === 'bold') inner.style.fontWeight = '';
                     if (isCheckerboard) {
                         const checkRow = hasHeader ? rIdx - 1 : rIdx;
                         if ((checkRow + cIdx) % 2 === 0) {
@@ -5617,19 +5764,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (inner && document.activeElement !== inner) setTimeout(() => inner.focus(), 0);
 
             const override = cell.dataset.bgColor;
-            const swatch = document.getElementById('cell-override-swatch');
-            const slash = document.getElementById('cell-override-none-slash');
-
-            if (override) {
-                let { hex: oHex, alpha: oAlpha } = parseColorToHexAndAlpha(override);
-                document.getElementById('cell-override-color').value = oHex;
-                document.getElementById('cell-override-opacity').value = oAlpha;
-                document.getElementById('cell-override-opacity-val').innerText = Math.round(oAlpha * 100) + '%';
-                swatch.style.backgroundColor = override;
-                slash.classList.add('hidden');
-            } else {
-                swatch.style.backgroundColor = '#ffffff';
-                slash.classList.remove('hidden');
+            if (typeof syncTextBgSwatch === 'function') {
+                syncTextBgSwatch(override);
             }
         }
 
@@ -7334,6 +7470,58 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
     }
 
+    // function placeBankImage(filename) {
+    //     filename = filename || '';
+    //     const dataUrl = imageAssets[filename] || '';
+    //     const p = (val) => Math.round(val * (PX_PER_IN / 100));
+    //     const contentArea = document.getElementById('card-content');
+    //     if (!contentArea) return;
+
+    //     const createEl = (w, h, dUrl) => {
+    //         const el = document.createElement('div');
+    //         el.className = 'element-container bg-transparent';
+    //         const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
+    //         el.style.left = offset + 'px';
+    //         el.style.top = offset + 'px';
+    //         el.style.zIndex = zIndexCounter++;
+    //         el.dataset.type = 'image';
+    //         if (filename) el.dataset.imageBankKey = filename;
+    //         el.dataset.objectFit = 'contain';
+    //         el.dataset.objectPositionX = 'center';
+    //         el.dataset.objectPositionY = 'center';
+    //         el.dataset.imageScale = '1';
+
+    //         const innerContent = getBaseImageContentHTML(w, h, dUrl, filename || 'Image', 'contain', 'center', 'center');
+    //         el.innerHTML = getControlsHTML(false) + innerContent;
+    //         contentArea.appendChild(el);
+
+    //         setActiveElement(el);
+    //         closeImageBankModal();
+    //         saveState();
+    //     };
+
+    //     if (!dataUrl) {
+    //         createEl(p(75), p(75), '');
+    //         return;
+    //     }
+
+    //     const tempImg = new Image();
+    //     tempImg.onload = function() {
+    //         let w = tempImg.naturalWidth;
+    //         let h = tempImg.naturalHeight;
+    //         const maxDim = p(200);
+    //         if (w > maxDim || h > maxDim) {
+    //             const ratio = Math.min(maxDim / w, maxDim / h);
+    //             w = Math.round(w * ratio);
+    //             h = Math.round(h * ratio);
+    //         }
+    //         w = Math.max(p(20), w);
+    //         h = Math.max(p(20), h);
+    //         createEl(w, h, dataUrl);
+    //     };
+    //     tempImg.src = dataUrl;
+    // }
+
     function placeBankImage(filename) {
         filename = filename || '';
         const dataUrl = imageAssets[filename] || '';
@@ -7344,9 +7532,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const createEl = (w, h, dUrl) => {
             const el = document.createElement('div');
             el.className = 'element-container bg-transparent';
-            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-            el.style.left = offset + 'px';
-            el.style.top = offset + 'px';
             el.style.zIndex = zIndexCounter++;
             el.dataset.type = 'image';
             if (filename) el.dataset.imageBankKey = filename;
@@ -7359,11 +7544,20 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             el.innerHTML = getControlsHTML(false) + innerContent;
             contentArea.appendChild(el);
 
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const centerX = (containerRect.width / 2 - panX) / canvasScale;
+            const centerY = (containerRect.height / 2 - panY) / canvasScale;
+            const res = el.querySelector('.resizable');
+            const elW = res ? res.offsetWidth : el.offsetWidth;
+            const elH = res ? res.offsetHeight : el.offsetHeight;
+            const cascade = (zIndexCounter % 10) * (PX_PER_IN / 40);
+            el.style.left = (centerX - (elW / 2) + cascade) + 'px';
+            el.style.top = (centerY - (elH / 2) + cascade) + 'px';
+
             setActiveElement(el);
             closeImageBankModal();
             saveState();
         };
-
         if (!dataUrl) {
             createEl(p(75), p(75), '');
             return;
@@ -7434,9 +7628,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const createEl = (w, h, dUrl) => {
             const el = document.createElement('div');
             el.className = 'element-container bg-transparent';
-            const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-            el.style.left = offset + 'px';
-            el.style.top = offset + 'px';
             el.style.zIndex = zIndexCounter++;
             el.dataset.type = 'image';
             
@@ -7453,6 +7644,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const innerContent = getBaseImageContentHTML(w, h, dUrl, placeholderText, 'contain', 'center', 'center', '1');
             el.innerHTML = getControlsHTML(false) + innerContent;
             contentArea.appendChild(el);
+
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const centerX = (containerRect.width / 2 - panX) / canvasScale;
+            const centerY = (containerRect.height / 2 - panY) / canvasScale;
+            const res = el.querySelector('.resizable');
+            const elW = res ? res.offsetWidth : el.offsetWidth;
+            const elH = res ? res.offsetHeight : el.offsetHeight;
+            const cascade = (zIndexCounter % 10) * (PX_PER_IN / 40);
+            el.style.left = (centerX - (elW / 2) + cascade) + 'px';
+            el.style.top = (centerY - (elH / 2) + cascade) + 'px';
 
             setActiveElement(el);
             closeImageBankModal();
