@@ -692,6 +692,24 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             </select>
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Grid Align X</label>
+                            <select id="grid-align-x" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                                <option value="center" selected>Center</option>
+                                <option value="left">Left</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Grid Align Y</label>
+                            <select id="grid-align-y" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white">
+                                <option value="center" selected>Center</option>
+                                <option value="top">Top</option>
+                                <option value="bottom">Bottom</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-2 mb-5">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Column Gap <span class="unit-lbl">(in)</span></label>
@@ -2520,7 +2538,7 @@ function updateBgSettings() {
             if(el) el.addEventListener('input', updatePrintStats);
         });
 
-        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left', 'gap-x', 'gap-y', 'print-bleed', 'cut-line-width', 'cut-line-style', 'binding-line-width', 'binding-line-style', 'print-offset-x', 'print-offset-y', 'target-dpi', 'show-bleed-editor', 'print-cut-line', 'show-margin-guide', 'print-crop-marks', 'mark-color', 'print-duplex', 'grid-reverse-col', 'grid-reverse-row', 'mirror-horizontal', 'mirror-vertical', 'rotate-180', 'print-vernier', 'binding-line-color', 'cut-line-color'].forEach(id => {
+        ['paper-size', 'paper-orientation', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left', 'gap-x', 'gap-y', 'grid-align-x', 'grid-align-y', 'print-bleed', 'cut-line-width', 'cut-line-style', 'binding-line-width', 'binding-line-style', 'print-offset-x', 'print-offset-y', 'target-dpi', 'show-bleed-editor', 'print-cut-line', 'show-margin-guide', 'print-crop-marks', 'mark-color', 'print-duplex', 'grid-reverse-col', 'grid-reverse-row', 'mirror-horizontal', 'mirror-vertical', 'rotate-180', 'print-vernier', 'binding-line-color', 'cut-line-color'].forEach(id => {
             const el = document.getElementById(id);
             if(el) el.addEventListener('change', () => { saveState(true); });
         });
@@ -2674,6 +2692,8 @@ function updateBgSettings() {
                     const po = data.printer;
                     if (document.getElementById('paper-size')) document.getElementById('paper-size').value = po.paper || 'letter';
                     if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = po.orient || 'portrait';
+                    if (document.getElementById('grid-align-x')) document.getElementById('grid-align-x').value = po.alignX || 'center';
+                    if (document.getElementById('grid-align-y')) document.getElementById('grid-align-y').value = po.alignY || 'center';
                     
                     const duplexCb = document.getElementById('print-duplex');
                     if (duplexCb) {
@@ -2944,6 +2964,8 @@ function updateBgSettings() {
             printer: {
                 paper: document.getElementById('paper-size')?.value || 'letter',
                 orient: document.getElementById('paper-orientation')?.value || 'portrait',
+                alignX: document.getElementById('grid-align-x')?.value || 'center',
+                alignY: document.getElementById('grid-align-y')?.value || 'center',
                 duplex: document.getElementById('print-duplex')?.checked ?? false,
                 gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
                 gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
@@ -7950,6 +7972,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             printer: {
                 paper: document.getElementById('paper-size').value,
                 orient: document.getElementById('paper-orientation').value,
+                alignX: document.getElementById('grid-align-x')?.value || 'center',
+                alignY: document.getElementById('grid-align-y')?.value || 'center',
                 duplex: document.getElementById('print-duplex').checked,
                 gridRevCol: document.getElementById('grid-reverse-col').checked,
                 gridRevRow: document.getElementById('grid-reverse-row').checked,
@@ -8080,13 +8104,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
         activeContent = new XMLSerializer().serializeToString(temp);
 
+        const viewW = Math.round(currentWidth * (96 / PX_PER_IN));
+        const viewH = Math.round(currentHeight * (96 / PX_PER_IN));
         const customStyleTag = document.querySelector('style').innerHTML;
         const svgContent = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
-                <foreignObject x="0" y="0" width="100%" height="100%">
-                    <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${currentWidth}px; height: ${currentHeight}px; transform: scale(${scale}); transform-origin: top left; margin: 0; padding: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
+                <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0;">
                         <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
-                        <div class="${activeBgClass}" style="width: 100%; height: 100%; position: relative; overflow: hidden; background-color: white;">
+                        <div class="${activeBgClass}" style="width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
                             ${activeContent}
                         </div>
                     </div>
@@ -8131,6 +8157,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const mirrorH = document.getElementById('mirror-horizontal').checked;
         const mirrorV = document.getElementById('mirror-vertical').checked;
         const rotate180 = document.getElementById('rotate-180').checked;
+        const alignX = document.getElementById('grid-align-x')?.value || 'center';
+        const alignY = document.getElementById('grid-align-y')?.value || 'center';
 
         let paperW = 8.5, paperH = 11; // default to letter
         if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
@@ -8223,8 +8251,26 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 let activeDriftXIn = isBack ? -(driftXIn / 2) : (driftXIn / 2);
                 let activeDriftYIn = isBack ? -(driftYIn / 2) : (driftYIn / 2);
 
-                const printStartX = ((paperW - gridW) / 2) + activeDriftXIn;
-                const printStartY = ((paperH - gridH) / 2) + activeDriftYIn;
+                let currentAlignX = alignX;
+                if (isBack && gridRevCol) {
+                    if (alignX === 'left') currentAlignX = 'right';
+                    else if (alignX === 'right') currentAlignX = 'left';
+                }
+                let baseX = 0;
+                if (currentAlignX === 'center') baseX = (paperW - gridW) / 2;
+                else if (currentAlignX === 'right') baseX = paperW - gridW;
+
+                let currentAlignY = alignY;
+                if (isBack && gridRevRow) {
+                    if (alignY === 'top') currentAlignY = 'bottom';
+                    else if (alignY === 'bottom') currentAlignY = 'top';
+                }
+                let baseY = 0;
+                if (currentAlignY === 'center') baseY = (paperH - gridH) / 2;
+                else if (currentAlignY === 'bottom') baseY = paperH - gridH;
+
+                const printStartX = baseX + activeDriftXIn;
+                const printStartY = baseY + activeDriftYIn;
 
                 let pageStyle = `width: ${paperW}in; height: ${paperH}in; position: relative; background: white; overflow: hidden;`;
                 if (isBack) {
@@ -8366,7 +8412,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 }
 
                 if (printCropMarks || printInternalMarks) {
-                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
+                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
                     const cmLen = 0.25;
                     const cmOff = 0.05;
                     const strokeColor = document.getElementById('mark-color')?.value || "#000000";
@@ -8380,10 +8426,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             let topY = printStartY;
                             let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
 
-                            marksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            let tSign = (topY - cmOff < 0.01) ? 1 : -1;
+                            let bSign = (bottomY + cmOff > paperH - 0.01) ? -1 : 1;
+
+                            marksSvg += `<line x1="${leftX}in" y1="${topY + tSign * cmOff}in" x2="${leftX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${topY + tSign * cmOff}in" x2="${rightX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + bSign * cmOff}in" x2="${leftX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + bSign * cmOff}in" x2="${rightX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
                         }
 
                         for (let r = 0; r < rows; r++) {
@@ -8392,14 +8441,21 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             let leftX = printStartX;
                             let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
 
-                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            let lSign = (leftX - cmOff < 0.01) ? 1 : -1;
+                            let rSign = (rightX + cmOff > paperW - 0.01) ? -1 : 1;
+
+                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${topY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${bottomY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${topY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${bottomY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
                         }
                     }
 
                     if (printInternalMarks) {
+                        const pxIn = 1 / 96;
+                        const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
+                        const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
+
                         for (let r = 0; r < rows; r++) {
                             for (let c = 0; c < cols; c++) {
                                 let leftX = printStartX + c * (totalCardWin + gapXIn);
@@ -8407,10 +8463,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                 let topY = printStartY + r * (totalCardHin + gapYIn);
                                 let bottomY = topY + totalCardHin;
 
-                                marksSvg += `<circle cx="${leftX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${rightX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${leftX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${rightX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
                             }
                         }
                     }
@@ -8421,14 +8477,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 pageContent += `</div>`;
 
                 const sideLabel = isBack ? 'Back' : 'Front';
-                const canvasW = paperW * dpi;
-                const canvasH = paperH * dpi;
-                const scaleStr = `transform: scale(${dpi / 96}); transform-origin: top left;`; 
+                const canvasW = Math.round(paperW * dpi);
+                const canvasH = Math.round(paperH * dpi);
+                const viewW = Math.round(paperW * 96);
+                const viewH = Math.round(paperH * 96);
                 
                 const svgWrap = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}">
-                    <foreignObject x="0" y="0" width="100%" height="100%">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; ${scaleStr} margin: 0; padding: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
+                    <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; margin: 0; padding: 0;">
                             <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; } * { box-sizing: border-box; }]]></style>
                             ${pageContent}
                         </div>
@@ -8671,6 +8728,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     const printerOpts = settings.printer || {};
                     if (document.getElementById('paper-size')) document.getElementById('paper-size').value = printerOpts.paper || 'letter';
                     if (document.getElementById('paper-orientation')) document.getElementById('paper-orientation').value = printerOpts.orient || 'portrait';
+                    if (document.getElementById('grid-align-x')) document.getElementById('grid-align-x').value = printerOpts.alignX || 'center';
+                    if (document.getElementById('grid-align-y')) document.getElementById('grid-align-y').value = printerOpts.alignY || 'center';
 
                     const duplexCb = document.getElementById('print-duplex');
                     if (duplexCb) {
@@ -8815,6 +8874,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const mirrorH = document.getElementById('mirror-horizontal').checked;
         const mirrorV = document.getElementById('mirror-vertical').checked;
         const rotate180 = document.getElementById('rotate-180').checked;
+        const alignX = document.getElementById('grid-align-x')?.value || 'center';
+        const alignY = document.getElementById('grid-align-y')?.value || 'center';
 
         let paperW = 8.5, paperH = 11; // default to letter
         if (paperSizeStr === 'a4') { paperW = 8.268; paperH = 11.693; }
@@ -8887,16 +8948,38 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const gridH = rows * totalCardHin + Math.max(0, rows - 1) * gapYIn;
 
         let htmlPages = '';
+        const totalPages = sheetsNeeded * (isDuplex ? 2 : 1);
+        let currentPage = 0;
 
         for (let sheet = 0; sheet < sheetsNeeded; sheet++) {
             for (let side = 0; side < (isDuplex ? 2 : 1); side++) {
+                currentPage++;
+                const isLastPage = currentPage === totalPages;
                 const isBack = side === 1;
 
                 let activeDriftXIn = isBack ? -(driftXIn / 2) : (driftXIn / 2);
                 let activeDriftYIn = isBack ? -(driftYIn / 2) : (driftYIn / 2);
 
-                const printStartX = ((paperW - gridW) / 2) + activeDriftXIn;
-                const printStartY = ((paperH - gridH) / 2) + activeDriftYIn;
+                let currentAlignX = alignX;
+                if (isBack && gridRevCol) {
+                    if (alignX === 'left') currentAlignX = 'right';
+                    else if (alignX === 'right') currentAlignX = 'left';
+                }
+                let baseX = 0;
+                if (currentAlignX === 'center') baseX = (paperW - gridW) / 2;
+                else if (currentAlignX === 'right') baseX = paperW - gridW;
+
+                let currentAlignY = alignY;
+                if (isBack && gridRevRow) {
+                    if (alignY === 'top') currentAlignY = 'bottom';
+                    else if (alignY === 'bottom') currentAlignY = 'top';
+                }
+                let baseY = 0;
+                if (currentAlignY === 'center') baseY = (paperH - gridH) / 2;
+                else if (currentAlignY === 'bottom') baseY = paperH - gridH;
+
+                const printStartX = baseX + activeDriftXIn;
+                const printStartY = baseY + activeDriftYIn;
 
                 let pageLabel = `Sheet ${sheet + 1} - ${isBack ? 'Back' : 'Front'}`;
                 let pageStyle = "";
@@ -8908,12 +8991,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     if (rotate180) transforms.push("rotate(180deg)");
                     if (transforms.length > 0) {
                         pageStyle = `transform: ${transforms.join(' ')}; transform-origin: center;`;
-                        pageLabel += ` (Transforms applied)`;
+                        // pageLabel += ` (Transforms applied)`;
                     }
                 }
 
                 let pageContent = `
-                        <div class="print-page-wrapper">
+                        <div class="print-page-wrapper ${isLastPage ? 'last-page' : ''}">
                             <div class="print-label no-print">${pageLabel}</div>
                             <div class="print-page" style="${pageStyle}">`;
 
@@ -9001,15 +9084,18 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                             position: absolute; top: ${maxBleedTop + activeMtIn - bleedIn}in; left: ${maxBleedLeft + activeMlIn - bleedIn}in;
                                            width: ${baseCardWin + 2 * bleedIn}in; height: ${baseCardHin + 2 * bleedIn}in; overflow: hidden; background: transparent;
                                         ">
-                                            <div class="${activeBgClass}" style="
-                                                width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
-                                                transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
-                                                background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
-                                            ">
-                                                <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
-                                                   ${activeContent}
-                                                </div>
-                                            </div>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${currentWidth + 2 * bleedPx} ${currentHeight + 2 * bleedPx}">
+                                                <foreignObject x="0" y="0" width="${currentWidth + 2 * bleedPx}" height="${currentHeight + 2 * bleedPx}">
+                                                    <div xmlns="http://www.w3.org/1999/xhtml" class="${activeBgClass}" style="
+                                                        width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative; overflow: hidden; background-color: white; margin: 0; padding: 0;
+                                                        background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
+                                                    ">
+                                                        <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
+                                                           ${activeContent}
+                                                        </div>
+                                                    </div>
+                                                </foreignObject>
+                                            </svg>
                                         </div>
                                     </div>
                                 `;
@@ -9047,7 +9133,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 }
 
                 if (printCropMarks || printInternalMarks) {
-                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;" xmlns="http://www.w3.org/2000/svg">`;
+                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
                     const cmLen = 0.25;
                     const cmOff = 0.05;
                     const strokeColor = document.getElementById('mark-color')?.value || "#000000";
@@ -9061,10 +9147,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             let topY = printStartY;
                             let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
 
-                            marksSvg += `<line x1="${leftX}in" y1="${topY - cmOff}in" x2="${leftX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${topY - cmOff}in" x2="${rightX}in" y2="${topY - cmOff - cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + cmOff}in" x2="${leftX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + cmOff}in" x2="${rightX}in" y2="${bottomY + cmOff + cmLen}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            let tSign = (topY - cmOff < 0.01) ? 1 : -1;
+                            let bSign = (bottomY + cmOff > paperH - 0.01) ? -1 : 1;
+
+                            marksSvg += `<line x1="${leftX}in" y1="${topY + tSign * cmOff}in" x2="${leftX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${topY + tSign * cmOff}in" x2="${rightX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + bSign * cmOff}in" x2="${leftX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + bSign * cmOff}in" x2="${rightX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
                         }
 
                         for (let r = 0; r < rows; r++) {
@@ -9073,14 +9162,21 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             let leftX = printStartX;
                             let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
 
-                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${topY}in" x2="${leftX - cmOff - cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX - cmOff}in" y1="${bottomY}in" x2="${leftX - cmOff - cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${topY}in" x2="${rightX + cmOff + cmLen}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + cmOff}in" y1="${bottomY}in" x2="${rightX + cmOff + cmLen}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            let lSign = (leftX - cmOff < 0.01) ? 1 : -1;
+                            let rSign = (rightX + cmOff > paperW - 0.01) ? -1 : 1;
+
+                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${topY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${bottomY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${topY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${bottomY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
                         }
                     }
 
                     if (printInternalMarks) {
+                        const pxIn = 1 / 96;
+                        const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
+                        const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
+
                         for (let r = 0; r < rows; r++) {
                             for (let c = 0; c < cols; c++) {
                                 let leftX = printStartX + c * (totalCardWin + gapXIn);
@@ -9088,10 +9184,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                 let topY = printStartY + r * (totalCardHin + gapYIn);
                                 let bottomY = topY + totalCardHin;
 
-                                marksSvg += `<circle cx="${leftX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${rightX}in" cy="${topY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${leftX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${rightX}in" cy="${bottomY}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
                             }
                         }
                     }
@@ -9119,6 +9215,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 <html>
                 <head>
                     <title>Print : Quick Card Designer</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='7' y='3' width='10' height='18' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='5' y='7' width='14' height='14' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><rect x='3' y='11' width='18' height='10' rx='2' fill='white' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
                     ${tailwindInjection}
                     <style>
@@ -9140,12 +9237,18 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                 page-break-after: always !important; page-break-inside: avoid !important;
                                 border: none !important; box-shadow: none !important; display: block !important; overflow: hidden !important;
                             }
-                            .print-page-wrapper:last-of-type { page-break-after: auto !important; }
+                            .print-page-wrapper.last-page { 
+                                page-break-after: avoid !important; break-after: avoid !important; 
+                            }
                             .print-page { 
                                 position: relative !important; width: ${paperW}in !important; height: ${paperH}in !important; 
                                 box-shadow: none !important; margin: 0 !important; border: none !important; overflow: hidden !important;
                             }
-                            .no-print { display: none !important; }
+                            .no-print { display: none !important; height: 0 !important; overflow: hidden !important; opacity: 0 !important; margin: 0 !important; padding: 0 !important; }
+
+                            
+                            .print-page-wrapper:last-of-type { page-break-after: auto !important; }
+                            
                             .resizable { resize: none !important; }
                         }
                         
