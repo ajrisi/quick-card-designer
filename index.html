@@ -8239,6 +8239,67 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
     }
 
+    function generateMarksSVG(cols, rows, printStartX, printStartY, totalCardWin, totalCardHin, gapXIn, gapYIn, paperW, paperH, printCropMarks, printInternalMarks, strokeColor) {
+        let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
+        const cmLen = 0.25;
+        const cmOff = 0.05;
+        const strokeWidth = "0.5px";
+        const dotRadius = "1px";
+
+        // Calculate unique coordinates to prevent overlapping strokes
+        let xCoordsMap = new Map();
+        for (let c = 0; c < cols; c++) {
+            let leftX = printStartX + c * (totalCardWin + gapXIn);
+            let rightX = leftX + totalCardWin;
+            xCoordsMap.set(leftX.toFixed(4), leftX);
+            xCoordsMap.set(rightX.toFixed(4), rightX);
+        }
+        let uniqueXs = Array.from(xCoordsMap.values());
+
+        let yCoordsMap = new Map();
+        for (let r = 0; r < rows; r++) {
+            let topY = printStartY + r * (totalCardHin + gapYIn);
+            let bottomY = topY + totalCardHin;
+            yCoordsMap.set(topY.toFixed(4), topY);
+            yCoordsMap.set(bottomY.toFixed(4), bottomY);
+        }
+        let uniqueYs = Array.from(yCoordsMap.values());
+
+        let gridTop = Math.min(...uniqueYs);
+        let gridBottom = Math.max(...uniqueYs);
+        let gridLeft = Math.min(...uniqueXs);
+        let gridRight = Math.max(...uniqueXs);
+
+        if (printCropMarks) {
+            for (let x of uniqueXs) {
+                let tSign = (gridTop - cmOff < 0.01) ? 1 : -1;
+                let bSign = (gridBottom + cmOff > paperH - 0.01) ? -1 : 1;
+                marksSvg += `<line x1="${x}in" y1="${gridTop + tSign * cmOff}in" x2="${x}in" y2="${gridTop + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                marksSvg += `<line x1="${x}in" y1="${gridBottom + bSign * cmOff}in" x2="${x}in" y2="${gridBottom + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+            }
+            for (let y of uniqueYs) {
+                let lSign = (gridLeft - cmOff < 0.01) ? 1 : -1;
+                let rSign = (gridRight + cmOff > paperW - 0.01) ? -1 : 1;
+                marksSvg += `<line x1="${gridLeft + lSign * cmOff}in" y1="${y}in" x2="${gridLeft + lSign * (cmOff + cmLen)}in" y2="${y}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+                marksSvg += `<line x1="${gridRight + rSign * cmOff}in" y1="${y}in" x2="${gridRight + rSign * (cmOff + cmLen)}in" y2="${y}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+            }
+        }
+
+        if (printInternalMarks) {
+            const pxIn = 1 / 96;
+            const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
+            const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
+
+            for (let x of uniqueXs) {
+                for (let y of uniqueYs) {
+                    marksSvg += `<circle cx="${dotX(x)}in" cy="${dotY(y)}in" r="${dotRadius}" fill="${strokeColor}" />`;
+                }
+            }
+        }
+        marksSvg += `</svg>`;
+        return marksSvg;
+    }
+
     async function renderPagesToImages(mode, dpi) {
         saveCurrentSideState();
 
@@ -8519,66 +8580,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 }
 
                 if (printCropMarks || printInternalMarks) {
-                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
-                    const cmLen = 0.25;
-                    const cmOff = 0.05;
                     const strokeColor = document.getElementById('mark-color')?.value || "#000000";
-                    const strokeWidth = "0.5px";
-                    const dotRadius = "1px";
-
-                    if (printCropMarks) {
-                        for (let c = 0; c < cols; c++) {
-                            let leftX = printStartX + c * (totalCardWin + gapXIn);
-                            let rightX = leftX + totalCardWin;
-                            let topY = printStartY;
-                            let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
-
-                            let tSign = (topY - cmOff < 0.01) ? 1 : -1;
-                            let bSign = (bottomY + cmOff > paperH - 0.01) ? -1 : 1;
-
-                            marksSvg += `<line x1="${leftX}in" y1="${topY + tSign * cmOff}in" x2="${leftX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${topY + tSign * cmOff}in" x2="${rightX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + bSign * cmOff}in" x2="${leftX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + bSign * cmOff}in" x2="${rightX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        }
-
-                        for (let r = 0; r < rows; r++) {
-                            let topY = printStartY + r * (totalCardHin + gapYIn);
-                            let bottomY = topY + totalCardHin;
-                            let leftX = printStartX;
-                            let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
-
-                            let lSign = (leftX - cmOff < 0.01) ? 1 : -1;
-                            let rSign = (rightX + cmOff > paperW - 0.01) ? -1 : 1;
-
-                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${topY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${bottomY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${topY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${bottomY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        }
-                    }
-
-                    if (printInternalMarks) {
-                        const pxIn = 1 / 96;
-                        const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
-                        const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
-
-                        for (let r = 0; r < rows; r++) {
-                            for (let c = 0; c < cols; c++) {
-                                let leftX = printStartX + c * (totalCardWin + gapXIn);
-                                let rightX = leftX + totalCardWin;
-                                let topY = printStartY + r * (totalCardHin + gapYIn);
-                                let bottomY = topY + totalCardHin;
-
-                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                            }
-                        }
-                    }
-                    marksSvg += `</svg>`;
-                    pageContent += marksSvg;
+                    pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardWin, totalCardHin, gapXIn, gapYIn, paperW, paperH, printCropMarks, printInternalMarks, strokeColor);
                 }
 
                 pageContent += `</div>`;
@@ -9240,66 +9243,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 }
 
                 if (printCropMarks || printInternalMarks) {
-                    let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
-                    const cmLen = 0.25;
-                    const cmOff = 0.05;
                     const strokeColor = document.getElementById('mark-color')?.value || "#000000";
-                    const strokeWidth = "0.5px";
-                    const dotRadius = "1px";
-
-                    if (printCropMarks) {
-                        for (let c = 0; c < cols; c++) {
-                            let leftX = printStartX + c * (totalCardWin + gapXIn);
-                            let rightX = leftX + totalCardWin;
-                            let topY = printStartY;
-                            let bottomY = printStartY + rows * (totalCardHin + gapYIn) - gapYIn;
-
-                            let tSign = (topY - cmOff < 0.01) ? 1 : -1;
-                            let bSign = (bottomY + cmOff > paperH - 0.01) ? -1 : 1;
-
-                            marksSvg += `<line x1="${leftX}in" y1="${topY + tSign * cmOff}in" x2="${leftX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${topY + tSign * cmOff}in" x2="${rightX}in" y2="${topY + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX}in" y1="${bottomY + bSign * cmOff}in" x2="${leftX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX}in" y1="${bottomY + bSign * cmOff}in" x2="${rightX}in" y2="${bottomY + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        }
-
-                        for (let r = 0; r < rows; r++) {
-                            let topY = printStartY + r * (totalCardHin + gapYIn);
-                            let bottomY = topY + totalCardHin;
-                            let leftX = printStartX;
-                            let rightX = printStartX + cols * (totalCardWin + gapXIn) - gapXIn;
-
-                            let lSign = (leftX - cmOff < 0.01) ? 1 : -1;
-                            let rSign = (rightX + cmOff > paperW - 0.01) ? -1 : 1;
-
-                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${topY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${leftX + lSign * cmOff}in" y1="${bottomY}in" x2="${leftX + lSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${topY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${topY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                            marksSvg += `<line x1="${rightX + rSign * cmOff}in" y1="${bottomY}in" x2="${rightX + rSign * (cmOff + cmLen)}in" y2="${bottomY}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-                        }
-                    }
-
-                    if (printInternalMarks) {
-                        const pxIn = 1 / 96;
-                        const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
-                        const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
-
-                        for (let r = 0; r < rows; r++) {
-                            for (let c = 0; c < cols; c++) {
-                                let leftX = printStartX + c * (totalCardWin + gapXIn);
-                                let rightX = leftX + totalCardWin;
-                                let topY = printStartY + r * (totalCardHin + gapYIn);
-                                let bottomY = topY + totalCardHin;
-
-                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(topY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(leftX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                                marksSvg += `<circle cx="${dotX(rightX)}in" cy="${dotY(bottomY)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-                            }
-                        }
-                    }
-                    marksSvg += `</svg>`;
-                    pageContent += marksSvg;
+                    pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardWin, totalCardHin, gapXIn, gapYIn, paperW, paperH, printCropMarks, printInternalMarks, strokeColor);
                 }
 
                 if (printVernier) {
