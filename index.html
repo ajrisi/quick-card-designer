@@ -327,7 +327,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
             </div>
-            <input type="text" id="project-name" value="Quick Card Designer" class="text-lg font-bold tracking-tight text-gray-900 truncate bg-transparent border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded outline-none px-2 py-0.5 -ml-2 transition-all w-full cursor-text min-w-0" onchange="saveState(true)" title="Click to rename project">
+            <input type="text" id="project-name" value="Quick Card Designer" class="text-lg font-bold tracking-tight text-gray-900 truncate bg-transparent border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded outline-none px-2 py-0.5 -ml-2 transition-all w-full cursor-text min-w-0" onchange="saveState()" title="Click to rename project">
         </div>
 
         <!-- Right Section (Absolute on small screens to overlap truncating title) -->
@@ -1560,6 +1560,44 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let imageAssets = {};
     let globalMergeIndex = 0;
 
+    const StorageDB = {
+        async db() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('QCD_DB', 1);
+                req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        },
+        async save(key, val) {
+            const db = await this.db();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('store', 'readwrite');
+                tx.objectStore('store').put(val, key);
+                tx.oncomplete = resolve;
+                tx.onerror = reject;
+            });
+        },
+        async load(key) {
+            const db = await this.db();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('store', 'readonly');
+                const req = tx.objectStore('store').get(key);
+                tx.oncomplete = () => resolve(req.result);
+                tx.onerror = reject;
+            });
+        },
+        async delete(key) {
+            const db = await this.db();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('store', 'readwrite');
+                tx.objectStore('store').delete(key);
+                tx.oncomplete = resolve;
+                tx.onerror = reject;
+            });
+        }
+    };
+
     const resizeObserver = new ResizeObserver(() => {
         // Block the observer from resetting coordinates mid-drag!
         if (activeElements.length > 0 && !isApplyingLayout && !isResizingContainer && !isDragging && !isRotating) {
@@ -2267,7 +2305,7 @@ function updateBgSettings() {
         applyCanvasTransform();
     }
 
-    window.onload = () => {
+    window.onload = async () => {
         // 1. Unclip dropdowns by fixing them to the viewport when opened
         document.addEventListener('toggle', (e) => {
             if (e.target.tagName === 'DETAILS') {
@@ -2395,9 +2433,27 @@ function updateBgSettings() {
                     stepValue(e.deltaY < 0 ? 1 : -1, e);
                 }
             }, { passive: false });
+
+
         });
 
-        const savedData = localStorage.getItem('card_designer_autosave');
+// Flush any debounced saves instantly if the user refreshes or closes the tab
+        window.addEventListener('beforeunload', () => {
+            if (saveStateTimeout) {
+                clearTimeout(saveStateTimeout);
+                saveState();
+            }
+        });
+
+        let savedData = null;
+        try {
+            savedData = await StorageDB.load('card_designer_autosave');
+        } catch (e) { console.warn("IDB load failed", e); }
+        
+        if (!savedData) {
+            savedData = localStorage.getItem('card_designer_autosave');
+        }
+
         if (savedData) {
             try {
                 // Temporarily disable the canvas animation for a snappy boot
@@ -2728,13 +2784,14 @@ function updateBgSettings() {
             }
         };
 
-        try {
-            localStorage.setItem('card_designer_autosave', JSON.stringify(autoSaveData));
-        } catch (e) {
-            console.warn("Autosave failed, possibly due to quota exceeded", e);
-        }
+        const serializedData = JSON.stringify(autoSaveData);
+        StorageDB.save('card_designer_autosave', serializedData).catch(err => {
+            console.warn("IndexedDB Autosave failed", err);
+            try { localStorage.setItem('card_designer_autosave', serializedData); } catch (e) {
+                console.warn("LocalStorage Autosave failed, quota exceeded", e);
+            }
+        });
 
-        // 3. Exit here if we are only triggering a background autosave
         if (skipHistory) return;
 
         if (historyIndex >= 0) {
@@ -4269,52 +4326,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         saveState();
     }
 
-    // function handleAddImage(event) {
-    //     const file = event.target.files[0];
-    //     if (!file) return;
-
-    //     const reader = new FileReader();
-    //     reader.onload = function(e) {
-    //         const dataUrl = e.target.result;
-    //         const tempImg = new Image();
-    //         tempImg.onload = function() {
-    //             let w = tempImg.naturalWidth;
-    //             let h = tempImg.naturalHeight;
-
-    //             const p = (val) => Math.round(val * (PX_PER_IN / 100));
-    //             const maxDim = p(200);
-    //             if (w > maxDim || h > maxDim) {
-    //                 const ratio = Math.min(maxDim / w, maxDim / h);
-    //                 w = Math.round(w * ratio);
-    //                 h = Math.round(h * ratio);
-    //             }
-    //             w = Math.max(p(20), w);
-    //             h = Math.max(p(20), h);
-
-    //             const contentArea = document.getElementById('card-content');
-    //             if (!contentArea) return;
-
-    //             const el = document.createElement('div');
-    //             el.className = 'element-container bg-transparent';
-    //             const offset = (zIndexCounter % 10) * 10 + 20;
-    //             el.style.left = offset + 'px';
-    //             el.style.top = offset + 'px';
-    //             el.style.zIndex = zIndexCounter++;
-    //             el.dataset.type = 'image';
-
-    //             const innerContent = `<div class="resizable" style="width: ${w}px; height: ${h}px;"><img src="${dataUrl}" class="w-full h-full pointer-events-none" style="object-fit: fill; display: block;" /></div>`;
-
-    //             el.innerHTML = getControlsHTML(false) + innerContent;
-    //             contentArea.appendChild(el);
-
-    //             setActiveElement(el);
-    //             saveState();
-    //         };
-    //         tempImg.src = dataUrl;
-    //     };
-    //     reader.readAsDataURL(file);
-    //     event.target.value = ''; // reset input for subsequent uploads
-    // }
 
     function applyShapeStyle(prop, value) {
         if (activeElements.length === 0) return;
@@ -6541,7 +6552,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             }
             saveState(true);
         };
-        reader.readAsText(file);
+        reader.readAsText();
         event.target.value = '';
     }
 
@@ -6863,7 +6874,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     renderImageBankItems();
                     applyMergePreview();
                     updateAllCanvasImages();
-                    saveState(true);
+                    saveState();
                     // 4. Safely clear the input ONLY after everything is done
                     event.target.value = '';
                 }
@@ -6889,7 +6900,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             renderImageBankItems();
             applyMergePreview();
             updateAllCanvasImages();
-            saveState(true);
+            saveState();
             replaceTargetFilename = null;
             // Clear input after processing
             event.target.value = '';
@@ -6914,7 +6925,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             renderImageBankItems();
             applyMergePreview();
             updateAllCanvasImages();
-            saveState(true);
+            saveState();
             fulfillTargetFilename = null;
             event.target.value = '';
         };
@@ -6929,7 +6940,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             renderImageBankItems();
             applyMergePreview();
             updateAllCanvasImages();
-            saveState(true);
+            saveState();
         }
     }
 
@@ -7271,7 +7282,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function startNewCard() {
         if (confirm("Are you sure you want to start a new card? All unsaved progress will be lost.")) {
             localStorage.removeItem('card_designer_autosave');
-            location.reload();
+            StorageDB.delete('card_designer_autosave').finally(() => {
+                location.reload();
+            });
         }
     }
 
@@ -7711,8 +7724,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                 `;
                         }
 
-                        const activeBorderRight = (gapXIn === 0 && c < cols - 1) ? 0 : cutLineWidth;
-                        const activeBorderBottom = (gapYIn === 0 && r < rows - 1) ? 0 : cutLineWidth;
+                        const activeBorderRight = (gapXIn === 0 && gridC < cols - 1) ? 0 : cutLineWidth;
+                        const activeBorderBottom = (gapYIn === 0 && gridR < rows - 1) ? 0 : cutLineWidth;
 
                         let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
                         if (cutLineWidth > 0) {
@@ -8364,8 +8377,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         }
 
                         // Overlapping borders depend purely on physical layout left-to-right/top-to-bottom on the printed sheet (c and r)
-                        const activeBorderRight = (gapXIn === 0 && c < cols - 1) ? 0 : cutLineWidth;
-                        const activeBorderBottom = (gapYIn === 0 && r < rows - 1) ? 0 : cutLineWidth;
+                        const activeBorderRight = (gapXIn === 0 && gridC < cols - 1) ? 0 : cutLineWidth;
+                        const activeBorderBottom = (gapYIn === 0 && gridR < rows - 1) ? 0 : cutLineWidth;
 
                         let cutLineStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; pointer-events: none; z-index: 10000;`;
                         if (cutLineWidth > 0) {
