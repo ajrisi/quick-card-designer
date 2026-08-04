@@ -271,7 +271,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         [contenteditable="true"]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
         
         .element-container[data-merge-source-id]:not(.active) [contenteditable="true"]:empty:before { display: none !important; }
-        .element-container[data-merge-source-id].active [contenteditable="true"]:empty:before { content: "Empty Data Field"; color: #d1d5db; font-style: italic; display: block !important; }
+        .element-container[data-merge-source-id].active [contenteditable="true"]:empty:before { content: ""; color: #d1d5db; font-style: italic; display: block !important; }
         
         .element-container[data-merge-source-id]:not(.active) .image-placeholder { display: none !important; }
         .element-container[data-merge-source-id].active .image-placeholder { opacity: 0.5; }
