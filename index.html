@@ -5709,16 +5709,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         // Force blur on any active input, textarea, select, or content editable if we click outside of it
         const active = document.activeElement;
+        const targetIsInput = e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
         if (active && (active.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName))) {
-            const targetIsInput = e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
             if (!targetIsInput) {
                 active.blur();
             }
         }
 
-
-
-        if (e.shiftKey && (e.target.id === 'canvas-container' || e.target.id === 'canvas-wrapper' || e.target.id === 'card-canvas' || e.target.id === 'ghost-layer' || e.target.id === 'ui-layer' || e.target.id === 'ui-active-boxes')) {
+        const isInteractiveControl = e.target.closest('.controls, .resizer, .rot-handle, .drag-handle, .popover-drag-handle, .col-resizer, .row-resizer');
+        
+        if (e.shiftKey && e.target.closest('#canvas-container') && !isInteractiveControl && !targetIsInput) {
             isPanning = true;
             panStartX = e.clientX;
             panStartY = e.clientY;
@@ -5726,7 +5726,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             initialPanY = panY;
             document.getElementById('canvas-container').style.cursor = 'grabbing';
             e.preventDefault();
-            return;
+            // Do NOT return here. Allow the event to fall through so Shift+Click multi-select still works!
         }
 
         // Check for 8-way resize handle
@@ -6464,7 +6464,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         if (isPanning) {
             isPanning = false;
-            document.getElementById('canvas-container').style.cursor = 'auto';
+            document.getElementById('canvas-container').style.cursor = e.shiftKey ? 'grab' : 'auto';
             saveState(true);
         }
 
