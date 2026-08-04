@@ -6364,9 +6364,19 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const targetY = (mouseY - panY) / canvasScale;
 
             // 2. Append elements to the DOM first (needed to measure them properly)
-            clipboardData.forEach(node => {
+            clipboardData.forEach((node, idx) => {
                 const newEl = node.cloneNode(true);
                 newEl.style.zIndex = zIndexCounter++;
+                
+                // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
+                const assignNewIds = (el, deepIdx) => {
+                    el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 10000) + '_' + deepIdx;
+                    if (el.dataset.type === 'group') {
+                        el.querySelectorAll(':scope > .element-container').forEach((child, cIdx) => assignNewIds(child, cIdx));
+                    }
+                };
+                assignNewIds(newEl, idx);
+
                 document.getElementById('card-content').appendChild(newEl);
 
                 newEl.querySelectorAll('.card-table').forEach(t => setupTableResizers(t));
@@ -6402,6 +6412,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             }
 
             newGroup.forEach((el, index) => setActiveElement(el, index !== 0));
+            applyMergePreview();
+            updateAllCanvasImages();
             saveState();
             showToast(`Pasted ${newGroup.length} item(s)`);
             e.preventDefault();
