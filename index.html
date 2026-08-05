@@ -1122,16 +1122,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <option value="table">Table</option>
                 </select>
             </div>
-            <input type="text" list="font-options" id="font-family" placeholder="Font" class="w-28 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onfocus="updateFontDatalist()" onchange="applyStyle('fontFamily', this.value)">
-            <datalist id="font-options">
-                <option value="system-ui, sans-serif">System Sans</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="'Courier New', Courier, monospace">Courier (Mono)</option>
-                <option value="Georgia, serif">Georgia (Serif)</option>
-                <option value="Impact, sans-serif">Impact</option>
-                <option value="'Times New Roman', serif">Times New Roman</option>
-            </datalist>
-            <input type="number" id="font-size" value="14" min="4" max="288" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontSize', (parseFloat(this.value) * (PX_PER_IN / 72)) + 'px')" title="Font Size (pt)">
+            
+            <div class="relative shrink-0" id="font-selector-container">
+                <input type="text" id="font-family" placeholder="Search Font..." autocomplete="off" spellcheck="false" class="w-36 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white cursor-text" onfocus="openFontDropdown()" oninput="filterFonts(this.value)" onkeydown="if(event.key === 'Enter') { applyStyle('fontFamily', this.value); closeFontDropdown(); }">
+                <div id="font-dropdown" class="absolute top-full left-0 mt-1 bg-white border border-gray-200 shadow-xl rounded-lg z-[100] w-64 hidden flex-col max-h-72 overflow-y-auto" onwheel="event.stopPropagation()">
+                    <!-- Dynamic Font List Injected Here -->
+                </div>
+            </div>
+            <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" class="hidden" onchange="handleFontUpload(event)">
+            
+            <input type="number" id="font-size" value="14" min="4" max="288" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white ml-1" onchange="applyStyle('fontSize', (parseFloat(this.value) * (PX_PER_IN / 72)) + 'px')" title="Font Size (pt)">
             <select id="font-weight" class="w-[85px] border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('fontWeight', this.value)">
                 <option value="300">Light</option>
                 <option value="normal" selected>Regular</option>
@@ -1560,7 +1560,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <div>
                     <h2 class="text-lg font-bold text-gray-800">Drop to Add to Canvas</h2>
-                    <p class="text-xs text-gray-500">Supports Images (.png, .jpg, .svg) and Data (.csv)</p>
+                    <p class="text-xs text-gray-500">Supports Images, Data (.csv), and Fonts (.ttf, .otf, .woff)</p>
                 </div>
             </div>
         </div>
@@ -1873,6 +1873,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let saveStateTimeout = null;
     let mergeSources = {};
     let imageAssets = {};
+    let customFonts = {};
     let globalMergeIndex = 0;
 
     let pluginsData = {};
@@ -1994,6 +1995,21 @@ Check your Browserslist config to be sure that your targets are set up correctly
             }
         });
         saveState(true);
+    }
+
+    function injectCustomFonts() {
+        let styleTag = document.getElementById('custom-fonts-style');
+        if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'custom-fonts-style';
+            document.head.appendChild(styleTag);
+        }
+        
+        let css = '';
+        for (let fontName in customFonts) {
+            css += `@font-face { font-family: "${fontName}"; src: url('${customFonts[fontName]}'); }\n`;
+        }
+        styleTag.innerHTML = css;
     }
 
     const StorageDB = {
@@ -2240,6 +2256,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 }
             }
         });
+
+        const fontDropdown = document.getElementById('font-dropdown');
+        const fontContainer = document.getElementById('font-selector-container');
+        if (fontDropdown && !fontDropdown.classList.contains('hidden') && fontContainer && !fontContainer.contains(e.target)) {
+            if (typeof window.closeFontDropdown === 'function') window.closeFontDropdown();
+            else if (typeof closeFontDropdown === 'function') closeFontDropdown();
+        }
     });
 
     function updateDPI(newDpi) {
@@ -3036,6 +3059,7 @@ function updateBgSettings(side) {
         document.querySelectorAll('.overflow-x-auto.hide-scrollbar').forEach(scrollContainer => {
             scrollContainer.addEventListener('scroll', () => {
                 document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
+                if (typeof closeFontDropdown === 'function') closeFontDropdown();
             }, { passive: true });
 
             scrollContainer.addEventListener('wheel', (e) => {
@@ -3179,6 +3203,7 @@ function updateBgSettings(side) {
                 isLandscape: isLandscape,
                 projectName: document.getElementById('project-name').value,
                 imageAssets: imageAssets,
+                customFonts: customFonts,
                 mergeSources: mergeSources,
                 pluginsData: pluginsData,
                 globalMergeIndex: globalMergeIndex,
@@ -3341,6 +3366,10 @@ function updateBgSettings(side) {
                 const data = JSON.parse(savedData);
                 
                 if (data.imageAssets) imageAssets = data.imageAssets;
+                if (data.customFonts) {
+                    customFonts = data.customFonts;
+                    injectCustomFonts();
+                }
                 if (data.mergeSources) mergeSources = data.mergeSources;
                 if (data.globalMergeIndex !== undefined) globalMergeIndex = data.globalMergeIndex;
                 
@@ -3699,6 +3728,28 @@ function updateBgSettings(side) {
                         tempImg.src = dataUrl;
                     };
                     reader.readAsDataURL(file);
+                }
+                // Handle Fonts (TTF/OTF/WOFF)
+                else if (['ttf', 'otf', 'woff', 'woff2'].includes(ext)) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const dataUrl = ev.target.result;
+                        const fontName = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9 -]/g, '');
+                        
+                        customFonts[fontName] = dataUrl;
+                        injectCustomFonts();
+                        
+                        // Immediately apply it if a text element is active
+                        if (activeElement && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title' || activeElement.dataset.type === 'table')) {
+                            selectFont(fontName, true);
+                        } else {
+                            if (typeof renderFontDropdown === 'function') renderFontDropdown();
+                        }
+                        
+                        saveState(true);
+                        showToast(`Font "${fontName}" installed!`);
+                    };
+                    reader.readAsDataURL(file);
                 } 
                 // Handle Data (CSV/TXT)
                 else if (ext === 'csv' || ext === 'txt') {
@@ -3830,6 +3881,7 @@ function updateBgSettings(side) {
             isLandscape: isLandscape,
             projectName: document.getElementById('project-name').value,
             imageAssets: imageAssets,
+            customFonts: customFonts,
             mergeSources: mergeSources,
             pluginsData: pluginsData,
             globalMergeIndex: globalMergeIndex,
@@ -5144,47 +5196,149 @@ function redo() {
         saveState(true);
     }
 
-    function updateFontDatalist() {
-        const defaultFonts = [
-            { val: "system-ui, sans-serif", lbl: "System Sans" },
-            { val: "Arial, sans-serif", lbl: "Arial" },
-            { val: "'Courier New', Courier, monospace", lbl: "Courier (Mono)" },
-            { val: "Georgia, serif", lbl: "Georgia (Serif)" },
-            { val: "Impact, sans-serif", lbl: "Impact" },
-            { val: "'Times New Roman', serif", lbl: "Times New Roman" }
-        ];
+    const defaultFontsList = [
+        { val: "system-ui, sans-serif", lbl: "System Sans" },
+        { val: "Arial, sans-serif", lbl: "Arial" },
+        { val: "'Courier New', Courier, monospace", lbl: "Courier (Mono)" },
+        { val: "Georgia, serif", lbl: "Georgia (Serif)" },
+        { val: "Impact, sans-serif", lbl: "Impact" },
+        { val: "'Times New Roman', serif", lbl: "Times New Roman" }
+    ];
 
-        // 1. Harvest all fonts currently applied to text/table elements
-        const usedFonts = new Set();
-        document.querySelectorAll('#card-content [contenteditable="true"], #card-content .cell-text').forEach(el => {
-            const ff = el.style.fontFamily;
-            if (ff) usedFonts.add(ff); // Keep exactly as formatted in DOM
+    function renderFontDropdown() {
+        const dropdown = document.getElementById('font-dropdown');
+        if (!dropdown) return;
+
+        let html = '';
+
+        // Custom Installed Fonts Section
+        const customKeys = Object.keys(customFonts);
+        if (customKeys.length > 0) {
+            html += `<div class="text-[9px] font-bold text-gray-400 uppercase px-3 pt-2 pb-1 bg-white sticky top-0 z-10 border-b border-gray-100">Installed Fonts</div>`;
+            customKeys.forEach(font => {
+                html += `
+                    <div class="font-option flex items-center justify-between px-3 py-1.5 hover:bg-blue-50 cursor-pointer group" onmousedown="selectFont('${font}', true); event.preventDefault();">
+                        <span class="text-xs text-gray-800 truncate" style="font-family: '${font}'; font-size: 14px;">${font}</span>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <a href="${customFonts[font]}" download="${font}.ttf" onmousedown="event.stopPropagation();" class="text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600 rounded p-1" title="Download Font">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                            <button onmousedown="deleteCustomFont('${font}'); event.stopPropagation(); event.preventDefault();" class="text-red-400 hover:bg-red-100 hover:text-red-600 rounded p-1" title="Delete Font">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // System Fonts Section
+        html += `<div class="text-[9px] font-bold text-gray-400 uppercase px-3 pt-2 pb-1 bg-white sticky ${customKeys.length > 0 ? '' : 'top-0'} z-10 border-b border-gray-100 mt-1">System Fonts</div>`;
+        defaultFontsList.forEach(df => {
+            html += `
+                <div class="font-option px-3 py-1.5 hover:bg-blue-50 cursor-pointer" onmousedown="selectFont('${df.val}', false, '${df.lbl}'); event.preventDefault();">
+                    <span class="text-xs text-gray-800 truncate" style="font-family: ${df.val}; font-size: 14px;">${df.lbl}</span>
+                </div>
+            `;
         });
 
-        const datalist = document.getElementById('font-options');
-        datalist.innerHTML = ''; // Clear current list
+        // Install Button Sticky Footer
+        html += `
+            <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-1.5 mt-1 z-10">
+                <button onmousedown="document.getElementById('font-upload-input').click(); event.stopPropagation(); event.preventDefault();" class="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-blue-600 uppercase hover:bg-blue-100 rounded transition-colors shadow-sm bg-white border border-blue-200">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Install Custom Font
+                </button>
+            </div>
+        `;
 
-        // 2. Inject used fonts at the top
-        usedFonts.forEach(font => {
-            // Strip quotes to check against defaults cleanly
-            const normalizedFont = font.replace(/['"]/g, '');
-            const isDefault = defaultFonts.find(df => df.val.replace(/['"]/g, '') === normalizedFont);
-            
-            if (!isDefault) {
-                const opt = document.createElement('option');
-                opt.value = font;
-                opt.innerText = "Used: " + normalizedFont.split(',')[0];
-                datalist.appendChild(opt);
+        dropdown.innerHTML = html;
+    }
+
+    window.closeFontDropdown = function() {
+        const dd = document.getElementById('font-dropdown');
+        if (dd) {
+            dd.classList.add('hidden');
+            dd.classList.remove('flex');
+        }
+    };
+    function closeFontDropdown() { window.closeFontDropdown(); }
+
+    function openFontDropdown() {
+        renderFontDropdown();
+        const dd = document.getElementById('font-dropdown');
+        const container = document.getElementById('font-selector-container');
+        dd.classList.remove('hidden');
+        dd.classList.add('flex');
+        
+        // Unclip from the overflow-hidden toolbar
+        const rect = container.getBoundingClientRect();
+        dd.style.position = 'fixed';
+        dd.style.top = (rect.bottom + 4) + 'px';
+        dd.style.left = rect.left + 'px';
+        dd.style.marginTop = '0';
+        
+        // Auto-select text so typing immediately overwrites and searches
+        const inp = document.getElementById('font-family');
+        inp.select();
+    }
+
+    function selectFont(val, isCustom, label) {
+        const input = document.getElementById('font-family');
+        const finalVal = isCustom ? `"${val}"` : val;
+        input.value = isCustom ? val : (label || val);
+        applyStyle('fontFamily', finalVal);
+        if (typeof window.closeFontDropdown === 'function') window.closeFontDropdown();
+        else if (typeof closeFontDropdown === 'function') closeFontDropdown();
+        saveState(true);
+    }
+
+    function filterFonts(query) {
+        const q = query.toLowerCase();
+        document.querySelectorAll('#font-dropdown .font-option').forEach(el => {
+            const txt = el.textContent.toLowerCase();
+            if (txt.includes(q)) {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = 'none';
             }
         });
+    }
 
-        // 3. Inject standard defaults below
-        defaultFonts.forEach(df => {
-            const opt = document.createElement('option');
-            opt.value = df.val;
-            opt.innerText = df.lbl;
-            datalist.appendChild(opt);
-        });
+    function deleteCustomFont(fontName) {
+        if (confirm(`Delete custom font "${fontName}" from this document?`)) {
+            delete customFonts[fontName];
+            injectCustomFonts();
+            renderFontDropdown();
+            saveState(true);
+            showToast(`Deleted font: ${fontName}`);
+        }
+    }
+
+    function handleFontUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            const fontName = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9 -]/g, '');
+            
+            customFonts[fontName] = dataUrl;
+            injectCustomFonts();
+            
+            // Immediately apply it if a text element is active
+            if (activeElement && (activeElement.dataset.type === 'text' || activeElement.dataset.type === 'title' || activeElement.dataset.type === 'table')) {
+                selectFont(fontName, true);
+            } else {
+                renderFontDropdown();
+            }
+            
+            saveState(true);
+            showToast(`Font "${fontName}" installed!`);
+        };
+        reader.readAsDataURL(file);
+        event.target.value = '';
     }
 
     function applyStyle(property, value) {
@@ -5883,7 +6037,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             document.getElementById('text-color-swatch').style.backgroundColor = tAlpha < 1 ? target.style.color : tHex;
 
             const fontInput = document.getElementById('font-family');
-            fontInput.value = target.style.fontFamily ? target.style.fontFamily.replace(/"/g, "").replace(/'/g, "") : '';
+            if (target.style.fontFamily) {
+                const rawFont = target.style.fontFamily;
+                const cleanFont = rawFont.replace(/['"]/g, '');
+                const df = typeof defaultFontsList !== 'undefined' ? defaultFontsList.find(d => d.val.replace(/['"]/g, '') === cleanFont || d.val.startsWith(cleanFont)) : null;
+                fontInput.value = df ? df.lbl : cleanFont;
+            } else {
+                fontInput.value = '';
+            }
 
             // Clear all secondary panels first
             document.getElementById('type-controls').style.display = 'none';
@@ -9738,6 +9899,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
 
         const customStyleTag = document.querySelector('style').innerHTML;
+        const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
 
         const settingsData = {
             w: currentWidth,
@@ -9795,6 +9957,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             bgConfigFront: frontBgConfig,
             bgConfigBack: backBgConfig,
             imageAssets: imageAssets,
+            customFonts: customFonts
         };
 
         const xmlSerializer = new XMLSerializer();
@@ -9820,6 +9983,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             <style>
                                 <![CDATA[
                                 ${customStyleTag}
+                                ${fontStyleTag}
                                 #card-canvas { margin: 0; box-shadow: none; border-radius: 0; }
                                 .bg-blank { background-color: white; }
                                 .element-container { outline: none !important; }
@@ -9926,11 +10090,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const viewW = Math.round(currentWidth * (96 / PX_PER_IN));
         const viewH = Math.round(currentHeight * (96 / PX_PER_IN));
         const customStyleTag = document.querySelector('style').innerHTML;
+        const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
         const svgContent = `
             <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
                 <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
                     <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0;">
-                        <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
+                        <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
                         <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
                             ${activeContent}
                         </div>
@@ -10324,12 +10489,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 const canvasH = Math.round(paperH * dpi);
                 const viewW = Math.round(paperW * 96);
                 const viewH = Math.round(paperH * 96);
+                const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
                 
                 const svgWrap = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
                     <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; margin: 0; padding: 0;">
-                            <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; } * { box-sizing: border-box; }]]></style>
+                            <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; } * { box-sizing: border-box; }]]></style>
                             ${pageContent}
                         </div>
                     </foreignObject>
@@ -10497,6 +10663,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 hasCustomBack = settings.hasCustomBack || false;
                 mergeSources = settings.mergeSources || {};
                 imageAssets = settings.imageAssets || {};
+                customFonts = settings.customFonts || {};
+                injectCustomFonts();
                 globalMergeIndex = settings.globalMergeIndex || 0;
                 
                 if (settings.pluginsData) {
@@ -11065,6 +11233,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
 
         const customStyleTag = document.querySelector('style').innerHTML;
+        const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
 
         let tailwindTag = Array.from(document.scripts).find(s => s.src.includes('tailwindcss') || s.innerHTML.includes('tailwind') || s.id === 'tailwind');
         let tailwindInjection = tailwindTag ? tailwindTag.outerHTML : '<script src="https://cdn.tailwindcss.com"><\/script>';
@@ -11080,6 +11249,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     <style>
                         :root { --inverse-scale: 1; }
                         ${customStyleTag}
+                        ${fontStyleTag}
                         
                         .element-container { outline: 2px dashed transparent !important; outline-width: 2px !important; box-sizing: content-box !important; border: none !important; }
                         html, body { height: auto !important; overflow: auto !important; }
