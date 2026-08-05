@@ -2776,9 +2776,76 @@ function updateBgSettings() {
         if (saveStateTimeout) {
             clearTimeout(saveStateTimeout);
             // Force a synchronous localStorage write right before the thread dies
+            saveCurrentSideState();
             const stateStr = JSON.stringify({
-                history: historyStack[historyIndex],
-                // ... (grab your other autosave properties here)
+                history: {
+                    side: editingSide,
+                    hasCustomBack: hasCustomBack,
+                    frontHTML: frontContentHTML,
+                    frontBg: frontBgClass,
+                    backHTML: backContentHTML,
+                    backBg: backBgClass,
+                    frontBgConfig: frontBgConfig,
+                    backBgConfig: backBgConfig,
+                },
+                unit: currentUnit,
+                dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
+                sizeSelect: document.getElementById('size-select').value,
+                customW: document.getElementById('custom-w').value,
+                customH: document.getElementById('custom-h').value,
+                isLandscape: isLandscape,
+                projectName: document.getElementById('project-name').value,
+                imageAssets: imageAssets,
+                mergeSources: mergeSources,
+                pluginsData: pluginsData,
+                globalMergeIndex: globalMergeIndex,
+                snapping: document.getElementById('enable-snapping')?.checked !== false,
+                resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
+                snapLines: document.getElementById('show-snap-lines')?.checked !== false,
+                panX: panX,
+                panY: panY,
+                canvasScale: canvasScale,
+                margin: {
+                    t: document.getElementById('margin-top')?.value || 0,
+                    r: document.getElementById('margin-right')?.value || 0,
+                    b: document.getElementById('margin-bottom')?.value || 0,
+                    l: document.getElementById('margin-left')?.value || 0
+                },
+                safeMargin: {
+                    t: document.getElementById('safe-margin-top')?.value || 0,
+                    r: document.getElementById('safe-margin-right')?.value || 0,
+                    b: document.getElementById('safe-margin-bottom')?.value || 0,
+                    l: document.getElementById('safe-margin-left')?.value || 0
+                },
+                guide: document.getElementById('show-margin-guide')?.checked ?? true,
+                cutLineW: document.getElementById('cut-line-width')?.value || 1,
+                cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+                cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
+                printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
+                bindingLineW: document.getElementById('binding-line-width')?.value || 1,
+                bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+                bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
+                printer: {
+                    paper: document.getElementById('paper-size')?.value || 'letter',
+                    orient: document.getElementById('paper-orientation')?.value || 'portrait',
+                    alignX: document.getElementById('grid-align-x')?.value || 'center',
+                    alignY: document.getElementById('grid-align-y')?.value || 'center',
+                    duplex: document.getElementById('print-duplex')?.checked ?? false,
+                    gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
+                    gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
+                    mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
+                    mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
+                    rotate180: document.getElementById('rotate-180')?.checked ?? false,
+                    driftX: document.getElementById('print-offset-x')?.value || 0,
+                    driftY: document.getElementById('print-offset-y')?.value || 0,
+                    targetDpi: document.getElementById('target-dpi')?.value || 300,
+                    bleed: document.getElementById('print-bleed')?.value || 0,
+                    showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
+                    cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
+                    internalMarks: document.getElementById('print-internal-marks')?.checked ?? false,
+                    markColor: document.getElementById('mark-color')?.value || '#000000',
+                    vernier: document.getElementById('print-vernier')?.checked ?? false
+                }
             });
             localStorage.setItem(SAVE_KEY, stateStr); 
         }
@@ -7637,8 +7704,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     el.removeAttribute('data-merge-source-id');
                     el.removeAttribute('data-merge-col');
                     el.removeAttribute('data-merge-data');
-                    const target = el.querySelector('div[contenteditable="true"]');
-                    if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+                    
+                    if (el.dataset.type === 'image') {
+                        updateImageElementDisplay(el, '');
+                    } else {
+                        const target = el.querySelector('div[contenteditable="true"]');
+                        if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+                    }
                 }
             });
             recomputeAllMergeData();
@@ -7961,6 +8033,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const container = document.getElementById('image-bank-grid');
         container.innerHTML = '';
         const keys = Object.keys(imageAssets);
+        const plugKeys = Object.keys(pluginsData);
         
         // 1. Gather Missing Assets from the canvas records
         const requiredAssets = new Set();
@@ -8003,19 +8076,29 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         const missingAssets = Array.from(requiredAssets).filter(val => !imageAssets[val]);
 
-        if (keys.length === 0 && missingAssets.length === 0) {
-            container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No images in the bank. Upload some to get started!</div>`;
+        // Check if plugins have any images
+        let hasPluginImages = false;
+        plugKeys.forEach(id => {
+            if (pluginsData[id].images && pluginsData[id].images.length > 0) hasPluginImages = true;
+        });
+
+        if (keys.length === 0 && missingAssets.length === 0 && !hasPluginImages) {
+            container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No images in the bank. Upload some or add a plugin to get started!</div>`;
             return;
         }
 
         let html = '';
 
         // Render Standard Uploaded Assets
-        keys.forEach(filename => {
-            const src = imageAssets[filename];
-            const safeName = filename.replace(/'/g, "\\'");
-            html += `
-            <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
+        if (keys.length > 0) {
+            html += `<div class="col-span-full mb-1 mt-1">
+                <h4 class="text-xs font-bold text-gray-700 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Uploaded Assets</h4>
+            </div>`;
+            keys.forEach(filename => {
+                const src = imageAssets[filename];
+                const safeName = filename.replace(/'/g, "\\'");
+                html += `
+                <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
                     <div class="h-28 w-full bg-gray-100 border border-gray-200/50 rounded-lg flex items-center justify-center overflow-hidden relative">
                         <img src="${src}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />
                         <div class="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -8033,14 +8116,52 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     <div class="text-[10px] font-mono text-gray-700 truncate w-full text-center px-1 select-all" title="${filename}">${filename}</div>
                     <button onclick="placeBankImage('${safeName}')" class="mt-auto py-1.5 w-full bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place on Canvas</button>
                 </div>
+                `;
+            });
+        }
 
-            `;
-        });
+        // Render Plugin Images
+        if (hasPluginImages) {
+            html += `<div class="col-span-full ${keys.length > 0 ? 'mt-4' : 'mt-1'} mb-1">
+                <h4 class="text-xs font-bold text-purple-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg> Plugin Placeholders</h4>
+            </div>`;
+
+            plugKeys.forEach(pId => {
+                const p = pluginsData[pId];
+                const inst = pluginInstances[pId];
+                p.images.forEach(imgName => {
+                    let previewSrc = '';
+                    if (inst && typeof inst.renderTemplateImage === 'function') {
+                        try {
+                            const ctx = getPluginContext(globalMergeIndex);
+                            let pImg = inst.renderTemplateImage(imgName, ctx);
+                            if (pImg && pImg.trim().startsWith('<')) {
+                                previewSrc = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
+                            } else {
+                                previewSrc = pImg || '';
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    const safeName = imgName.replace(/'/g, "\\'");
+                    
+                    html += `
+                    <div class="bg-purple-50 border border-purple-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group relative">
+                        <div class="h-28 w-full bg-white border border-purple-200 border-dashed rounded-lg flex items-center justify-center overflow-hidden relative">
+                            ${previewSrc ? `<img src="${previewSrc}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />` : `<div class="flex flex-col items-center opacity-50 text-purple-400"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold">No Preview</span></div>`}
+                        </div>
+                        <div class="text-[10px] font-mono text-purple-700 truncate w-full text-center px-1" title="${imgName}">${imgName} <span class="text-purple-400">(${p.name})</span></div>
+                        <button onclick="placePluginImage('${pId}', '${safeName}')" class="mt-auto py-1.5 w-full bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place on Canvas</button>
+                    </div>
+                    `;
+                });
+            });
+        }
 
         // Render Missing Assets Warning Block
         if (missingAssets.length > 0) {
-            html += `<div class="col-span-full mb-2">
-                <h4 class="text-xs font-bold text-red-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Missing from CSV</h4>
+            html += `<div class="col-span-full ${keys.length > 0 || hasPluginImages ? 'mt-4' : 'mt-1'} mb-1">
+                <h4 class="text-xs font-bold text-red-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Missing from CSV / Canvas</h4>
             </div>`;
 
             missingAssets.forEach(filename => {
@@ -8058,12 +8179,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     </div>
                 `;
             });
-
-            if (keys.length > 0) {
-                html += `<div class="col-span-full mt-4 mb-2">
-                    <h4 class="text-xs font-bold text-gray-700 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg> Uploaded Assets</h4>
-                </div>`;
-            }
         }
 
         container.innerHTML = html;
@@ -9817,17 +9932,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                             }
                                         } catch (e) {}
                                     } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
-                                const inst = pluginInstances[el.dataset.pluginImageId];
-                                if (inst && typeof inst.renderTemplateImage === 'function') {
-                                    try {
-                                        const ctx = getPluginContext(globalMergeIndex);
-                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
-                                        let val = pImg || '';
-                                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                                        updateImageElementDisplay(el, val, true);
-                                    } catch(e) {}
-                                }
-                            }
+                                        const inst = pluginInstances[el.dataset.pluginImageId];
+                                        if (inst && typeof inst.renderTemplateImage === 'function') {
+                                            try {
+                                                const ctx = getPluginContext(cardIndex);
+                                                const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                                let val = pImg || '';
+                                                if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                                                updateImageElementDisplay(el, val, true);
+                                            } catch(e) {}
+                                        }
+                                    }
                                 });
                                 
                                 temp.querySelectorAll('[data-template-raw]').forEach(el => {
