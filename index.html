@@ -1508,6 +1508,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                         <select id="merge-col-select" class="w-20 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="applyMergeOptions()">
                         </select>
                     </div>
+                    <div id="plugin-args-group" class="hidden items-center gap-1.5 border-l border-gray-200 pl-2 ml-1">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase" title="Comma separated arguments">Args</span>
+                        <input type="text" id="plugin-args-input" placeholder="arg1, arg2" class="w-24 border border-gray-300 rounded p-1 text-[10px] outline-none shadow-sm bg-white" oninput="applyMergeOptions()">
+                    </div>
                 </div>
                 <div id="merge-status-container" class="hidden items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 shadow-sm h-full">
                     <span id="merge-status" class="text-[9px] font-bold text-gray-600">0 rows</span>
@@ -8347,8 +8351,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (el.dataset.pluginImageId === id) {
                     el.removeAttribute('data-plugin-image-id');
                     el.removeAttribute('data-plugin-image-name');
+                    el.removeAttribute('data-plugin-image-args');
                     delete el.dataset.pluginImageId;
                     delete el.dataset.pluginImageName;
+                    delete el.dataset.pluginImageArgs;
                     updateImageElementDisplay(el, '');
                 } else if (el.dataset.mergeSourceId === 'plugin:' + id) {
                     el.removeAttribute('data-merge-source-id');
@@ -8424,9 +8430,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function applyMergeOptions() {
         if (!activeElement) return;
         const val = document.getElementById('merge-col-select').value;
+        const argsInput = document.getElementById('plugin-args-input');
+        const argsVal = argsInput ? argsInput.value.trim() : '';
         
         if (activeElement.dataset.pluginImageId) {
             activeElement.dataset.pluginImageName = val;
+            if (argsVal) activeElement.dataset.pluginImageArgs = argsVal;
+            else delete activeElement.dataset.pluginImageArgs;
         } else {
             activeElement.dataset.mergeCol = val;
             
@@ -8436,7 +8446,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (p) {
                     const target = activeElement.querySelector('div[contenteditable="true"]');
                     if (target) {
-                        const tpl = `{{${p.name},${val}}}`;
+                        const argsStr = argsVal ? ',' + argsVal : '';
+                        const tpl = `{{${p.name},${val}${argsStr}}}`;
                         target.setAttribute('data-template-raw', tpl);
                         target.innerText = tpl;
                     }
@@ -8628,6 +8639,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
 
         const activeId = activeElement.dataset.mergeSourceId || (activeElement.dataset.pluginImageId ? 'plugin:' + activeElement.dataset.pluginImageId : null);
+        const argsGroup = document.getElementById('plugin-args-group');
+        const argsInput = document.getElementById('plugin-args-input');
 
         if (activeId && (mergeSources[activeId] || (activeId.startsWith("plugin:") && pluginsData[activeId.split(":")[1]]))) {
             select.value = activeId;
@@ -8645,7 +8658,28 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     colSelect.appendChild(opt);
                 });
                 colSelect.value = activeElement.dataset.type === 'image' ? activeElement.dataset.pluginImageName : activeElement.dataset.mergeCol;
+                
+                if (argsGroup && argsInput) {
+                    argsGroup.classList.remove('hidden');
+                    argsGroup.classList.add('flex');
+                    if (activeElement.dataset.type === 'image') {
+                        argsInput.value = activeElement.dataset.pluginImageArgs || "";
+                    } else {
+                        const target = activeElement.querySelector('div[contenteditable="true"]');
+                        argsInput.value = "";
+                        if (target && target.hasAttribute('data-template-raw')) {
+                            const raw = target.getAttribute('data-template-raw');
+                            const match = raw.match(/^\{\{[^,]+,[^,]+(?:,(.+))?\}\}$/);
+                            if (match && match[1]) argsInput.value = match[1];
+                        }
+                    }
+                }
             } else {
+                if (argsGroup) {
+                    argsGroup.classList.add('hidden');
+                    argsGroup.classList.remove('flex');
+                }
+                
                 const source = mergeSources[activeId];
                 const numCols = source.data.length > 0 ? source.data[0].length : 1;
                 let firstValidCol = null;
@@ -8672,6 +8706,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         } else {
             select.value = "";
             optionsDiv.classList.add('hidden');
+            if (argsGroup) {
+                argsGroup.classList.add('hidden');
+                argsGroup.classList.remove('flex');
+            }
         }
 
         if (globalMaxRows > 0) {
@@ -8692,6 +8730,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             activeElement.removeAttribute('data-merge-data');
             activeElement.removeAttribute('data-plugin-image-id');
             activeElement.removeAttribute('data-plugin-image-name');
+            activeElement.removeAttribute('data-plugin-image-args');
             
             if (activeElement.dataset.type === 'image') {
                 updateImageElementDisplay(activeElement, ''); 
@@ -8708,6 +8747,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (activeElement.dataset.type === 'image') {
                 activeElement.dataset.pluginImageId = pId;
                 activeElement.dataset.pluginImageName = p.images[0] || "";
+                activeElement.removeAttribute('data-plugin-image-args');
                 activeElement.removeAttribute('data-merge-source-id');
                 activeElement.removeAttribute('data-merge-data');
             } else {
@@ -8715,6 +8755,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 activeElement.dataset.mergeCol = p.varnames[0] || "";
                 activeElement.removeAttribute('data-merge-data');
                 activeElement.removeAttribute('data-plugin-image-id');
+                activeElement.removeAttribute('data-plugin-image-name');
+                activeElement.removeAttribute('data-plugin-image-args');
                 
                 const target = activeElement.querySelector('div[contenteditable="true"]');
                 if (target) {
@@ -9495,7 +9537,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (inst && typeof inst.renderTemplateImage === 'function') {
                     try {
                         const ctx = getPluginContext(globalMergeIndex);
-                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
+                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
                         if (pImg && pImg.trim().startsWith('<')) {
                             val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
                         } else {
@@ -10315,15 +10358,18 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (inst && typeof inst.renderTemplateImage === 'function') {
                     try {
                         const ctx = getPluginContext(globalMergeIndex);
-                            const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
-                            let val = pImg || '';
-                            if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                            imagePromises.push(updateImageElementDisplay(el, val, true));
-                        } catch(e) {}
-                    }
+                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
+                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
+                        let val = pImg || '';
+                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                        imagePromises.push(updateImageElementDisplay(el, val, true));
+                    } catch(e) {}
                 }
-            });
-            await Promise.all(imagePromises);
+            }
+        });
+        await Promise.all(imagePromises);
+
+            
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
@@ -10649,7 +10695,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                 if (inst && typeof inst.renderTemplateImage === 'function') {
                                     try {
                                         const ctx = getPluginContext(cardIndex);
-                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
+                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
                                         let val = pImg || '';
                                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                                         imagePromises.push(updateImageElementDisplay(el, val, true));
