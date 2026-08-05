@@ -43,8 +43,17 @@ self.addEventListener('fetch', (event) => {
                 return response;
             })
             .catch(() => {
-                // If offline, return from cache
-                return caches.match(event.request);
+                // If offline, return from cache, but gracefully handle cache misses
+                return caches.match(event.request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    // Prevent 'Failed to convert value to Response' TypeError by supplying a fallback
+                    return new Response(
+                        "Network error and resource is not cached.",
+                        { status: 503, statusText: "Service Unavailable" }
+                    );
+                });
             })
     );
 });
