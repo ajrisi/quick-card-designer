@@ -436,66 +436,158 @@ Check your Browserslist config to be sure that your targets are set up correctly
         
         <!-- Mobile Swipeable Left Section -->
         <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar flex-nowrap py-0.5 min-w-0 flex-1">
-            <div class="flex items-center gap-2 shrink-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
-                <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
-                    <option value="in">in</option>
-                    <option value="mm">mm</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2 ml-1 shrink-0 border-l border-gray-300 pl-4">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Doc DPI</span>
-                <div class="flex items-center">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="document-dpi" list="doc-dpi-options" value="300" class="no-stepper w-16 text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-text" onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;" onchange="updateDPI(parseInt(this.value))" title="Custom DPI">
-                    <datalist id="doc-dpi-options">
-                        <option value="100">100 (Legacy)</option>
-                        <option value="300">300 (Standard)</option>
-                        <option value="600">600 (High Res)</option>
-                    </datalist>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
-                <select id="size-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-28" onchange="handleSizeChange()">
-                    <optgroup label="Playing Cards">
-                        <option value="2.5x3.5">Standard Poker / TCG (2.5" x 3.5")</option>
-                        <option value="2.25x3.25">Japanese TCG (2.25" x 3.25")</option>
-                        <option value="2.25x3.5">Bridge (2.25" x 3.5")</option>
-                        <option value="2.75x4.75">Tarot (2.75" x 4.75")</option>
-                        <option value="1.625x2.5">Mini Card (1.625" x 2.5")</option>
-                    </optgroup>
-                    <optgroup label="Index Cards">
-                        <option value="3x5">3" x 5"</option>
-                        <option value="4x6" selected>4" x 6"</option>
-                        <option value="5x8">5" x 8"</option>
-                    </optgroup>
-                    <optgroup label="Business">
-                        <option value="2x3.5">Business (2" x 3.5")</option>
-                    </optgroup>
-                    <optgroup label="Small Books">
-                        <option value="4.25x6.87">4.25" x 6.87"</option>
-                        <option value="5.5x8.5">5.5" x 8.5"</option>
-                        <option value="6x9">6" x 9"</option>
-                    </optgroup>
-                    <optgroup label="Custom">
-                        <option value="custom">Custom...</option>
-                    </optgroup>
-                </select>
-                <div id="custom-size-inputs" class="hidden">
-                    <div class="flex items-center gap-1 ml-1">
-                        <input type="number" id="custom-w" step="0.125" min="0.5" value="3" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
-                        <span class="text-[10px] text-gray-400">x</span>
-                        <input type="number" id="custom-h" step="0.125" min="0.5" value="5" class="w-20 border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+            
+            <div class="flex items-center gap-2shrink-0">
+                <details id="doc-settings" class="relative group">
+                    <summary class="text-[11px] font-semibold bg-white text-gray-600 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-50 [&::-webkit-details-marker]:hidden flex items-center gap-1 shadow-sm">
+                        Document <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </summary>
+                    <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl p-4 rounded-lg z-50 w-64 cursor-default">
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Doc DPI</label>
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="document-dpi" list="doc-dpi-options" value="300" class="no-stepper w-full text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-text" onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;" onchange="updateDPI(parseInt(this.value))" title="Custom DPI">
+                                <datalist id="doc-dpi-options">
+                                    <option value="100">100 (Legacy)</option>
+                                    <option value="300">300 (Standard)</option>
+                                    <option value="600">600 (High Res)</option>
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Orientation</label>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] text-gray-500 font-bold uppercase" id="lbl-port">Port</span>
+                                    <button id="orientation-toggle" onclick="toggleOrientation()" class="w-11 h-6 bg-blue-600 rounded-full relative transition-colors focus:outline-none shrink-0 shadow-inner">
+                                        <div id="orientation-knob" class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-5 transition-all shadow-md"></div>
+                                    </button>
+                                    <span class="text-[9px] text-blue-600 font-bold uppercase" id="lbl-land">Land</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Size</label>
+                            <select id="size-select" class="w-full text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleSizeChange()">
+                                <optgroup label="Playing Cards">
+                                    <option value="2.5x3.5">Standard Poker / TCG (2.5" x 3.5")</option>
+                                    <option value="2.25x3.25">Japanese TCG (2.25" x 3.25")</option>
+                                    <option value="2.25x3.5">Bridge (2.25" x 3.5")</option>
+                                    <option value="2.75x4.75">Tarot (2.75" x 4.75")</option>
+                                    <option value="1.625x2.5">Mini Card (1.625" x 2.5")</option>
+                                </optgroup>
+                                <optgroup label="Index Cards">
+                                    <option value="3x5">3" x 5"</option>
+                                    <option value="4x6" selected>4" x 6"</option>
+                                    <option value="5x8">5" x 8"</option>
+                                </optgroup>
+                                <optgroup label="Business">
+                                    <option value="2x3.5">Business (2" x 3.5")</option>
+                                </optgroup>
+                                <optgroup label="Small Books">
+                                    <option value="4.25x6.87">4.25" x 6.87"</option>
+                                    <option value="5.5x8.5">5.5" x 8.5"</option>
+                                    <option value="6x9">6" x 9"</option>
+                                </optgroup>
+                                <optgroup label="Custom">
+                                    <option value="custom">Custom...</option>
+                                </optgroup>
+                            </select>
+                            <div id="custom-size-inputs" class="hidden mt-2">
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="custom-w" step="0.125" min="0.5" value="3" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+                                    <span class="text-[10px] text-gray-400 font-bold">x</span>
+                                    <input type="number" id="custom-h" step="0.125" min="0.5" value="5" class="w-full border-gray-300 border rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="updateCanvasSettings()">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </details>
             </div>
-            <div class="flex items-center gap-1.5 ml-1 shrink-0">
-                <span class="text-[9px] text-gray-500 font-bold uppercase" id="lbl-port">Port</span>
-                <button id="orientation-toggle" onclick="toggleOrientation()" class="w-11 h-6 bg-blue-600 rounded-full relative transition-colors focus:outline-none shrink-0 shadow-inner">
-                    <div id="orientation-knob" class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-5 transition-all shadow-md"></div>
-                </button>
-                <span class="text-[9px] text-blue-600 font-bold uppercase" id="lbl-land">Land</span>
+
+            <div class="flex items-center gap-2 ml-2 shrink-0">
+                <details id="style-settings" class="relative group">
+                    <summary class="text-[11px] font-semibold bg-white text-gray-600 border border-gray-300 px-2 py-1 rounded cursor-pointer hover:bg-gray-50 [&::-webkit-details-marker]:hidden flex items-center gap-1 shadow-sm">
+                        Style <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </summary>
+                    <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl p-4 rounded-lg z-50 w-56 cursor-default max-h-[75vh] overflow-y-auto hide-scrollbar">
+                        
+                        <!-- FRONT -->
+                        <h4 class="text-[10px] font-bold text-gray-700 uppercase mb-2">Front Pattern</h4>
+                        <select id="bg-select-front" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-full mb-3" onchange="onBgChange(this.value, 'front')">
+                            <option value="bg-blank">Blank</option>
+                            <option value="bg-ruled">Ruled Lines</option>
+                            <option value="bg-grid">Grid</option>
+                            <option value="bg-dotted">Dotted</option>
+                        </select>
+                        <div id="bg-settings-front" class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Line Color</label>
+                                <input type="color" id="bg-color-input-front" value="#cbd5e1" class="w-14 h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateBgSettings('front')">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">Thickness <span class="text-gray-400 normal-case">(px)</span></label>
+                                <input type="number" id="bg-thick-input-front" min="1" max="10" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('front')">
+                            </div>
+                            <div id="bg-grid-opts-front" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Grid Size <span class="unit-lbl">(in)</span></label>
+                                    <input type="number" id="bg-grid-size-input-front" step="0.125" min="0.05" value="0.25" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('front')">
+                                </div>
+                            </div>
+                            <div id="bg-ruled-opts-front" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Spacing <span class="unit-lbl">(in)</span></label>
+                                    <input type="number" id="bg-ruled-spacing-input-front" step="0.125" min="0.1" value="0.31" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('front')">
+                                </div>
+                                <div class="flex justify-between items-center" title="Empty space left at the top">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Skip Top</label>
+                                    <input type="number" id="bg-ruled-skip-input-front" step="1" min="0" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('front')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 my-4"></div>
+                        
+                        <!-- BACK -->
+                        <div id="back-pattern-wrapper" class="opacity-50 pointer-events-none transition-opacity">
+                            <h4 class="text-[10px] font-bold text-gray-700 uppercase mb-2">Back Pattern</h4>
+                            <select id="bg-select-back" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-full mb-3" onchange="onBgChange(this.value, 'back')">
+                                <option value="bg-blank">Blank</option>
+                                <option value="bg-ruled">Ruled Lines</option>
+                                <option value="bg-grid">Grid</option>
+                                <option value="bg-dotted">Dotted</option>
+                            </select>
+                            <div id="bg-settings-back" class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Line Color</label>
+                                    <input type="color" id="bg-color-input-back" value="#cbd5e1" class="w-14 h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateBgSettings('back')">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Thickness <span class="text-gray-400 normal-case">(px)</span></label>
+                                    <input type="number" id="bg-thick-input-back" min="1" max="10" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('back')">
+                                </div>
+                                <div id="bg-grid-opts-back" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Grid Size <span class="unit-lbl">(in)</span></label>
+                                        <input type="number" id="bg-grid-size-input-back" step="0.125" min="0.05" value="0.25" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('back')">
+                                    </div>
+                                </div>
+                                <div id="bg-ruled-opts-back" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Spacing <span class="unit-lbl">(in)</span></label>
+                                        <input type="number" id="bg-ruled-spacing-input-back" step="0.125" min="0.1" value="0.31" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('back')">
+                                    </div>
+                                    <div class="flex justify-between items-center" title="Empty space left at the top">
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase">Skip Top</label>
+                                        <input type="number" id="bg-ruled-skip-input-back" step="1" min="0" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings('back')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </details>
             </div>
+
             <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
                 <label class="flex items-center gap-1 text-xs font-medium text-gray-700 cursor-pointer">
                     <input type="checkbox" id="enable-custom-back" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleCustomBack()">
@@ -505,50 +597,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <button id="btn-edit-front" onclick="switchSide('front')" class="px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors">Front</button>
                     <button id="btn-edit-back" onclick="switchSide('back')" class="px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors">Back</button>
                 </div>
-            </div>
-            <div class="flex items-center gap-1 ml-2 border-l border-gray-300 pl-4 shrink-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Pattern</span>
-                <select id="bg-select" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer w-24" onchange="onBgChange(this.value)">
-                    <option value="bg-blank">Blank</option>
-                    <option value="bg-ruled">Ruled Lines</option>
-                    <option value="bg-grid">Grid</option>
-                    <option value="bg-dotted">Dotted</option>
-                </select>
-                <details id="bg-settings-det" class="relative group opacity-50 pointer-events-none">
-                    <summary id="bg-settings-btn" class="p-1 bg-white border border-gray-300 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50 cursor-pointer shadow-sm list-none [&::-webkit-details-marker]:hidden transition-colors" title="Background Settings">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </summary>
-                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-52 p-3 cursor-default">
-                        <div class="flex flex-col gap-3">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Line Color</label>
-                                <input type="color" id="bg-color-input" value="#cbd5e1" class="w-14 h-6 border-0 p-0 rounded cursor-pointer shadow-sm" oninput="updateBgSettings()">
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">Thickness <span class="text-gray-400 normal-case">(px)</span></label>
-                                <input type="number" id="bg-thick-input" min="1" max="10" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
-                            </div>
-                            
-                            <div id="bg-grid-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Grid Size <span class="unit-lbl">(in)</span></label>
-                                    <input type="number" id="bg-grid-size-input" step="0.125" min="0.05" value="0.25" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
-                                </div>
-                            </div>
-                            
-                            <div id="bg-ruled-opts" class="hidden flex-col gap-3 pt-3 border-t border-gray-200 border-dashed">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Spacing <span class="unit-lbl">(in)</span></label>
-                                    <input type="number" id="bg-ruled-spacing-input" step="0.125" min="0.1" value="0.31" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
-                                </div>
-                                <div class="flex justify-between items-center" title="Empty space left at the top">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase">Skip Top Lines</label>
-                                    <input type="number" id="bg-ruled-skip-input" step="1" min="0" value="1" class="w-16 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm" oninput="updateBgSettings()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </details>
             </div>
             <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
                 <details id="snapping-settings" class="relative group">
@@ -585,11 +633,11 @@ Check your Browserslist config to be sure that your targets are set up correctly
                         </label>
                         <div class="flex flex-col gap-3 pl-6 mb-3 opacity-50 pointer-events-none transition-opacity" id="reverse-ghost-controls">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-[9px] font-bold text-gray-500 uppercase">Side Opacity</span>
+                                <span class="text-[9px] font-bold text-gray-500 uppercase whitespace-nowrap">Side Opacity</span>
                                 <input type="range" id="ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.2" class="w-20 accent-blue-600" oninput="updateGhostLayer()">
                             </div>
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-[9px] font-bold text-gray-500 uppercase">Flip Mode</span>
+                                <span class="text-[9px] font-bold text-gray-500 uppercase whitespace-nowrap">Flip Mode</span>
                                 <select id="ghost-flip" class="text-xs border-gray-300 border rounded p-1 outline-none shadow-sm bg-white" onchange="updateGhostLayer()">
                                     <option value="scaleX(-1)">Horz (Book)</option>
                                     <option value="scaleY(-1)">Vert (Calendar)</option>
@@ -614,6 +662,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
                     </div>
                 </details>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0 border-l border-grey-300 pl-4">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
+                <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
+                    <option value="in">in</option>
+                    <option value="mm">mm</option>
+                </select>
             </div>
             
         </div>
@@ -2133,19 +2189,21 @@ function closeInfoModal() {
     }, 300);
 }
 
-function updateBgSettings() {
+function updateBgSettings(side) {
         const config = {
-            color: document.getElementById('bg-color-input').value,
-            thick: parseFloat(document.getElementById('bg-thick-input').value) || 1,
-            gridSz: parseFloat(document.getElementById('bg-grid-size-input').value) || 0.25,
-            ruleSp: parseFloat(document.getElementById('bg-ruled-spacing-input').value) || 0.31,
-            ruleSkip: parseInt(document.getElementById('bg-ruled-skip-input').value) || 0
+            color: document.getElementById(`bg-color-input-${side}`).value,
+            thick: parseFloat(document.getElementById(`bg-thick-input-${side}`).value) || 1,
+            gridSz: parseFloat(document.getElementById(`bg-grid-size-input-${side}`).value) || 0.25,
+            ruleSp: parseFloat(document.getElementById(`bg-ruled-spacing-input-${side}`).value) || 0.31,
+            ruleSkip: parseInt(document.getElementById(`bg-ruled-skip-input-${side}`).value) || 0
         };
         
-        if (editingSide === 'front') frontBgConfig = config;
+        if (side === 'front') frontBgConfig = config;
         else backBgConfig = config;
 
-        applyBgConfig(config);
+        if (editingSide === side) {
+            applyBgConfig(config);
+        }
         saveState(true);
     }
 
@@ -2165,12 +2223,12 @@ function updateBgSettings() {
         }
     }
 
-    function syncBgUI(config) {
-        document.getElementById('bg-color-input').value = config.color || '#cbd5e1';
-        document.getElementById('bg-thick-input').value = config.thick || 1;
-        document.getElementById('bg-grid-size-input').value = config.gridSz || 0.25;
-        document.getElementById('bg-ruled-spacing-input').value = config.ruleSp || 0.31;
-        document.getElementById('bg-ruled-skip-input').value = config.ruleSkip !== undefined ? config.ruleSkip : 1;
+    function syncBgUI(config, side) {
+        document.getElementById(`bg-color-input-${side}`).value = config.color || '#cbd5e1';
+        document.getElementById(`bg-thick-input-${side}`).value = config.thick || 1;
+        document.getElementById(`bg-grid-size-input-${side}`).value = config.gridSz || 0.25;
+        document.getElementById(`bg-ruled-spacing-input-${side}`).value = config.ruleSp || 0.31;
+        document.getElementById(`bg-ruled-skip-input-${side}`).value = config.ruleSkip !== undefined ? config.ruleSkip : 1;
     }
 
     function updatePrintStats() {
@@ -3450,24 +3508,34 @@ function redo() {
         frontBgConfig = state.frontBgConfig || { ...defaultBgConfig };
         backBgConfig = state.backBgConfig || { ...defaultBgConfig };
         
+        syncBgUI(frontBgConfig, 'front');
+        syncBgUI(backBgConfig, 'back');
+        
+        document.getElementById('bg-select-front').value = frontBgClass;
+        document.getElementById('bg-select-back').value = backBgClass;
+        
+        onBgChange(frontBgClass, 'front', true);
+        onBgChange(backBgClass, 'back', true);
+        
         const activeConfig = editingSide === 'front' ? frontBgConfig : backBgConfig;
-        syncBgUI(activeConfig);
         applyBgConfig(activeConfig);
-        onBgChange(editingSide === 'front' ? frontBgClass : backBgClass, true);
 
         document.getElementById('enable-custom-back').checked = hasCustomBack;
         const sideToggles = document.getElementById('side-toggles');
         const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
         const btnPngBack = document.getElementById('btn-png-back');
+        const backPatternWrapper = document.getElementById('back-pattern-wrapper');
 
         if (hasCustomBack) {
             sideToggles.classList.remove('opacity-50', 'pointer-events-none');
             if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
             if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
+            if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
         } else {
             sideToggles.classList.add('opacity-50', 'pointer-events-none');
             if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
             if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
+            if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
         }
 
         const btnFront = document.getElementById('btn-edit-front');
@@ -3488,7 +3556,12 @@ function redo() {
                 delete e.dataset.baselineZ;
             }
         });
-        document.getElementById('bg-select').value = (editingSide === 'front') ? frontBgClass : backBgClass;
+        
+        const frontSelect = document.getElementById('bg-select-front');
+        const backSelect = document.getElementById('bg-select-back');
+        if (frontSelect) frontSelect.value = frontBgClass;
+        if (backSelect) backSelect.value = backBgClass;
+        
         updateCanvasSettings(true);
 
         document.querySelectorAll('.card-table').forEach(setupTableResizers);
@@ -3512,11 +3585,13 @@ function redo() {
         const sideToggles = document.getElementById('side-toggles');
         const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
         const btnPngBack = document.getElementById('btn-png-back');
+        const backPatternWrapper = document.getElementById('back-pattern-wrapper');
 
         if (hasCustomBack) {
             sideToggles.classList.remove('opacity-50', 'pointer-events-none');
             if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
             if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
+            if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
             
             // --- Auto-enable duplex printing ---
             const duplexCb = document.getElementById('print-duplex');
@@ -3529,6 +3604,7 @@ function redo() {
             sideToggles.classList.add('opacity-50', 'pointer-events-none');
             if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
             if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
+            if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
             const enableGhost = document.getElementById('enable-ghost');
             if (enableGhost) enableGhost.checked = false;
             if (editingSide === 'back') switchSide('front');
@@ -3544,14 +3620,13 @@ function redo() {
         const currentContent = document.getElementById('card-content').innerHTML;
         if (editingSide === 'front') {
             frontContentHTML = currentContent;
-            frontBgClass = document.getElementById('bg-select').value;
+            frontBgClass = document.getElementById('bg-select-front').value;
         } else {
             backContentHTML = currentContent;
-            backBgClass = document.getElementById('bg-select').value;
+            backBgClass = document.getElementById('bg-select-back').value;
         }
 
-const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
-        syncBgUI(nextConfig);
+        const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         applyBgConfig(nextConfig);
 
         editingSide = side;
@@ -3567,7 +3642,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         }
 
         document.getElementById('card-content').innerHTML = (side === 'front') ? frontContentHTML : backContentHTML;
-        document.getElementById('bg-select').value = (side === 'front') ? frontBgClass : backBgClass;
+        document.getElementById('card-canvas').className = (side === 'front') ? frontBgClass : backBgClass;
         updateCanvasSettings(true);
 
         document.querySelectorAll('.card-table').forEach(setupTableResizers);
@@ -3728,10 +3803,10 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
     function saveCurrentSideState() {
         if (editingSide === 'front') {
             frontContentHTML = document.getElementById('card-content').innerHTML;
-            frontBgClass = document.getElementById('bg-select').value;
+            frontBgClass = document.getElementById('bg-select-front').value;
         } else {
             backContentHTML = document.getElementById('card-content').innerHTML;
-            backBgClass = document.getElementById('bg-select').value;
+            backBgClass = document.getElementById('bg-select-back').value;
         }
     }
 
@@ -3805,7 +3880,7 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
 
         canvas.style.width = currentWidth + 'px';
         canvas.style.height = currentHeight + 'px';
-        canvas.className = document.getElementById('bg-select').value;
+        canvas.className = editingSide === 'front' ? frontBgClass : backBgClass;
 
         updateLayoutInputs();
         updateBleedVisualization();
@@ -3818,14 +3893,17 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
         if (typeof updateUILayer === 'function') updateUILayer();
     }
 
-    function onBgChange(val, skipSave = false) {
-        document.getElementById('card-canvas').className = val;
-        if (editingSide === 'front') frontBgClass = val;
+    function onBgChange(val, side, skipSave = false) {
+        if (side === 'front') frontBgClass = val;
         else backBgClass = val;
         
-        const gridOpts = document.getElementById('bg-grid-opts');
-        const ruledOpts = document.getElementById('bg-ruled-opts');
-        const settingsDet = document.getElementById('bg-settings-det');
+        if (editingSide === side) {
+            document.getElementById('card-canvas').className = val;
+        }
+        
+        const gridOpts = document.getElementById(`bg-grid-opts-${side}`);
+        const ruledOpts = document.getElementById(`bg-ruled-opts-${side}`);
+        const settingsDet = document.getElementById(`bg-settings-${side}`);
         
         if (val === 'bg-grid' || val === 'bg-dotted') {
             gridOpts.style.display = 'flex';
@@ -3839,7 +3917,6 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             gridOpts.style.display = 'none';
             ruledOpts.style.display = 'none';
             settingsDet.classList.add('opacity-50', 'pointer-events-none');
-            settingsDet.removeAttribute('open');
         }
         
         if (!skipSave) saveState();
@@ -3853,7 +3930,8 @@ const nextConfig = side === 'front' ? frontBgConfig : backBgConfig;
             'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 
             'safe-margin-top', 'safe-margin-right', 'safe-margin-bottom', 'safe-margin-left',
             'gap-x', 'gap-y', 'custom-w', 'custom-h', 'print-offset-x', 'print-offset-y', 
-            'print-bleed', 'bg-grid-size-input', 'bg-ruled-spacing-input'
+            'print-bleed', 'bg-grid-size-input-front', 'bg-ruled-spacing-input-front',
+            'bg-grid-size-input-back', 'bg-ruled-spacing-input-back'
         ];
         fields.forEach(id => {
             const el = document.getElementById(id);
@@ -9028,6 +9106,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             h: currentHeight,
             land: isLandscape,
             unit: currentUnit,
+            dpi: PX_PER_IN,
             margin: {
                 t: document.getElementById('margin-top').value,
                 r: document.getElementById('margin-right').value,
@@ -9154,12 +9233,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const canvasH = currentHeight * scale;
         const activeBgClass = side === 'front' ? frontBgClass : backBgClass;
         const rawHtml = side === 'front' ? frontContentHTML : backContentHTML;
+        const activeBgConfig = side === 'front' ? frontBgConfig : backBgConfig;
+        
+        const pxPerUnit = getPxPerUnit();
+        const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
         let activeContent = getCleanPrintHTML(rawHtml);
         let maxMergeRows = 0;
         const temp = document.createElement('div');
         temp.innerHTML = activeContent;
 
+        const imagePromises = [];
         temp.querySelectorAll('.element-container').forEach(el => {
             if (el.dataset.mergeData) {
                 try {
@@ -9167,7 +9251,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
                     
                     if (el.dataset.type === 'image') {
-                        updateImageElementDisplay(el, val, true);
+                        imagePromises.push(updateImageElementDisplay(el, val, true));
                     } else {
                         const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
                         if (target && !target.hasAttribute('data-template-raw')) {
@@ -9184,11 +9268,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, globalMergeIndex);
                         let val = pImg || '';
                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                        updateImageElementDisplay(el, val, true);
+                        imagePromises.push(updateImageElementDisplay(el, val, true));
                     } catch(e) {}
                 }
             }
         });
+        await Promise.all(imagePromises);
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
@@ -9207,7 +9292,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
                     <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0;">
                         <style><![CDATA[${customStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
-                        <div class="${activeBgClass}" style="width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
+                        <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
                             ${activeContent}
                         </div>
                     </div>
@@ -9475,11 +9560,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         if (cardIndex < totalLogicalCards || !isDataMerge) {
                             let activeBgClass = frontBgClass;
                             let rawHtml = frontContentHTML;
+                            let activeBgConfig = frontBgConfig;
 
                             if (isBack) {
                                 activeBgClass = hasCustomBack ? backBgClass : frontBgClass;
                                 rawHtml = hasCustomBack ? backContentHTML : frontContentHTML;
+                                activeBgConfig = hasCustomBack ? backBgConfig : frontBgConfig;
                             }
+
+                            const pxPerUnit = getPxPerUnit();
+                            const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
                             let activeContent = getCleanPrintHTML(rawHtml);
                             const temp = document.createElement('div');
@@ -9527,7 +9617,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                            width: ${baseCardWin + 2 * bleedIn}in; height: ${baseCardHin + 2 * bleedIn}in; overflow: hidden; background: transparent;
                                         ">
                                             <div class="${activeBgClass}" style="
-                                                width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
+                                                ${bgStyleVars} width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative;
                                                 transform: scale(${96 / PX_PER_IN}); transform-origin: top left;
                                                 background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                             ">
@@ -9605,6 +9695,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     }
 
     async function executeExport(mode) {
+        setActiveElement(null);
         const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
         try {
             if (mode === 'current') {
@@ -9688,8 +9779,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     });
                 }
 
+                if (settings.dpi) {
+                    PX_PER_IN = settings.dpi;
+                    PX_PER_MM = PX_PER_IN / 25.4;
+                    const dpiSelect = document.getElementById('document-dpi');
+                    if (dpiSelect) dpiSelect.value = settings.dpi;
+                }
+
                 if (settings.w && settings.h) {
-                    let oldDpi = settings.printer?.targetDpi || 100;
+                    let oldDpi = settings.dpi || 100;
                     let wInches = settings.w / oldDpi;
                     let hInches = settings.h / oldDpi;
                     
@@ -9725,6 +9823,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
                 frontBgConfig = settings.bgConfigFront || { ...defaultBgConfig };
                 backBgConfig = settings.bgConfigBack || { ...defaultBgConfig };
+                
+                syncBgUI(frontBgConfig, 'front');
+                syncBgUI(backBgConfig, 'back');
+                
+                document.getElementById('bg-select-front').value = frontBgClass;
+                document.getElementById('bg-select-back').value = backBgClass;
+                
+                onBgChange(frontBgClass, 'front', true);
+                onBgChange(backBgClass, 'back', true);
 
                 hasCustomBack = settings.hasCustomBack || false;
                 mergeSources = settings.mergeSources || {};
@@ -9806,15 +9913,18 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 const sideToggles = document.getElementById('side-toggles');
                 const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
                 const btnPngBack = document.getElementById('btn-png-back');
+                const backPatternWrapper = document.getElementById('back-pattern-wrapper');
 
                 if (hasCustomBack) {
                     sideToggles.classList.remove('opacity-50', 'pointer-events-none');
                     if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
                     if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
+                    if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
                 } else {
                     sideToggles.classList.add('opacity-50', 'pointer-events-none');
                     if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
                     if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
+                    if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
                     const enableGhost = document.getElementById('enable-ghost');
                     if (enableGhost) enableGhost.checked = false;
                 }
@@ -9895,7 +10005,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             editingSide = 'front';
             document.getElementById('card-content').innerHTML = frontContentHTML;
-            document.getElementById('bg-select').value = frontBgClass;
+            document.getElementById('card-canvas').className = frontBgClass;
             updateCanvasSettings();
 
             const btnFront = document.getElementById('btn-edit-front');
@@ -9968,7 +10078,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         return temp.innerHTML;
     }
 
-    function prepareAndPrint() {
+    async function prepareAndPrint() {
         setActiveElement(null);
         isDragging = false;
         saveCurrentSideState();
@@ -10160,16 +10270,22 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         if (cardIndex < totalLogicalCards || !isDataMerge) {
                             let activeBgClass = frontBgClass;
                             let rawHtml = frontContentHTML;
+                            let activeBgConfig = frontBgConfig;
 
                             if (isBack) {
                                 activeBgClass = hasCustomBack ? backBgClass : frontBgClass;
                                 rawHtml = hasCustomBack ? backContentHTML : frontContentHTML;
+                                activeBgConfig = hasCustomBack ? backBgConfig : frontBgConfig;
                             }
+
+                            const pxPerUnit = getPxPerUnit();
+                            const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
                             let activeContent = getCleanPrintHTML(rawHtml);
                             if (isDataMerge) {
                                 const temp = document.createElement('div');
                                 temp.innerHTML = activeContent;
+                                const imagePromises = [];
                                 temp.querySelectorAll('.element-container').forEach(el => {
                                     if (el.dataset.mergeData) {
                                         try {
@@ -10177,7 +10293,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                             const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
                                             
                                             if (el.dataset.type === 'image') {
-                                                updateImageElementDisplay(el, val, true);
+                                                imagePromises.push(updateImageElementDisplay(el, val, true));
                                             } else {
                                                 const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
                                                 if (target && !target.hasAttribute('data-template-raw')) {
@@ -10195,11 +10311,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                                 const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
                                                 let val = pImg || '';
                                                 if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                                                updateImageElementDisplay(el, val, true);
+                                                imagePromises.push(updateImageElementDisplay(el, val, true));
                                             } catch(e) {}
                                         }
                                     }
                                 });
+                                await Promise.all(imagePromises);
                                 
                                 temp.querySelectorAll('[data-template-raw]').forEach(el => {
                                     el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
@@ -10227,7 +10344,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${currentWidth + 2 * bleedPx} ${currentHeight + 2 * bleedPx}">
                                                 <foreignObject x="0" y="0" width="${currentWidth + 2 * bleedPx}" height="${currentHeight + 2 * bleedPx}">
                                                     <div xmlns="http://www.w3.org/1999/xhtml" class="${activeBgClass}" style="
-                                                        width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative; overflow: hidden; background-color: white; margin: 0; padding: 0;
+                                                        ${bgStyleVars} width: ${currentWidth + 2 * bleedPx}px; height: ${currentHeight + 2 * bleedPx}px; position: relative; overflow: hidden; background-color: white; margin: 0; padding: 0;
                                                         background-position: ${activeBgClass === 'bg-ruled' ? `${bleedPx}px ${bleedPx}px, ${bleedPx}px calc(var(--bg-rule-top) + ${bleedPx}px)` : `${bleedPx}px ${bleedPx}px`};
                                                     ">
                                                         <div style="position: absolute; top: ${bleedPx}px; left: ${bleedPx}px; width: ${currentWidth}px; height: ${currentHeight}px;">
