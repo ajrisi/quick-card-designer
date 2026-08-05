@@ -98,6 +98,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
     <!-- END TAILWIND INJECTION -->
     <style>
         /* Base Application Layout */
+        html, body { overscroll-behavior: none; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
         * { box-sizing: border-box; }
         .canvas-container { flex-grow: 1; display: block; overflow: hidden; position: relative; }
@@ -313,8 +314,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
 }
 /* Mobile & Touch Optimizations */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        #canvas-container { touch-action: none; } /* Prevents page-pull-to-refresh while dragging */
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: none; }
+        #canvas-container { touch-action: none; overscroll-behavior: none; } /* Prevents page-pull-to-refresh while dragging */
     </style>
 </head>
 
@@ -432,10 +433,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
     </header>
 
-    <div class="px-4 py-2 flex items-center justify-between gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
+    <div class="px-4 flex items-center justify-between gap-4 text-sm border-b bg-gray-50/80 shrink-0 z-20 shadow-sm relative w-full overflow-visible">
         
         <!-- Mobile Swipeable Left Section -->
-        <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar flex-nowrap py-0.5 min-w-0 flex-1">
+        <div class="flex items-center gap-4 overflow-x-auto hide-scrollbar flex-nowrap py-2 min-w-0 flex-1">
             
             <div class="flex items-center gap-2 shrink-0">
                 <details id="doc-settings" class="relative group">
@@ -712,7 +713,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </details>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0 border-l border-grey-300 pl-4">
+            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
                 <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
                     <option value="in">in</option>
@@ -723,14 +724,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
         </div>
 
         <!-- Fixed Right Section (Print & Export Options) -->
-        <div id="print-and-layout" class="ml-auto flex items-center pl-2 gap-2">
-            
+        <div id="print-and-layout" class="ml-auto flex items-center pl-2 gap-2 py-2">
             
 
-            <!-- PRINT MENU -->
-            <details class="relative group shrink-0">
-                <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-gray-900 text-white rounded cursor-pointer flex items-center gap-1.5 hover:bg-gray-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Layout & Print Options">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- PRINT MENU -->
+        <details class="relative group shrink-0">
+            <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-gray-900 text-white rounded cursor-pointer flex items-center gap-1.5 hover:bg-gray-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Layout & Print Options">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <!-- Top Paper -->
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 9V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v4" />
     <!-- Printer Body -->
@@ -1024,7 +1024,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
 
 
-    <div id="element-settings" class="px-4 py-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
+    <div id="element-settings" class="px-4 pt-1.5 pb-2 flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-4 border-b bg-white opacity-50 pointer-events-none transition-opacity duration-300 min-h-[50px] shrink-0 w-full z-10 shadow-sm relative">
         <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold hidden shrink-0" id="selection-badge">Active</span>
         <div id="layout-controls" class="flex items-center gap-3 shrink-0">
             <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
@@ -1500,7 +1500,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         <!-- Vertical Left-Aligned Toolbar -->
 
 
-<div id="new-element-toolbar" class="absolute left-4 top-4 flex flex-col items-center bg-white/95 p-2 rounded-xl border border-gray-200 gap-3 shadow-lg z-[60] w-16">
+<div id="new-element-toolbar" class="absolute left-4 top-4 flex flex-col items-center bg-white/95 p-2 rounded-xl border border-gray-200 gap-3 shadow-lg z-[60] w-16 max-h-[calc(100%-32px)] overflow-y-auto hide-scrollbar" onwheel="event.stopPropagation()">
     <button onclick="addElement('title')" class="flex flex-col items-center justify-center w-full p-2 rounded-lg hover:bg-blue-50 transition-all group" title="Add Title">
         <span class="font-serif font-bold text-2xl leading-none text-gray-600 group-hover:text-blue-600 mb-1">T</span>
         <span class="text-[10px] font-bold text-gray-400  tracking-wider group-hover:text-blue-500">Title</span>
@@ -1755,7 +1755,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </button>
             </div>
             <p class="text-gray-600 text-sm mb-3 leading-relaxed">
-                This is a completely free, browser-based layout engine tailored for flash cards, recipie cards, and other small print formats. Quick Card Designer generates commplete ready-to-print files, with support for data fields, printer hardware calibration and more.
+                This is a completely free, browser-based layout engine tailored for flash cards, recipie cards, and other small print formats. Quick Card Designer generates complete ready-to-print files, with support for data fields, printer hardware calibration and more.
             </p>
             <p class="text-gray-600 text-sm mb-4 leading-relaxed">
                 If you find this tool helpful for your projects, consider leaving a tip to support its continued development!
@@ -3055,20 +3055,76 @@ function updateBgSettings(side) {
             }
         }, true);
 
-        // 2. Automatically close dropdowns if the user swipes the toolbar
-        document.querySelectorAll('.overflow-x-auto.hide-scrollbar').forEach(scrollContainer => {
+        // 2. Automatically close dropdowns and update custom painted scroll indicators
+        const updateScrollIndicator = (el) => {
+            const isX = el.scrollWidth > el.clientWidth;
+            const isY = el.scrollHeight > el.clientHeight;
+            
+            if (!isX && !isY) {
+                el.style.backgroundImage = 'none';
+                return;
+            }
+            
+            let bgImage = [], bgSize = [], bgPos = [];
+            
+            if (isX) {
+                const ratio = el.clientWidth / el.scrollWidth;
+                if (ratio < 1) {
+                    const start = (el.scrollLeft / el.scrollWidth) * 100;
+                    const end = start + (ratio * 100);
+                    el.style.setProperty('--sx-start', start + '%');
+                    el.style.setProperty('--sx-end', end + '%');
+                    bgImage.push('linear-gradient(to right, transparent var(--sx-start), #e6e6e6 var(--sx-start), #e6e6e6 var(--sx-end), transparent var(--sx-end))');
+                    bgSize.push('100% 1px');
+                    bgPos.push('bottom left');
+                }
+            }
+            if (isY) {
+                const ratio = el.clientHeight / el.scrollHeight;
+                if (ratio < 1) {
+                    const start = (el.scrollTop / el.scrollHeight) * 100;
+                    const end = start + (ratio * 100);
+                    el.style.setProperty('--sy-start', start + '%');
+                    el.style.setProperty('--sy-end', end + '%');
+                    bgImage.push('linear-gradient(to bottom, transparent var(--sy-start), #e6e6e6 var(--sy-start), #e6e6e6 var(--sy-end), transparent var(--sy-end))');
+                    bgSize.push('1px 100%');
+                    bgPos.push('top right');
+                }
+            }
+            
+            if (bgImage.length > 0) {
+                el.style.backgroundImage = bgImage.join(', ');
+                el.style.backgroundSize = bgSize.join(', ');
+                el.style.backgroundPosition = bgPos.join(', ');
+                el.style.backgroundRepeat = 'no-repeat';
+                el.style.backgroundAttachment = 'scroll'; // Fixes it strictly to the viewport border
+            } else {
+                el.style.backgroundImage = 'none';
+            }
+        };
+
+        const scrollerObserver = new ResizeObserver((entries) => {
+            entries.forEach(entry => updateScrollIndicator(entry.target));
+        });
+
+        document.querySelectorAll('.hide-scrollbar').forEach(scrollContainer => {
+            scrollerObserver.observe(scrollContainer);
+            
             scrollContainer.addEventListener('scroll', () => {
                 document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
                 if (typeof closeFontDropdown === 'function') closeFontDropdown();
+                updateScrollIndicator(scrollContainer);
             }, { passive: true });
 
-            scrollContainer.addEventListener('wheel', (e) => {
-                // If the user scrolls vertically with a standard mouse wheel, translate it to a side-swipe
-                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-                    e.preventDefault();
-                    scrollContainer.scrollLeft += e.deltaY;
-                }
-            }, { passive: false });
+            if (scrollContainer.classList.contains('overflow-x-auto')) {
+                scrollContainer.addEventListener('wheel', (e) => {
+                    // If the user scrolls vertically with a standard mouse wheel, translate it to a side-swipe
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.preventDefault();
+                        scrollContainer.scrollLeft += e.deltaY;
+                    }
+                }, { passive: false });
+            }
         });
 
         
