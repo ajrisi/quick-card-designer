@@ -9265,15 +9265,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 const inst = pluginInstances[el.dataset.pluginImageId];
                 if (inst && typeof inst.renderTemplateImage === 'function') {
                     try {
-                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, globalMergeIndex);
-                        let val = pImg || '';
-                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                        imagePromises.push(updateImageElementDisplay(el, val, true));
-                    } catch(e) {}
+                        const ctx = getPluginContext(globalMergeIndex);
+                            const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                            let val = pImg || '';
+                            if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                            imagePromises.push(updateImageElementDisplay(el, val, true));
+                        } catch(e) {}
+                    }
                 }
-            }
-        });
-        await Promise.all(imagePromises);
+            });
+            await Promise.all(imagePromises);
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
@@ -9572,34 +9573,50 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
                             let activeContent = getCleanPrintHTML(rawHtml);
-                            const temp = document.createElement('div');
-                            temp.innerHTML = activeContent;
+                        const temp = document.createElement('div');
+                        temp.innerHTML = activeContent;
 
-                            if (isDataMerge) {
-                                temp.querySelectorAll('.element-container').forEach(el => {
-                                    if (el.dataset.mergeData) {
-                                        try {
-                                            const data = JSON.parse(el.dataset.mergeData);
-                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
-                                            
-                                            if (el.dataset.type === 'image') {
-                                                updateImageElementDisplay(el, val, true);
-                                            } else {
-                                                const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                                                if (target) {
-                                                    target.textContent = val;
-                                                    parseMarkdownInElement(target);
-                                                    target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
-                                                }
-                                            }
-                                        } catch (e) {}
+                        const imagePromises = [];
+                        temp.querySelectorAll('.element-container').forEach(el => {
+                            if (el.dataset.mergeData) {
+                                try {
+                                    const data = JSON.parse(el.dataset.mergeData);
+                                    const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
+                                    
+                                    if (el.dataset.type === 'image') {
+                                        imagePromises.push(updateImageElementDisplay(el, val, true));
+                                    } else {
+                                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                        if (target && !target.hasAttribute('data-template-raw')) {
+                                            target.textContent = val;
+                                            parseMarkdownInElement(target);
+                                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
+                                        }
                                     }
-                                });
+                                } catch (e) {}
+                            } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
+                                const inst = pluginInstances[el.dataset.pluginImageId];
+                                if (inst && typeof inst.renderTemplateImage === 'function') {
+                                    try {
+                                        const ctx = getPluginContext(cardIndex);
+                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                        let val = pImg || '';
+                                        if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                                        imagePromises.push(updateImageElementDisplay(el, val, true));
+                                    } catch(e) {}
+                                }
                             }
-                            
-                            // format xml for svg engine
-                            temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-                            activeContent = new XMLSerializer().serializeToString(temp);
+                        });
+                        await Promise.all(imagePromises);
+                        
+                        temp.querySelectorAll('[data-template-raw]').forEach(el => {
+                            el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+                            parseMarkdownInElement(el);
+                        });
+
+                        // format xml for svg engine
+                        temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+                        activeContent = new XMLSerializer().serializeToString(temp);
 
                             const bleedPx = bleedIn * PX_PER_IN;
                             let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
@@ -10282,49 +10299,48 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                             const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
                             let activeContent = getCleanPrintHTML(rawHtml);
-                            if (isDataMerge) {
-                                const temp = document.createElement('div');
-                                temp.innerHTML = activeContent;
-                                const imagePromises = [];
-                                temp.querySelectorAll('.element-container').forEach(el => {
-                                    if (el.dataset.mergeData) {
-                                        try {
-                                            const data = JSON.parse(el.dataset.mergeData);
-                                            const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
-                                            
-                                            if (el.dataset.type === 'image') {
-                                                imagePromises.push(updateImageElementDisplay(el, val, true));
-                                            } else {
-                                                const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
-                                                if (target && !target.hasAttribute('data-template-raw')) {
-                                                    target.textContent = val;
-                                                    parseMarkdownInElement(target);
-                                                    target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
-                                                }
+                            
+                            const temp = document.createElement('div');
+                            temp.innerHTML = activeContent;
+                            const imagePromises = [];
+                            temp.querySelectorAll('.element-container').forEach(el => {
+                                if (el.dataset.mergeData) {
+                                    try {
+                                        const data = JSON.parse(el.dataset.mergeData);
+                                        const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
+                                        
+                                        if (el.dataset.type === 'image') {
+                                            imagePromises.push(updateImageElementDisplay(el, val, true));
+                                        } else {
+                                            const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                            if (target && !target.hasAttribute('data-template-raw')) {
+                                                target.textContent = val;
+                                                parseMarkdownInElement(target);
+                                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                                             }
-                                        } catch (e) {}
-                                    } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
-                                        const inst = pluginInstances[el.dataset.pluginImageId];
-                                        if (inst && typeof inst.renderTemplateImage === 'function') {
-                                            try {
-                                                const ctx = getPluginContext(cardIndex);
-                                                const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
-                                                let val = pImg || '';
-                                                if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                                                imagePromises.push(updateImageElementDisplay(el, val, true));
-                                            } catch(e) {}
                                         }
+                                    } catch (e) {}
+                                } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
+                                    const inst = pluginInstances[el.dataset.pluginImageId];
+                                    if (inst && typeof inst.renderTemplateImage === 'function') {
+                                        try {
+                                            const ctx = getPluginContext(cardIndex);
+                                            const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                            let val = pImg || '';
+                                            if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                                            imagePromises.push(updateImageElementDisplay(el, val, true));
+                                        } catch(e) {}
                                     }
-                                });
-                                await Promise.all(imagePromises);
-                                
-                                temp.querySelectorAll('[data-template-raw]').forEach(el => {
-                                    el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
-                                    parseMarkdownInElement(el);
-                                });
-                                
-                                activeContent = temp.innerHTML;
-                            }
+                                }
+                            });
+                            await Promise.all(imagePromises);
+                            
+                            temp.querySelectorAll('[data-template-raw]').forEach(el => {
+                                el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+                                parseMarkdownInElement(el);
+                            });
+                            
+                            activeContent = temp.innerHTML;
 
                             const bleedPx = bleedIn * PX_PER_IN;
                             let maxBleedTop = (gridR === 0) ? bleedIn : Math.min(bleedIn, gapYIn / 2);
