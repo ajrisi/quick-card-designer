@@ -292,6 +292,18 @@ Check your Browserslist config to be sure that your targets are set up correctly
             box-sizing: border-box; min-height: 0 !important; min-width: 0 !important; overflow: hidden; 
         }
         #print-area { display: none; }
+
+        /* Custom standard blink caret for title hover */
+        @keyframes caret-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .title-caret::after { 
+            content: ''; display: inline-block; width: 1.5px; height: 1.1em; 
+            background-color: #1f2937; vertical-align: middle; 
+            transform: translateY(-2px); margin-left: 4px; opacity: 0; 
+        }
+        .group:hover .title-caret::after { animation: caret-blink 1.06s step-end infinite; }
+        .group:focus-within .title-caret::after { opacity: 0 !important; animation: none !important; }
+
+
         /* Hide individual controls when participating in a multi-select group */
 .element-container.hide-controls > .controls { 
     display: none !important; 
@@ -329,7 +341,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
             </button>
-            <input type="text" id="project-name" value="Quick Card Designer" class="text-lg font-bold tracking-tight text-gray-900 truncate bg-transparent border-transparent hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded outline-none px-2 py-0.5 -ml-2 transition-all w-full cursor-text min-w-0" oninput="updateWindowTitle()" onchange="saveState()" title="Click to rename project">
+            <div class="inline-grid items-center group max-w-full relative">
+                <input type="text" id="project-name" value="Quick Card Designer" class="col-start-1 row-start-1 text-lg font-bold tracking-tight text-gray-900 bg-transparent border-none outline-none m-0 p-0 z-10 w-full truncate leading-normal" oninput="document.getElementById('project-name-sizer').textContent = this.value || ' '; updateWindowTitle()" onchange="saveState()" title="Click to rename project">
+                <span id="project-name-sizer" class="col-start-1 row-start-1 text-lg font-bold tracking-tight text-transparent whitespace-pre border-none m-0 p-0 pointer-events-none max-w-full truncate leading-normal title-caret" aria-hidden="true">Quick Card Designer</span>
+            </div>
         </div>
 
         <!-- Right Section (Absolute on small screens to overlap truncating title) -->
@@ -348,7 +363,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
 
             <div class="relative group shrink-0">
-                <button id="btn-new-card" class="p-1.5 md:px-3 md:py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 select-none" title="New Card (Hold for options)">
+                <button id="btn-new-card" class="p-1.5 md:px-3 md:py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 hover:text-emerald-800 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 select-none" title="New Card (Hold for options)">
                     <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -363,7 +378,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
 
             <div class="relative group shrink-0">
-                <label id="btn-open-card" class="p-1.5 md:px-3 md:py-1.5 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap shrink-0 mb-0 select-none" title="Open Card (Hold for options)">
+                <label id="btn-open-card" class="p-1.5 md:px-3 md:py-1.5 bg-sky-50 text-sky-700 border border-sky-200 rounded hover:bg-sky-100 hover:text-sky-800 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap shrink-0 mb-0 select-none" title="Open Card (Hold for options)">
                     <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                     </svg>
@@ -378,7 +393,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
             </div>
 
-            <button onclick="downloadCard()" class="p-1.5 md:px-3 md:py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0" title="Save Card">
+            <button onclick="downloadCard()" class="p-1.5 md:px-3 md:py-1.5 bg-violet-50 text-violet-700 border border-violet-200 rounded hover:bg-violet-100 hover:text-violet-800 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0" title="Save Card">
                 <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
@@ -387,7 +402,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
             <!-- EXPORT MENU -->
             <details class="relative group shrink-0">
-                <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-indigo-100 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Export">
+                <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-fuchsia-100 hover:text-fuchsia-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Export">
                     <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     <span class="hidden md:inline">Export</span>
                 </summary>
@@ -3576,7 +3591,10 @@ function updateBgSettings(side) {
                     toggleOrientation(); 
                 }
                 
-                if (data.projectName) document.getElementById('project-name').value = data.projectName;
+                if (data.projectName) {
+                    document.getElementById('project-name').value = data.projectName;
+                    if (document.getElementById('project-name-sizer')) document.getElementById('project-name-sizer').textContent = data.projectName;
+                }
                 updateWindowTitle();
 
                 updateCanvasSettings(true); // skip center override
@@ -10807,7 +10825,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         if (canvas) canvas.style.transition = 'none';
 
         const nameInput = document.getElementById('project-name');
-        if (nameInput && baseName) nameInput.value = baseName;
+        if (nameInput && baseName) {
+            nameInput.value = baseName;
+            if (document.getElementById('project-name-sizer')) document.getElementById('project-name-sizer').textContent = baseName;
+        }
 
         // Repair old save files that had unescaped single quotes inside the JSON attribute
         contents = contents.replace(/data-card-settings='(\{[\s\S]*?\})'\s+(data-card-html(?:-front)?=)/, (match, jsonStr, nextAttr) => {
