@@ -1208,38 +1208,32 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     </div>
                 </details>
 
-            <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
-    <span class="text-[9px] font-bold text-gray-400 uppercase">Justify</span>
-    <select id="text-justify-mode" class="text-[9px] uppercase font-bold text-gray-600 border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyJustifyMode(this.value)">
-        <option value="auto">Auto</option>
-        <option value="inter-word">By Word</option>
-        <option value="inter-character">By Char</option>
-    </select>
-</div>
 
-<div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
-    <span class="text-[9px] font-bold text-gray-400 uppercase">Line Ht</span>
-    <input type="number" id="line-height" step="0.1" value="1.5" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('lineHeight', this.value)" title="Line Height">
-</div>
-
-<div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
-    <span class="text-[9px] font-bold text-gray-400 uppercase">Spacing</span>
-    <input type="number" id="letter-spacing" step="0.5" value="0" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('letterSpacing', this.value + 'px')" title="Letter Spacing (px)">
-</div>
-            
             <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
                 <div class="flex rounded shadow-sm border border-gray-300">
-                    <button onclick="applyAlignment('flex-start', 'left')" title="Align Left" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path></svg></button>
-                    <button onclick="applyAlignment('center', 'center')" title="Align Center" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"></path></svg></button>
-                    <button onclick="applyAlignment('flex-end', 'right')" title="Align Right" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"></path></svg></button>
-                    <button onclick="applyAlignment('center', 'justify')" title="Justify" class="p-1 bg-white hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+                    <button id="btn-align-left" onclick="applyAlignment('flex-start', 'left')" title="Align Left" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path></svg></button>
+                    <button id="btn-align-center" onclick="applyAlignment('center', 'center')" title="Align Center" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"></path></svg></button>
+                    <button id="btn-align-right" onclick="applyAlignment('flex-end', 'right')" title="Align Right" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"></path></svg></button>
+                    <button id="btn-align-justify" onclick="applyAlignment('flex-start', 'justify')" title="Justify" class="p-1 bg-white hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
                 </div>
-                <div id="vertical-align-group" class="hidden rounded shadow-sm border border-gray-300">
-                    <button onclick="applyVerticalAlignment('flex-start')" title="Align Top" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16 M12 8v12 M9 11l3-3 3 3"></path></svg></button>
-                    <button onclick="applyVerticalAlignment('center')" title="Align Middle" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16 M12 4v4 M9 7l3 3 3-3 M12 20v-4 M9 17l3-3 3 3"></path></svg></button>
-                    <button onclick="applyVerticalAlignment('flex-end')" title="Align Bottom" class="p-1 bg-white hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16 M12 4v12 M9 13l3 3 3-3"></path></svg></button>
+                <div id="vertical-align-group" class="hidden rounded shadow-sm border border-gray-300 ml-1.5">
+                    <button id="btn-valign-flex-start" onclick="applyVerticalAlignment('flex-start')" title="Align Top" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16 M12 8v12 M9 11l3-3 3 3"></path></svg></button>
+                    <button id="btn-valign-center" onclick="applyVerticalAlignment('center')" title="Align Middle" class="p-1 bg-white border-r border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16 M12 4v4 M9 7l3 3 3-3 M12 20v-4 M9 17l3-3 3 3"></path></svg></button>
+                    <button id="btn-valign-flex-end" onclick="applyVerticalAlignment('flex-end')" title="Align Bottom" class="p-1 bg-white hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16 M12 4v12 M9 13l3 3 3-3"></path></svg></button>
                 </div>
             </div>
+
+            <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Line Ht</span>
+                <input type="number" id="line-height" step="0.1" value="1.5" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('lineHeight', this.value)" title="Line Height">
+            </div>
+
+            <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Spacing</span>
+                <input type="number" id="letter-spacing" step="0.5" value="0" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('letterSpacing', this.value + 'px')" title="Letter Spacing (px)">
+            </div>
+            
+            
             
         </div>
 
@@ -5546,29 +5540,6 @@ function redo() {
         saveState();
     }
 
-    function applyJustifyMode(mode) {
-    if (activeElements.length === 0) return;
-
-    activeElements.forEach(el => {
-        // Find the correct editable target (handles both text boxes and table cells)
-        let target = el.querySelector('div[contenteditable="true"]') || el;
-        if (el.dataset.type === 'table') {
-            const scope = document.getElementById('align-scope').value;
-            target = (activeTableCell && el.contains(activeTableCell) && scope === 'cell') 
-                ? activeTableCell.querySelector('.cell-text') 
-                : target;
-        }
-
-        if (target) {
-            // text-justify ONLY works if text-align is set to justify
-            target.style.textAlign = 'justify';
-            target.style.textJustify = mode;
-        }
-    });
-    
-    saveState(true);
-}
-
     function applyAlignment(flexVal, textVal) {
         if (activeElements.length === 0) return;
 
@@ -5581,6 +5552,7 @@ function redo() {
                     if (inner) {
                         inner.style.alignItems = flexVal;
                         inner.style.textAlign = textVal;
+                        inner.style.textAlignLast = 'auto';
                     }
                 };
 
@@ -5601,9 +5573,13 @@ function redo() {
                 }
             } else {
                 const target = el.querySelector('div[contenteditable="true"]') || el;
-                if (target) target.style.textAlign = textVal;
+                if (target) {
+                    target.style.textAlign = textVal;
+                    target.style.textAlignLast = (el.dataset.type === 'title' && textVal === 'justify') ? 'justify' : 'auto';
+                }
             }
         });
+        syncUISettingsWithActiveElement();
         saveState();
     }
 
@@ -5643,6 +5619,7 @@ function redo() {
                 }
             }
         });
+        syncUISettingsWithActiveElement();
         saveState();
     }
 
@@ -6171,12 +6148,33 @@ function redo() {
 const tracking = parseFloat(target.style.letterSpacing);
 document.getElementById('letter-spacing').value = isNaN(tracking) ? 0 : tracking;
 
-// Sync Justify Mode
-if (target.style.textAlign === 'justify' && target.style.textJustify) {
-    document.getElementById('text-justify-mode').value = target.style.textJustify;
-} else {
-    document.getElementById('text-justify-mode').value = 'auto';
-}
+const align = target.style.textAlign || 'left';
+            ['left', 'center', 'right', 'justify'].forEach(a => {
+                const btn = document.getElementById(`btn-align-${a}`);
+                if (btn) {
+                    if (align === a) {
+                        btn.classList.add('bg-blue-50', 'text-blue-700');
+                        btn.classList.remove('bg-white', 'text-gray-600');
+                    } else {
+                        btn.classList.add('bg-white', 'text-gray-600');
+                        btn.classList.remove('bg-blue-50', 'text-blue-700');
+                    }
+                }
+            });
+
+            const valign = target.style.justifyContent || 'flex-start';
+            ['flex-start', 'center', 'flex-end'].forEach(a => {
+                const btn = document.getElementById(`btn-valign-${a}`);
+                if (btn) {
+                    if (valign === a) {
+                        btn.classList.add('bg-blue-50', 'text-blue-700');
+                        btn.classList.remove('bg-white', 'text-gray-600');
+                    } else {
+                        btn.classList.add('bg-white', 'text-gray-600');
+                        btn.classList.remove('bg-blue-50', 'text-blue-700');
+                    }
+                }
+            });
 
 // Sync Line Height
 const leading = parseFloat(target.style.lineHeight);
@@ -10369,7 +10367,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         });
         await Promise.all(imagePromises);
 
-            
+
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
