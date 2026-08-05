@@ -1555,6 +1555,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
     </button>   
 </div>
 
+        <div id="drag-overlay" class="absolute inset-0 z-[9999] bg-blue-500/20 border-4 border-blue-500 border-dashed pointer-events-none hidden items-center justify-center flex-col backdrop-blur-sm transition-opacity duration-300 opacity-0">
+            <div class="bg-white p-4 rounded-xl shadow-xl flex items-center gap-3">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800">Drop to Add to Canvas</h2>
+                    <p class="text-xs text-gray-500">Supports Images (.png, .jpg, .svg) and Data (.csv)</p>
+                </div>
+            </div>
+        </div>
+
         <div id="ui-bleed" class="absolute hidden border border-red-500 border-dashed bg-red-500/10 pointer-events-none z-0"></div>
         <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0;">
             <div id="card-canvas" class="bg-blank">
@@ -3579,6 +3589,157 @@ function updateBgSettings(side) {
                 document.getElementById('csv-editor-gutter').scrollTop = e.target.scrollTop;
             });
         }
+
+        // --- GLOBAL DRAG AND DROP HANDLER ---
+        let dragCounter = 0;
+        const dropOverlay = document.getElementById('drag-overlay');
+        
+        document.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            if (dropOverlay) {
+                dropOverlay.style.display = 'flex';
+                dropOverlay.classList.remove('hidden');
+                setTimeout(() => dropOverlay.classList.replace('opacity-0', 'opacity-100'), 10);
+            }
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0 && dropOverlay) {
+                dropOverlay.classList.replace('opacity-100', 'opacity-0');
+                setTimeout(() => {
+                    dropOverlay.classList.add('hidden');
+                    dropOverlay.style.display = '';
+                }, 300);
+            }
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Necessary to allow dropping
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            if (dropOverlay) {
+                dropOverlay.classList.replace('opacity-100', 'opacity-0');
+                setTimeout(() => {
+                    dropOverlay.classList.add('hidden');
+                    dropOverlay.style.display = '';
+                }, 300);
+            }
+
+            if (!e.dataTransfer || !e.dataTransfer.files) return;
+
+            // Calculate precise drop coordinates
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const dropX = (e.clientX - containerRect.left - panX) / canvasScale;
+            const dropY = (e.clientY - containerRect.top - panY) / canvasScale;
+
+            const files = Array.from(e.dataTransfer.files);
+            let imageIndex = 0;
+            
+            files.forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                
+                // Handle Images
+                if (file.type.startsWith('image/') || ext === 'svg') {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const dataUrl = ev.target.result;
+                        imageAssets[file.name] = dataUrl;
+                        
+                        const p = (val) => Math.round(val * (PX_PER_IN / 100));
+                        const tempImg = new Image();
+                        tempImg.onload = function() {
+                            let w = tempImg.naturalWidth;
+                            let h = tempImg.naturalHeight;
+                            const maxDim = p(200);
+                            if (w > maxDim || h > maxDim) {
+                                const ratio = Math.min(maxDim / w, maxDim / h);
+                                w = Math.round(w * ratio);
+                                h = Math.round(h * ratio);
+                            }
+                            w = Math.max(p(20), w);
+                            h = Math.max(p(20), h);
+                            
+                            const contentArea = document.getElementById('card-content');
+                            if (!contentArea) return;
+
+                            const el = document.createElement('div');
+                            el.className = 'element-container bg-transparent';
+                            el.style.zIndex = zIndexCounter++;
+                            el.dataset.type = 'image';
+                            el.dataset.imageBankKey = file.name;
+                            el.dataset.objectFit = 'contain';
+                            el.dataset.objectPositionX = 'center';
+                            el.dataset.objectPositionY = 'center';
+                            el.dataset.imageScale = '1';
+
+                            const innerContent = getBaseImageContentHTML(w, h, dataUrl, file.name, 'contain', 'center', 'center');
+                            el.innerHTML = getControlsHTML(false) + innerContent;
+                            contentArea.appendChild(el);
+
+                            // Center exactly on the user's cursor drop point, offset slightly if dropping multiple files
+                            const res = el.querySelector('.resizable');
+                            const elW = res ? res.offsetWidth : el.offsetWidth;
+                            const elH = res ? res.offsetHeight : el.offsetHeight;
+                            const cascade = imageIndex * (PX_PER_IN / 10);
+                            el.style.left = (dropX - (elW / 2) + cascade) + 'px';
+                            el.style.top = (dropY - (elH / 2) + cascade) + 'px';
+                            imageIndex++;
+
+                            setActiveElement(el);
+                            renderImageBankItems();
+                            saveState(true);
+                            showToast(`Added ${file.name} to canvas`);
+                        };
+                        tempImg.src = dataUrl;
+                    };
+                    reader.readAsDataURL(file);
+                } 
+                // Handle Data (CSV/TXT)
+                else if (ext === 'csv' || ext === 'txt') {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const text = ev.target.result;
+                        let data = [];
+                        if (ext === 'csv') {
+                            data = parseCSV(text);
+                        } else {
+                            data = text.split(/\r?\n/).map(line => [line]);
+                        }
+                        
+                        let id = null;
+                        for (let key in mergeSources) {
+                            if (mergeSources[key].filename === file.name) {
+                                id = key; break;
+                            }
+                        }
+                        if (id) {
+                            mergeSources[id].data = data;
+                        } else {
+                            id = 'src_' + Date.now();
+                            mergeSources[id] = { filename: file.name, data: data, hasHeader: true };
+                        }
+                        
+                        renderDataSourcesList();
+                        recomputeAllMergeData();
+                        if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                            renderImageBankItems();
+                        }
+                        updateImageBankMergeUI();
+                        saveState(true);
+                        showToast(`Loaded data source: ${file.name}`);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    showToast(`Unsupported file type: ${file.name}`, true);
+                }
+            });
+        });
 
         let isZoomScheduled = false;
 
