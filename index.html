@@ -9632,6 +9632,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const file = event.target.files[0];
         if (!file) return;
 
+        if (!newWorkspace) {
+            if (!confirm("Are you sure you want to open a different card? All unsaved progress in this workspace will be lost.")) {
+                event.target.value = '';
+                return;
+            }
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
             if (newWorkspace) {
