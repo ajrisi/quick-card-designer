@@ -3306,8 +3306,11 @@ function updateBgSettings(side) {
             });
         }
 
+        let isZoomScheduled = false;
+
         document.getElementById('canvas-container').addEventListener('wheel', (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Must remain synchronous to stop page scroll
+            
             const container = document.getElementById('canvas-container');
             const rect = container.getBoundingClientRect();
 
@@ -3328,8 +3331,15 @@ function updateBgSettings(side) {
             panY = mouseY - (targetY * newScale);
             canvasScale = newScale;
 
-            applyCanvasTransform();
-            saveState(true);
+            // Decouple the heavy DOM updates from the immediate wheel event
+            if (!isZoomScheduled) {
+                isZoomScheduled = true;
+                requestAnimationFrame(() => {
+                    applyCanvasTransform();
+                    saveState(true);
+                    isZoomScheduled = false;
+                });
+            }
         }, { passive: false });
     };
 
