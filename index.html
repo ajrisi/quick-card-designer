@@ -347,12 +347,20 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </button>
             </div>
 
-            <button onclick="startNewCard()" class="p-1.5 md:px-3 md:py-1.5 bg-red-50 text-red-700 border border-red-200 rounded hover:bg-red-100 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0" title="New Card">
-                <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                <span class="hidden md:inline">New Card</span>
-            </button>
+            <div class="relative group shrink-0">
+                <button id="btn-new-card" class="p-1.5 md:px-3 md:py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 select-none" title="New Card (Hold for options)">
+                    <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span class="hidden md:inline">New Card</span>
+                </button>
+                <!-- Hidden long-press menu -->
+                <div id="new-menu" class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                    <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">New Options</div>
+                    <button onpointerup="startNewCard(); closeNewMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">New in Current Workspace</button>
+                    <button onpointerup="forkWorkspace(true); closeNewMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">New in New Workspace</button>
+                </div>
+            </div>
 
             <div class="relative group shrink-0">
                 <label id="btn-open-card" class="p-1.5 md:px-3 md:py-1.5 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap shrink-0 mb-0 select-none" title="Open Card (Hold for options)">
@@ -1099,8 +1107,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 6v10h8V6z" /></svg></button>
                 </div>
                 <div class="flex bg-white border border-gray-300 rounded shadow-sm ml-1">
-                    <button onclick="flipElements('x')" title="Mirror Horizontally" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8l-4 4 4 4m8-8l4 4-4 4" /></svg></button>
-                    <button onclick="flipElements('y')" title="Mirror Vertically" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M8 8l4-4 4 4m-8 8l4 4-4-4" /></svg></button>
+                    <button id="btn-flip-x" onclick="flipElements('x')" title="Mirror Horizontally" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8l-4 4 4 4m8-8l4 4-4 4" /></svg></button>
+                    <button id="btn-flip-y" onclick="flipElements('y')" title="Mirror Vertically" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M8 8l4-4 4 4m-8 8l4 4-4-4" /></svg></button>
                 </div>
             </div>
         </div> <!-- Closes #layout-controls -->
@@ -1735,7 +1743,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             </div>
         </div>
         <div class="p-4 bg-white border-t border-gray-200 text-center z-10">
-            <button onclick="startNewCard()" class="w-full py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors">
+            <button onclick="forkWorkspace(true); closeWorkspaceDrawer();" class="w-full py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors">
                 + Create New Workspace
             </button>
         </div>
@@ -1911,6 +1919,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let openPressTimer;
     function closeOpenMenu() {
         const menu = document.getElementById('open-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    let newPressTimer;
+    function closeNewMenu() {
+        const menu = document.getElementById('new-menu');
         if (menu) menu.classList.add('hidden');
     }
 
@@ -2132,7 +2146,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
         urlParams.set('workspace', forkedWorkspace);
         
         const modal = document.getElementById('tab-conflict-modal');
-        if (modal) modal.innerHTML = '<div class="text-white font-bold text-xl drop-shadow-md">Preparing Workspace...</div>';
+        if (modal) {
+            modal.innerHTML = '<div class="text-white font-bold text-xl drop-shadow-md">Preparing Workspace...</div>';
+        } else {
+            const loader = document.createElement('div');
+            loader.className = 'fixed inset-0 z-[99999] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center';
+            loader.innerHTML = '<div class="text-white font-bold text-xl drop-shadow-md">Preparing Workspace...</div>';
+            document.body.appendChild(loader);
+        }
         
         setTimeout(() => {
             window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
@@ -3336,9 +3357,34 @@ function updateBgSettings(side) {
             });
         }
 
+        // Setup Long Press on New button
+        const newBtn = document.getElementById('btn-new-card');
+        const newMenu = document.getElementById('new-menu');
+
+        if (newBtn) {
+            newBtn.addEventListener('pointerdown', (e) => {
+                if(e.button !== 0) return;
+                newPressTimer = setTimeout(() => {
+                    if (newMenu) newMenu.classList.remove('hidden');
+                }, 400);
+            });
+            newBtn.addEventListener('pointerup', () => clearTimeout(newPressTimer));
+            newBtn.addEventListener('pointerleave', () => clearTimeout(newPressTimer));
+            newBtn.addEventListener('click', (e) => {
+                if (newMenu && !newMenu.classList.contains('hidden')) {
+                    e.preventDefault();
+                } else {
+                    startNewCard();
+                }
+            });
+        }
+
         document.addEventListener('click', (e) => {
             if (openMenu && !openMenu.classList.contains('hidden') && !openBtn.contains(e.target) && !openMenu.contains(e.target)) {
                 closeOpenMenu();
+            }
+            if (newMenu && !newMenu.classList.contains('hidden') && !newBtn.contains(e.target) && !newMenu.contains(e.target)) {
+                closeNewMenu();
             }
         });
 
@@ -5019,7 +5065,17 @@ function redo() {
             // Ensure we don't accidentally grab a child's resizable if this is a group
             const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
             const absB = getAbsoluteBounds(el, 'bbox');
-            return { el, resizable, absX: absB.x, absY: absB.y, w: absB.w, h: absB.h };
+            return { 
+                el, 
+                resizable, 
+                absX: absB.x, 
+                absY: absB.y, 
+                w: absB.w, 
+                h: absB.h,
+                startFlipX: el.dataset.flipX === 'true' ? -1 : 1,
+                startFlipY: el.dataset.flipY === 'true' ? -1 : 1,
+                startRot: getRotation(el)
+            };
         });
     }
 
@@ -5066,9 +5122,31 @@ function redo() {
 
         let rot = getRotation(activeElements[0]);
         if (document.activeElement !== ir && ir) ir.value = +(rot).toFixed(1);
+
+        const flipXBtn = document.getElementById('btn-flip-x');
+        if (flipXBtn) {
+            if (activeElements[0].dataset.flipX === 'true') {
+                flipXBtn.classList.add('bg-blue-50', 'text-blue-700');
+                flipXBtn.classList.remove('bg-white', 'text-gray-600');
+            } else {
+                flipXBtn.classList.remove('bg-blue-50', 'text-blue-700');
+                flipXBtn.classList.add('bg-white', 'text-gray-600');
+            }
+        }
+        
+        const flipYBtn = document.getElementById('btn-flip-y');
+        if (flipYBtn) {
+            if (activeElements[0].dataset.flipY === 'true') {
+                flipYBtn.classList.add('bg-blue-50', 'text-blue-700');
+                flipYBtn.classList.remove('bg-white', 'text-gray-600');
+            } else {
+                flipYBtn.classList.remove('bg-blue-50', 'text-blue-700');
+                flipYBtn.classList.add('bg-white', 'text-gray-600');
+            }
+        }
     }
 
-    function applyLayoutFromInputs(dimensionChanged, isDragging = false) {
+    function applyLayoutFromInputs(dimensionChanged, isDragging = false, groupFlipX = false, groupFlipY = false) {
         if (activeElements.length === 0 || !baseGroupBB) return;
         const pxPerUnit = getPxPerUnit();
 
@@ -5083,24 +5161,36 @@ function redo() {
         const scaleY = baseGroupBB.h > 0 ? newH / baseGroupBB.h : 1;
 
         baseGroupLayout.forEach(state => {
-            const relX = state.absX - baseGroupBB.x;
-            const relY = state.absY - baseGroupBB.y;
+            let relX = state.absX - baseGroupBB.x;
+            let relY = state.absY - baseGroupBB.y;
+
+            if (groupFlipX) relX = baseGroupBB.w - (relX + state.w);
+            if (groupFlipY) relY = baseGroupBB.h - (relY + state.h);
 
             setAbsolutePosition(state.el, newX + (relX * scaleX), newY + (relY * scaleY));
 
+            if (state.startFlipX !== undefined) {
+                const flipX = groupFlipX ? (state.startFlipX * -1) : state.startFlipX;
+                const flipY = groupFlipY ? (state.startFlipY * -1) : state.startFlipY;
+                
+                state.el.dataset.flipX = flipX === -1 ? 'true' : 'false';
+                state.el.dataset.flipY = flipY === -1 ? 'true' : 'false';
+                state.el.style.transform = `rotate(${state.startRot}deg) scaleX(${flipX}) scaleY(${flipY})`;
+            }
+
             if (state.resizable) {
                 if (dimensionChanged === 'w' || dimensionChanged === undefined) {
-                    state.resizable.style.width = Math.max(10, state.w * scaleX) + 'px';
+                    state.resizable.style.width = Math.max(1, state.w * scaleX) + 'px';
                 }
                 if (dimensionChanged === 'h' || dimensionChanged === undefined) {
-                    state.resizable.style.height = Math.max(10, state.h * scaleY) + 'px';
+                    state.resizable.style.height = Math.max(1, state.h * scaleY) + 'px';
                 }
             } else if (state.el.dataset.type === 'group') {
                 if (dimensionChanged === 'w' || dimensionChanged === undefined) {
-                    state.el.style.width = Math.max(10, state.w * scaleX) + 'px';
+                    state.el.style.width = Math.max(1, state.w * scaleX) + 'px';
                 }
                 if (dimensionChanged === 'h' || dimensionChanged === undefined) {
-                    state.el.style.height = Math.max(10, state.h * scaleY) + 'px';
+                    state.el.style.height = Math.max(1, state.h * scaleY) + 'px';
                 }
 
                 const scaleGroupContents = (group, sX, sY) => {
@@ -5249,6 +5339,7 @@ function redo() {
         });
         
         updateBaseLayout();
+        updateLayoutInputs();
         if (typeof updateUILayer === 'function') updateUILayer();
         saveState(true);
     }
@@ -6248,6 +6339,21 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             document.getElementById('shape-radius-val').innerText = '0';
             document.getElementById('shape-sides').value = 3;
             document.getElementById('shape-sides-val').innerText = '3';
+            
+            const shapeFlip = document.getElementById('shape-flip');
+            if (shapeFlip) shapeFlip.checked = false;
+
+            // Reset Mirror Buttons
+            const flipXBtn = document.getElementById('btn-flip-x');
+            if (flipXBtn) {
+                flipXBtn.classList.remove('bg-blue-50', 'text-blue-700');
+                flipXBtn.classList.add('bg-white', 'text-gray-600');
+            }
+            const flipYBtn = document.getElementById('btn-flip-y');
+            if (flipYBtn) {
+                flipYBtn.classList.remove('bg-blue-50', 'text-blue-700');
+                flipYBtn.classList.add('bg-white', 'text-gray-600');
+            }
         }
     }
 
@@ -6958,6 +7064,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
                 container.dataset.initLeft = parseFloat(container.style.left) || 0;
                 container.dataset.initTop = parseFloat(container.style.top) || 0;
+                container.dataset.startFlipX = container.dataset.flipX || 'false';
+                container.dataset.startFlipY = container.dataset.flipY || 'false';
                 if (container.dataset.type === 'group') delete container.dataset.initGroupW;
             }
 
@@ -7233,19 +7341,43 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
                 if (e.shiftKey && resizeAspect) {
                     if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * resizeAspect) {
-                        newH = newW / resizeAspect;
+                        newH = (newH < 0 ? -1 : 1) * Math.abs(newW / resizeAspect);
                     } else {
-                        newW = newH * resizeAspect;
+                        newW = (newW < 0 ? -1 : 1) * Math.abs(newH * resizeAspect);
                     }
                 }
 
-                if (newW < 10) newW = 10;
-                if (newH < 10) newH = 10;
+                let isFlippedX = newW < 0;
+                let isFlippedY = newH < 0;
+                
+                newW = Math.abs(newW);
+                newH = Math.abs(newH);
 
-                let newX = window.multiResizeInitBox.x;
-                let newY = window.multiResizeInitBox.y;
-                if (resizeDir.includes('w')) newX -= (newW - resizeStartW);
-                if (resizeDir.includes('n')) newY -= (newH - resizeStartH);
+                if (newW < 1) { 
+                    newW = 1; 
+                    if (e.shiftKey && resizeAspect) newH = newW / resizeAspect; 
+                }
+                if (newH < 1) { 
+                    newH = 1; 
+                    if (e.shiftKey && resizeAspect) newW = newH * resizeAspect; 
+                }
+
+                let signX = isFlippedX ? -1 : 1;
+                let signY = isFlippedY ? -1 : 1;
+
+                let deltaCx_local = 0;
+                let deltaCy_local = 0;
+                
+                if (resizeDir.includes('e')) deltaCx_local = (newW * signX - resizeStartW) / 2;
+                if (resizeDir.includes('w')) deltaCx_local = -(newW * signX - resizeStartW) / 2;
+                if (resizeDir.includes('s')) deltaCy_local = (newH * signY - resizeStartH) / 2;
+                if (resizeDir.includes('n')) deltaCy_local = -(newH * signY - resizeStartH) / 2;
+
+                const Cx0 = window.multiResizeInitBox.x + resizeStartW / 2;
+                const Cy0 = window.multiResizeInitBox.y + resizeStartH / 2;
+                
+                let newX = (Cx0 + deltaCx_local) - newW / 2;
+                let newY = (Cy0 + deltaCy_local) - newH / 2;
 
                 let pxPerUnit = getPxPerUnit();
                 document.getElementById('layout-w').value = newW / pxPerUnit;
@@ -7253,15 +7385,18 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 document.getElementById('layout-x').value = newX / pxPerUnit;
                 document.getElementById('layout-y').value = newY / pxPerUnit;
 
-                applyLayoutFromInputs(undefined, true);
+                applyLayoutFromInputs(undefined, true, isFlippedX, isFlippedY);
                 return;
             }
 
             const el = resizeTargetResizer;
             const rot = getRotation(el) * (Math.PI / 180);
             
-            let localDx = dx * Math.cos(-rot) - dy * Math.sin(-rot);
-            let localDy = dx * Math.sin(-rot) + dy * Math.cos(-rot);
+            const startFlipX = el.dataset.startFlipX === 'true' ? -1 : 1;
+            const startFlipY = el.dataset.startFlipY === 'true' ? -1 : 1;
+
+            let localDx = (dx * Math.cos(-rot) - dy * Math.sin(-rot)) * startFlipX;
+            let localDy = (dx * Math.sin(-rot) + dy * Math.cos(-rot)) * startFlipY;
 
             let newW = resizeStartW;
             let newH = resizeStartH;
@@ -7343,11 +7478,20 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             if (forceAspect && currentAspect) {
                 if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
-                    newH = newW / currentAspect;
+                    newH = (newH < 0 ? -1 : 1) * Math.abs(newW / currentAspect);
                 } else {
-                    newW = newH * currentAspect;
+                    newW = (newW < 0 ? -1 : 1) * Math.abs(newH * currentAspect);
                 }
             }
+
+            let isFlippedX = newW < 0;
+            let isFlippedY = newH < 0;
+            
+            newW = Math.abs(newW);
+            newH = Math.abs(newH);
+
+            el.dataset.flipX = (startFlipX === -1) !== isFlippedX ? 'true' : 'false';
+            el.dataset.flipY = (startFlipY === -1) !== isFlippedY ? 'true' : 'false';
 
             // 3. Enforce minimum size boundaries cleanly
             if (newW < 10) { 
@@ -7362,10 +7506,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             // 4. Pivot Math: Calculate exact new left/top based on center shift
             let deltaCx_local = 0;
             let deltaCy_local = 0;
-            if (resizeDir.includes('e')) deltaCx_local = (newW - resizeStartW) / 2;
-            if (resizeDir.includes('w')) deltaCx_local = -(newW - resizeStartW) / 2;
-            if (resizeDir.includes('s')) deltaCy_local = (newH - resizeStartH) / 2;
-            if (resizeDir.includes('n')) deltaCy_local = -(newH - resizeStartH) / 2;
+            
+            let signX = isFlippedX ? -1 : 1;
+            let signY = isFlippedY ? -1 : 1;
+            
+            if (resizeDir.includes('e')) deltaCx_local = (newW * signX - resizeStartW) / 2;
+            if (resizeDir.includes('w')) deltaCx_local = -(newW * signX - resizeStartW) / 2;
+            if (resizeDir.includes('s')) deltaCy_local = (newH * signY - resizeStartH) / 2;
+            if (resizeDir.includes('n')) deltaCy_local = -(newH * signY - resizeStartH) / 2;
+
+            deltaCx_local *= startFlipX;
+            deltaCy_local *= startFlipY;
 
             const deltaCx_parent = deltaCx_local * Math.cos(rot) - deltaCy_local * Math.sin(rot);
             const deltaCy_parent = deltaCx_local * Math.sin(rot) + deltaCy_local * Math.cos(rot);
@@ -7382,6 +7533,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             // 5. Apply directly to DOM
             el.style.left = newX + 'px';
             el.style.top = newY + 'px';
+            
+            let tStr = `rotate(${rot * (180/Math.PI)}deg)`;
+            if (el.dataset.flipX === 'true') tStr += ` scaleX(-1)`;
+            if (el.dataset.flipY === 'true') tStr += ` scaleY(-1)`;
+            el.style.transform = tStr;
             
             const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
             if (resizable) {
