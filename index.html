@@ -242,30 +242,19 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .resizer.w::after { left: 4px; }
         .element-container.active > .custom-resizer { display: block; }
         
-        /* Content Edits & Shapes */
-        /*[contenteditable="true"] { outline: none; cursor: text; }
-        div[contenteditable="true"] { width: 100%; height: 100%; min-height: 20px; }
-        [contenteditable="true"]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
-        .element-container[data-merge-source-id] [contenteditable="true"]:empty:before { display: none !important; }
-
-        .element-container[data-merge-source-id]:not(.active) [contenteditable="true"]:empty:before { display: none !important; }
-        .element-container[data-merge-source-id].active [contenteditable="true"]:empty:before { content: "Empty Data Field"; color: #d1d5db; font-style: italic; }
-        
-        .element-container[data-merge-source-id]:not(.active) .image-placeholder.data-empty { display: none !important; }
-        .element-container[data-merge-source-id].active .image-placeholder.data-empty { opacity: 0.5; }
-
-        td div[contenteditable="true"], th div[contenteditable="true"] { min-height: 0 !important; }*/
+       
 
         /* Content Edits & Shapes */
         [contenteditable="true"] { outline: none; cursor: text; white-space: pre-wrap; }
         div[contenteditable="true"] { width: 100%; height: 100%; min-height: 20px; }
         [contenteditable="true"]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; display: block; }
         
-        .element-container[data-merge-source-id]:not(.active) [contenteditable="true"]:empty:before { display: none !important; }
-        .element-container[data-merge-source-id].active [contenteditable="true"]:empty:before { content: ""; color: #d1d5db; font-style: italic; display: block !important; }
+        .element-container[data-merge-source-id] [contenteditable="true"]:empty:before,
+        .element-container[data-plugin-image-id] [contenteditable="true"]:empty:before { display: none !important; }
         
-        .element-container[data-merge-source-id]:not(.active) .image-placeholder { display: none !important; }
-        .element-container[data-merge-source-id].active .image-placeholder { opacity: 0.5; }
+        .element-container[data-merge-source-id] .image-placeholder,
+        .element-container[data-plugin-image-id] .image-placeholder,
+        .element-container[data-image-bank-key] .image-placeholder { display: none !important; }
 
         td div[contenteditable="true"], th div[contenteditable="true"] { min-height: 0 !important; }
         
@@ -1385,13 +1374,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div class="flex items-center gap-2 h-full">
                 <div class="flex items-center gap-2">
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[9px] font-bold text-gray-400 uppercase">Link Data</span>
+                        <span class="text-[9px] font-bold text-gray-400 uppercase">Data Src</span>
                         <select id="merge-source-select" class="w-32 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="handleMergeSourceChange(this.value)">
                             <option value="">None</option>
                         </select>
                     </div>
                     <div id="merge-options" class="flex items-center gap-1.5 hidden border-gray-200 pl-2">
-                        <span class="text-[9px] font-bold text-gray-400 uppercase">Col</span>
+                        <span class="text-[9px] font-bold text-gray-400 uppercase">Var</span>
                         <select id="merge-col-select" class="w-20 text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="applyMergeOptions()">
                         </select>
                     </div>
@@ -1505,11 +1494,11 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <!-- Footer -->
             <div class="px-5 py-3 border-t bg-white flex justify-between items-center flex-wrap gap-2">
                 <div class="flex items-center gap-2">
-                    <select id="bank-merge-source-select" class="w-32 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="handleBankMergeSourceChange(this.value)">
+                    <select id="bank-merge-source-select" class="w-36 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap" onchange="handleBankMergeSourceChange(this.value)">
                         <option value="">Select Source...</option>
                     </select>
-                    <select id="bank-merge-col-select" class="w-32 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap disabled:opacity-50" disabled>
-                        <option value="">Select Column...</option>
+                    <select id="bank-merge-col-select" class="w-40 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap disabled:opacity-50" disabled>
+                        <option value="">Select Variable...</option>
                     </select>
                     <button onclick="createCustomPlaceholders()" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded shadow-sm hover:bg-gray-50 transition-colors">Add Placeholder</button>
                 </div>
@@ -1578,6 +1567,38 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <div class="flex gap-3">
                     <button onclick="closePluginEditor()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-xs uppercase rounded shadow-sm hover:bg-gray-50">Cancel</button>
                     <button onclick="savePluginScript()" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase rounded shadow hover:bg-purple-700">Save & Run</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Editor Modal -->
+    <div id="csv-editor-modal" class="fixed inset-0 z-[300] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-4xl h-[85vh] overflow-hidden border border-gray-200">
+            <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80">
+                <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    Edit CSV Data: <span id="csv-editor-filename" class="font-mono text-sm text-gray-500 ml-1"></span>
+                </h2>
+                <button onclick="closeCSVEditor()" class="text-gray-400 hover:text-gray-700 p-1 bg-white hover:bg-gray-200 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="flex-1 flex overflow-hidden bg-gray-900 relative">
+                <div id="csv-editor-gutter" class="w-12 shrink-0 bg-gray-800 border-r border-gray-700 overflow-hidden flex flex-col items-center select-none" style="padding-top: 16px; padding-bottom: 16px;">
+                    <!-- Checkboxes injected here -->
+                </div>
+                <textarea id="csv-code-textarea" class="flex-1 w-full p-4 font-mono text-sm bg-transparent text-gray-100 outline-none resize-none whitespace-pre overflow-auto" spellcheck="false" style="line-height: 24px;"></textarea>
+            </div>
+            <div class="px-5 py-3 border-t bg-gray-50 flex justify-between items-center">
+                <div class="flex gap-2 items-center">
+                    <span class="text-xs text-gray-500 font-medium">Uncheck rows to exclude them. Header exclusions are ignored.</span>
+                    <button onclick="toggleAllCSVEditorRows(true)" class="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-800 transition-colors ml-4">Select All</button>
+                    <button onclick="toggleAllCSVEditorRows(false)" class="text-[10px] uppercase font-bold text-red-600 hover:text-red-800 transition-colors ml-2">Deselect All</button>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeCSVEditor()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-xs uppercase rounded shadow-sm hover:bg-gray-50">Cancel</button>
+                    <button onclick="saveCSVEditor()" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase rounded shadow hover:bg-green-700">Save Data</button>
                 </div>
             </div>
         </div>
@@ -1873,55 +1894,77 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let isForking = false;
     const wsChannel = new BroadcastChannel('qcd_lock_' + currentWorkspace);
 
-    async function forkWorkspace() {
+    function showTabConflictModal() {
+        if (document.getElementById('tab-conflict-modal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'tab-conflict-modal';
+        modal.className = 'fixed inset-0 z-[99999] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center';
+        modal.innerHTML = `
+            <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full border border-gray-200 mx-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Workspace Already Open</h2>
+                        <p class="text-sm text-gray-500 mt-1">This card is currently active in another tab. Working here simultaneously will corrupt your save data.</p>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 mt-6">
+                    <button onclick="window.close(); this.innerText = 'Please select your other tab manually.'; this.disabled = true; this.className = 'w-full py-2.5 bg-gray-50 text-gray-400 rounded-lg text-sm font-bold transition-colors cursor-not-allowed';" class="w-full py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-bold transition-colors">Switch to Other Tab</button>
+                    <button onclick="forkWorkspace()" class="w-full py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors shadow-sm">Make a Copy</button>
+                    <button onclick="forkWorkspace(true)" class="w-full py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-bold transition-colors border border-red-200">New Card</button>
+                </div>
+            </div>
+        `;
+        if (document.body) {
+            document.body.appendChild(modal);
+        } else {
+            document.documentElement.appendChild(modal);
+        }
+    }
+
+    async function forkWorkspace(startEmpty = false) {
         if (isForking) return;
         isForking = true;
         wsChannel.close();
 
-        // 1. Generate a new workspace ID
         const forkedWorkspace = 'ws_' + Math.random().toString(36).substring(2, 15);
         const forkedSaveKey = `card_designer_autosave_${forkedWorkspace}`;
         
-        // 2. Clone the database so the user doesn't lose context
-        try {
-            let existingData = await StorageDB.load(SAVE_KEY);
-            if (!existingData) existingData = localStorage.getItem(SAVE_KEY);
-            if (existingData) await StorageDB.save(forkedSaveKey, existingData);
-        } catch(err) { console.warn("Failed to fork database", err); }
+        if (!startEmpty) {
+            try {
+                let existingData = await StorageDB.load(SAVE_KEY);
+                if (!existingData) existingData = localStorage.getItem(SAVE_KEY);
+                if (existingData) await StorageDB.save(forkedSaveKey, existingData);
+            } catch(err) { console.warn("Failed to fork database", err); }
+        }
 
-        // 3. Bind new workspace and update URL
         sessionStorage.setItem('tab_workspace_id', forkedWorkspace);
         urlParams.set('workspace', forkedWorkspace);
         
-        // 4. Inject a raw toast (since the DOM may not be fully parsed yet)
-        const toast = document.createElement('div');
-        toast.style.cssText = "position:fixed; top:80px; right:24px; padding:12px 16px; border-radius:4px; font-family:system-ui, sans-serif; font-size:14px; z-index:99999; background:#2563eb; color:white; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);";
-        toast.innerText = "Workspace active in another tab. Forking to prevent conflicts...";
-        document.documentElement.appendChild(toast);
+        const modal = document.getElementById('tab-conflict-modal');
+        if (modal) modal.innerHTML = '<div class="text-white font-bold text-xl drop-shadow-md">Preparing Workspace...</div>';
         
-        // 5. Reload cleanly into the new fork
         setTimeout(() => {
             window.location.replace(`${window.location.pathname}?${urlParams.toString()}`);
-        }, 1500);
+        }, 100);
     }
 
     wsChannel.onmessage = (e) => {
         if (isForking) return;
 
         if (e.data.type === 'PING') {
-            // Race condition protection: The older tab always wins.
             if (e.data.time > tabStartupTime) {
                 wsChannel.postMessage({ type: 'PONG' });
             } else if (e.data.time < tabStartupTime) {
-                forkWorkspace();
+                showTabConflictModal();
             }
         } else if (e.data.type === 'PONG') {
-            // Someone else claimed the workspace.
-            forkWorkspace();
+            showTabConflictModal();
         }
     };
 
-    // Announce our arrival
     wsChannel.postMessage({ type: 'PING', time: tabStartupTime });
     // ----------------------------------------------------
 
@@ -3183,12 +3226,27 @@ function updateBgSettings() {
                     e.target.innerHTML = renderTemplateString(html, globalMergeIndex);
                 } else {
                     e.target.removeAttribute('data-template-raw');
+                    // Also clear dropdown binding if they wiped the template manually
+                    const container = e.target.closest('.element-container');
+                    if (container && container.dataset.mergeSourceId && container.dataset.mergeSourceId.startsWith('plugin:')) {
+                        container.removeAttribute('data-merge-source-id');
+                        container.removeAttribute('data-merge-col');
+                        updateMergeUI();
+                    }
                 }
                 
                 parseMarkdownInElement(e.target);
                 saveState();
             }
         });
+
+        const csvTextarea = document.getElementById('csv-code-textarea');
+        if (csvTextarea) {
+            csvTextarea.addEventListener('input', updateCSVGutter);
+            csvTextarea.addEventListener('scroll', (e) => {
+                document.getElementById('csv-editor-gutter').scrollTop = e.target.scrollTop;
+            });
+        }
 
         document.getElementById('canvas-container').addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -3231,7 +3289,11 @@ function updateBgSettings() {
     }
 
     function getCleanStateStr(html) {
-        return stripControlsFromHTML(html).replace(/ active/g, '').replace(/ rotation-active/g, '');
+        return stripControlsFromHTML(html)
+            .replace(/ active/g, '')
+            .replace(/ rotation-active/g, '')
+            .replace(/z-index:\s*99999;?/g, '')
+            .replace(/data-baseline-z="[^"]*"/g, '');
     }
 
     function saveState(debounce = false, skipHistory = false) {
@@ -3419,7 +3481,13 @@ function redo() {
         }
 
         document.getElementById('card-content').innerHTML = (editingSide === 'front') ? frontContentHTML : backContentHTML;
-        document.getElementById('card-content').querySelectorAll('.active').forEach(e => e.classList.remove('active', 'rotation-active'));
+        document.getElementById('card-content').querySelectorAll('.element-container').forEach(e => {
+            e.classList.remove('active', 'rotation-active');
+            if (e.dataset.baselineZ !== undefined) {
+                e.style.zIndex = e.dataset.baselineZ;
+                delete e.dataset.baselineZ;
+            }
+        });
         document.getElementById('bg-select').value = (editingSide === 'front') ? frontBgClass : backBgClass;
         updateCanvasSettings(true);
 
@@ -3431,7 +3499,7 @@ function redo() {
         let maxZ = 100;
         document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
             let z = parseInt(el.style.zIndex) || 100;
-            if (z > maxZ) maxZ = z;
+            if (z > maxZ && z < 99999) maxZ = z;
         });
         zIndexCounter = maxZ + 1;
 
@@ -7124,8 +7192,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     }
 
     function getPluginContext(activeRow) {
+        const csvData = {};
+        for (let key in mergeSources) {
+            csvData[mergeSources[key].filename] = mergeSources[key].data;
+        }
+
         return {
             rowIndex: activeRow,
+            csvData: csvData,
             getCSVValue: (filename, col, row) => evaluateTemplateExpression(`${filename},${col}` + (row !== undefined ? `,${row}` : ''), activeRow),
             getPluginValue: (pName, vName, ...pArgs) => evaluateTemplateExpression([pName, vName, ...pArgs].join(','), activeRow)
         };
@@ -7249,7 +7323,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function createNewPluginStub() {
         const plugCount = Object.keys(pluginsData).length + 1;
         const defaultName = `plugin${plugCount}`;
-        const stubCode = `// Quick Card Designer Plugin\n// This script runs in the browser and provides dynamic variables/images.\n(function() {\n    return {\n        // Register the plugin's name and available template variables/images\n        register: function() {\n            return {\n                name: "${defaultName}",\n                varnames: ["example_var"],\n                images: ["example_img"]\n            };\n        },\n        \n        // Return text or HTML for {{${defaultName},varname}}\n        renderTemplateVariable: function(varName, context, ...args) {\n            if (varName === "example_var") {\n                return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');\n            }\n            return "";\n        },\n        \n        // Return an image URL, path, SVG string, or data URI for images\n        renderTemplateImage: function(imgName, context, ...args) {\n            if (imgName === "example_img") {\n                return '<svg width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';\n            }\n            return "";\n        }\n    };\n})();`;
+        const stubCode = `// Quick Card Designer Plugin\n// This script runs in the browser and provides dynamic variables/images.\n(function() {\n    return {\n        // Register the plugin's name and available template variables/images\n        register: function() {\n            return {\n                name: "${defaultName}",\n                varnames: ["example_var"],\n                images: ["example_img"]\n            };\n        },\n        \n        // Return text or HTML for {{${defaultName},varname}}\n        renderTemplateVariable: function(varName, context, ...args) {\n            if (varName === "example_var") {\n                return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');\n            }\n            return "";\n        },\n        \n        // Return an image URL, path, SVG string, or data URI for images\n        renderTemplateImage: function(imgName, context, ...args) {\n            if (imgName === "example_img") {\n                return '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';\n            }\n            return "";\n        }\n    };\n})();`;
         
         activeEditPluginId = 'plug_' + Date.now();
         isNewPluginBeingCreated = true;
@@ -7340,9 +7414,43 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         if (confirm("Remove this plugin from the document?")) {
             delete pluginsData[id];
             delete pluginInstances[id];
+
+            const wipeElement = (el) => {
+                if (el.dataset.pluginImageId === id) {
+                    el.removeAttribute('data-plugin-image-id');
+                    el.removeAttribute('data-plugin-image-name');
+                    delete el.dataset.pluginImageId;
+                    delete el.dataset.pluginImageName;
+                    updateImageElementDisplay(el, '');
+                } else if (el.dataset.mergeSourceId === 'plugin:' + id) {
+                    el.removeAttribute('data-merge-source-id');
+                    el.removeAttribute('data-merge-col');
+                    el.removeAttribute('data-merge-data');
+                    delete el.dataset.mergeSourceId;
+                    delete el.dataset.mergeCol;
+                    delete el.dataset.mergeData;
+                    const target = el.querySelector('div[contenteditable="true"]');
+                    if (target) {
+                        target.removeAttribute('data-template-raw');
+                        target.innerText = '';
+                    }
+                }
+            };
+
+            document.querySelectorAll('#card-content .element-container').forEach(wipeElement);
+            
+            const tF = document.createElement('div'); tF.innerHTML = frontContentHTML;
+            tF.querySelectorAll('.element-container').forEach(wipeElement);
+            frontContentHTML = tF.innerHTML;
+
+            const tB = document.createElement('div'); tB.innerHTML = backContentHTML;
+            tB.querySelectorAll('.element-container').forEach(wipeElement);
+            backContentHTML = tB.innerHTML;
+
+            recomputeAllMergeData();
             renderDataSourcesList();
             updateImageBankMergeUI();
-            recomputeAllMergeData();
+            updateMergeUI();
             saveState();
         }
     }
@@ -7387,8 +7495,28 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     /* --- GLOBAL DATA MERGE ENGINE --- */
     function applyMergeOptions() {
         if (!activeElement) return;
-        activeElement.dataset.mergeCol = document.getElementById('merge-col-select').value;
+        const val = document.getElementById('merge-col-select').value;
+        
+        if (activeElement.dataset.pluginImageId) {
+            activeElement.dataset.pluginImageName = val;
+        } else {
+            activeElement.dataset.mergeCol = val;
+            
+            if (activeElement.dataset.mergeSourceId && activeElement.dataset.mergeSourceId.startsWith('plugin:')) {
+                const pId = activeElement.dataset.mergeSourceId.split(':')[1];
+                const p = pluginsData[pId];
+                if (p) {
+                    const target = activeElement.querySelector('div[contenteditable="true"]');
+                    if (target) {
+                        const tpl = `{{${p.name},${val}}}`;
+                        target.setAttribute('data-template-raw', tpl);
+                        target.innerText = tpl;
+                    }
+                }
+            }
+        }
         recomputeAllMergeData();
+        updateAllCanvasImages();
         saveState(true);
     }
 
@@ -7396,23 +7524,59 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const processContainer = (container) => {
             container.querySelectorAll('.element-container').forEach(el => {
                 const sourceId = el.dataset.mergeSourceId;
-                if (sourceId && mergeSources[sourceId]) {
-                    const source = mergeSources[sourceId];
-                    let colIdx = parseInt(el.dataset.mergeCol || "0", 10);
-                    
-                    const numCols = source.data.length > 0 ? source.data[0].length : 1;
-                    if (colIdx >= numCols) {
-                        colIdx = 0;
-                        el.dataset.mergeCol = "0";
-                    }
+                if (sourceId) {
+                    if (sourceId.startsWith('plugin:')) {
+                        const pId = sourceId.split(':')[1];
+                        if (!pluginsData[pId]) {
+                            el.removeAttribute('data-merge-source-id');
+                            el.removeAttribute('data-merge-col');
+                            el.removeAttribute('data-merge-data');
+                            delete el.dataset.mergeSourceId;
+                            delete el.dataset.mergeCol;
+                            delete el.dataset.mergeData;
+                            const target = el.querySelector('div[contenteditable="true"]');
+                            if (target) {
+                                target.removeAttribute('data-template-raw');
+                                target.innerText = 'Plugin Cleared';
+                            }
+                        }
+                    } else if (mergeSources[sourceId]) {
+                        const source = mergeSources[sourceId];
+                        let colIdx = parseInt(el.dataset.mergeCol || "0", 10);
+                        
+                        const numCols = source.data.length > 0 ? source.data[0].length : 1;
+                        if (colIdx >= numCols) {
+                            colIdx = 0;
+                            el.dataset.mergeCol = "0";
+                        }
 
-                    let startIndex = source.hasHeader ? 1 : 0;
-                    let extracted = [];
-                    for (let i = startIndex; i < source.data.length; i++) {
-                        if (source.excludedRows && source.excludedRows[i]) continue;
-                        extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+                        let startIndex = source.hasHeader ? 1 : 0;
+                        let extracted = [];
+                        for (let i = startIndex; i < source.data.length; i++) {
+                            if (source.excludedRows && source.excludedRows[i]) continue;
+                            extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+                        }
+                        el.dataset.mergeData = JSON.stringify(extracted);
+                    } else {
+                        el.removeAttribute('data-merge-source-id');
+                        el.removeAttribute('data-merge-col');
+                        el.removeAttribute('data-merge-data');
+                        delete el.dataset.mergeSourceId;
+                        delete el.dataset.mergeCol;
+                        delete el.dataset.mergeData;
+                        const target = el.querySelector('div[contenteditable="true"]');
+                        if (target) {
+                            target.removeAttribute('data-template-raw');
+                            target.innerText = ''; //'Merge Data Cleared';
+                        }
                     }
-                    el.dataset.mergeData = JSON.stringify(extracted);
+                }
+                
+                if (el.dataset.pluginImageId && !pluginsData[el.dataset.pluginImageId]) {
+                    el.removeAttribute('data-plugin-image-id');
+                    el.removeAttribute('data-plugin-image-name');
+                    delete el.dataset.pluginImageId;
+                    delete el.dataset.pluginImageName;
                 }
             });
         };
@@ -7525,29 +7689,58 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         for (let id in mergeSources) {
             let opt = document.createElement('option');
             opt.value = id;
-            opt.innerText = mergeSources[id].filename;
+            opt.innerText = "[CSV] " + mergeSources[id].filename;
+            select.appendChild(opt);
+        }
+        for (let id in pluginsData) {
+            let opt = document.createElement('option');
+            opt.value = "plugin:" + id;
+            opt.innerText = "[Plugin] " + pluginsData[id].name;
             select.appendChild(opt);
         }
 
-        const activeId = activeElement.dataset.mergeSourceId;
-        if (activeId && mergeSources[activeId]) {
+        const activeId = activeElement.dataset.mergeSourceId || (activeElement.dataset.pluginImageId ? 'plugin:' + activeElement.dataset.pluginImageId : null);
+
+        if (activeId && (mergeSources[activeId] || (activeId.startsWith("plugin:") && pluginsData[activeId.split(":")[1]]))) {
             select.value = activeId;
             optionsDiv.classList.remove('hidden');
-
-            const source = mergeSources[activeId];
             colSelect.innerHTML = '';
-            const numCols = source.data.length > 0 ? source.data[0].length : 1;
-            
-            for (let i = 0; i < numCols; i++) {
-                let opt = document.createElement('option');
-                opt.value = i;
-                let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
-                let headerName = (source.hasHeader && rawText !== "") ? rawText.substring(0, 15) : `Col ${i+1}`;
-                opt.innerText = headerName;
-                colSelect.appendChild(opt);
-            }
 
-            colSelect.value = activeElement.dataset.mergeCol || "0";
+            if (activeId.startsWith("plugin:")) {
+                const pId = activeId.split(":")[1];
+                const p = pluginsData[pId];
+                const options = activeElement.dataset.type === 'image' ? p.images : p.varnames;
+                options.forEach(optName => {
+                    let opt = document.createElement('option');
+                    opt.value = optName;
+                    opt.innerText = optName;
+                    colSelect.appendChild(opt);
+                });
+                colSelect.value = activeElement.dataset.type === 'image' ? activeElement.dataset.pluginImageName : activeElement.dataset.mergeCol;
+            } else {
+                const source = mergeSources[activeId];
+                const numCols = source.data.length > 0 ? source.data[0].length : 1;
+                let firstValidCol = null;
+                for (let i = 0; i < numCols; i++) {
+                    let rawText = source.data[0] && source.data[0][i] ? source.data[0][i].trim() : "";
+                    
+                    if (activeElement.dataset.type !== 'image' && rawText.toLowerCase().startsWith('images:')) continue;
+                    if (firstValidCol === null) firstValidCol = i.toString();
+
+                    let opt = document.createElement('option');
+                    opt.value = i;
+                    let cleanText = rawText.replace(/^Images:\s*/i, '');
+                    let headerName = (source.hasHeader && cleanText !== "") ? cleanText.substring(0, 15) : `Var ${i+1}`;
+                    opt.innerText = headerName;
+                    colSelect.appendChild(opt);
+                }
+                
+                if (colSelect.querySelector(`option[value="${activeElement.dataset.mergeCol}"]`)) {
+                    colSelect.value = activeElement.dataset.mergeCol;
+                } else {
+                    colSelect.value = firstValidCol || "0";
+                }
+            }
         } else {
             select.value = "";
             optionsDiv.classList.add('hidden');
@@ -7569,23 +7762,49 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             activeElement.removeAttribute('data-merge-source-id');
             activeElement.removeAttribute('data-merge-col');
             activeElement.removeAttribute('data-merge-data');
+            activeElement.removeAttribute('data-plugin-image-id');
+            activeElement.removeAttribute('data-plugin-image-name');
             
-            // Revert based on element type
             if (activeElement.dataset.type === 'image') {
-                // Passing empty string forces the display engine to fall back to the base image
                 updateImageElementDisplay(activeElement, ''); 
             } else {
                 const target = activeElement.querySelector('div[contenteditable="true"]');
-                if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+                if (target) {
+                    target.removeAttribute('data-template-raw');
+                    target.innerText = ''; //'Merge Data Cleared';
+                }
             }
-            
-            updateMergeUI();
-            saveState();
-            return;
+        } else if (val.startsWith("plugin:")) {
+            const pId = val.split(":")[1];
+            const p = pluginsData[pId];
+            if (activeElement.dataset.type === 'image') {
+                activeElement.dataset.pluginImageId = pId;
+                activeElement.dataset.pluginImageName = p.images[0] || "";
+                activeElement.removeAttribute('data-merge-source-id');
+                activeElement.removeAttribute('data-merge-data');
+            } else {
+                activeElement.dataset.mergeSourceId = val;
+                activeElement.dataset.mergeCol = p.varnames[0] || "";
+                activeElement.removeAttribute('data-merge-data');
+                activeElement.removeAttribute('data-plugin-image-id');
+                
+                const target = activeElement.querySelector('div[contenteditable="true"]');
+                if (target) {
+                    const tpl = `{{${p.name},${activeElement.dataset.mergeCol}}}`;
+                    target.setAttribute('data-template-raw', tpl);
+                    target.innerText = tpl;
+                }
+            }
+        } else {
+            activeElement.dataset.mergeSourceId = val;
+            activeElement.dataset.mergeCol = "0";
+            activeElement.removeAttribute('data-plugin-image-id');
+            activeElement.removeAttribute('data-plugin-image-name');
         }
-        activeElement.dataset.mergeSourceId = val;
-        activeElement.dataset.mergeCol = "0";
+        
         recomputeAllMergeData();
+        updateAllCanvasImages();
+        updateMergeUI();
         saveState();
     }
 
@@ -7719,70 +7938,148 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function deleteMergeSource(id) {
         if (confirm("Delete this data source? Elements using it will be cleared.")) {
             delete mergeSources[id];
-            // Clear merge data from elements using it
-            document.querySelectorAll('#card-content .element-container').forEach(el => {
+            
+            const wipeElement = (el) => {
                 if (el.dataset.mergeSourceId === id) {
                     el.removeAttribute('data-merge-source-id');
                     el.removeAttribute('data-merge-col');
                     el.removeAttribute('data-merge-data');
-                    
+                    delete el.dataset.mergeSourceId;
+                    delete el.dataset.mergeCol;
+                    delete el.dataset.mergeData;
                     if (el.dataset.type === 'image') {
                         updateImageElementDisplay(el, '');
                     } else {
                         const target = el.querySelector('div[contenteditable="true"]');
-                        if (target && target.innerText.startsWith('{{ Data:')) target.innerText = 'Merge Data Cleared';
+                        if (target) {
+                            target.removeAttribute('data-template-raw');
+                            target.innerText = '';
+                        }
                     }
                 }
-            });
+            };
+            
+            document.querySelectorAll('#card-content .element-container').forEach(wipeElement);
+            
+            const tF = document.createElement('div'); tF.innerHTML = frontContentHTML;
+            tF.querySelectorAll('.element-container').forEach(wipeElement);
+            frontContentHTML = tF.innerHTML;
+
+            const tB = document.createElement('div'); tB.innerHTML = backContentHTML;
+            tB.querySelectorAll('.element-container').forEach(wipeElement);
+            backContentHTML = tB.innerHTML;
+
             recomputeAllMergeData();
             renderDataSourcesList();
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
             updateImageBankMergeUI();
+            updateMergeUI();
             saveState();
         }
     }
 
-    function toggleRowExclusion(id, rowIndex, isIncluded) {
-        if (!mergeSources[id]) return;
-        if (!mergeSources[id].excludedRows) mergeSources[id].excludedRows = {};
-        mergeSources[id].excludedRows[rowIndex] = !isIncluded;
-        updateRowCountLabel(id);
-        recomputeAllMergeData();
-        if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
-            renderImageBankItems();
-        }
-        saveState();
-    }
+    let activeCSVId = null;
+    let csvLineExclusions = []; 
 
-    function toggleAllRows(id, isIncluded) {
-        if (!mergeSources[id]) return;
-        if (!mergeSources[id].excludedRows) mergeSources[id].excludedRows = {};
-        let startIndex = mergeSources[id].hasHeader ? 1 : 0;
-        for(let i=startIndex; i<mergeSources[id].data.length; i++) {
-            mergeSources[id].excludedRows[i] = !isIncluded;
-            const cb = document.getElementById(`row-cb-${id}-${i}`);
-            if (cb) cb.checked = isIncluded;
-        }
-        updateRowCountLabel(id);
-        recomputeAllMergeData();
-        if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
-            renderImageBankItems();
-        }
-        saveState();
-    }
-
-    function updateRowCountLabel(id) {
+    function openCSVEditor(id) {
+        activeCSVId = id;
         const src = mergeSources[id];
-        if (!src) return;
-        const startIndex = src.hasHeader ? 1 : 0;
-        let activeRowCount = 0;
-        for(let i = startIndex; i < src.data.length; i++) {
-            if (!(src.excludedRows && src.excludedRows[i])) activeRowCount++;
+        document.getElementById('csv-editor-filename').innerText = src.filename;
+        
+        const text = src.data.map(row => 
+            row.map(cell => {
+                let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+                if (/[",\n\r]/.test(cellStr)) {
+                    cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+                }
+                return cellStr;
+            }).join(",")
+        ).join("\n");
+        
+        const textarea = document.getElementById('csv-code-textarea');
+        textarea.value = text;
+        
+        csvLineExclusions = [];
+        let physicalLine = 0;
+        for(let i=0; i<src.data.length; i++) {
+            csvLineExclusions[physicalLine] = !!(src.excludedRows && src.excludedRows[i]);
+            
+            const rowStr = src.data[i].map(cell => {
+                let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+                if (/[",\n\r]/.test(cellStr)) cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+                return cellStr;
+            }).join(",");
+            const newlines = (rowStr.match(/\n/g) || []).length;
+            physicalLine += newlines + 1;
         }
-        const lbl = document.getElementById(`row-count-${id}`);
-        if (lbl) lbl.innerText = `${activeRowCount} rows`;
+        
+        updateCSVGutter();
+        document.getElementById('csv-editor-modal').classList.remove('hidden');
+    }
+
+    function closeCSVEditor() {
+        activeCSVId = null;
+        document.getElementById('csv-editor-modal').classList.add('hidden');
+    }
+
+    function updateCSVGutter() {
+        const textarea = document.getElementById('csv-code-textarea');
+        const lines = textarea.value.split('\n');
+        const gutter = document.getElementById('csv-editor-gutter');
+        
+        let html = '';
+        for (let i = 0; i < lines.length; i++) {
+            const isExcluded = csvLineExclusions[i] || false;
+            html += `<div style="height: 24px; display: flex; align-items: center; justify-content: center; width: 100%;" title="Line ${i+1}"><input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" ${isExcluded ? '' : 'checked'} onchange="csvLineExclusions[${i}] = !this.checked;"></div>`;
+        }
+        gutter.innerHTML = html;
+    }
+
+    function toggleAllCSVEditorRows(isIncluded) {
+        const textarea = document.getElementById('csv-code-textarea');
+        const lines = textarea.value.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            csvLineExclusions[i] = !isIncluded;
+        }
+        updateCSVGutter();
+    }
+
+    function saveCSVEditor() {
+        if (!activeCSVId) return;
+        const text = document.getElementById('csv-code-textarea').value;
+        const data = parseCSV(text);
+        
+        const excludedRows = {};
+        let physicalLine = 0;
+        
+        for (let i = 0; i < data.length; i++) {
+            if (csvLineExclusions[physicalLine]) {
+                excludedRows[i] = true;
+            }
+            
+            const rowStr = data[i].map(cell => {
+                let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+                if (/[",\n\r]/.test(cellStr)) cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+                return cellStr;
+            }).join(",");
+            const newlines = (rowStr.match(/\n/g) || []).length;
+            physicalLine += newlines + 1;
+        }
+        
+        mergeSources[activeCSVId].data = data;
+        mergeSources[activeCSVId].excludedRows = excludedRows;
+        
+        renderDataSourcesList();
+        recomputeAllMergeData();
+        if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+            renderImageBankItems();
+        }
+        updateImageBankMergeUI();
+        saveState();
+        closeCSVEditor();
+        showToast("CSV Data Saved!");
     }
 
     /* --- DATA BANK ENGINE --- */
@@ -7815,8 +8112,10 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const fullHtml = (document.getElementById('card-content')?.innerHTML || '') + frontContentHTML + backContentHTML;
             if (fullHtml.includes(`{{${p.name}:`) || fullHtml.includes(`data-plugin-image-id="${id}"`)) usageCount++;
 
-            let varList = p.varnames.map(v => `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">${v}</span>`).join('');
-            let imgList = p.images.map(img => `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">${img}</span>`).join('');
+
+
+            let varList = p.varnames.map(v => `<span class="bg-purple-100 text-purple-700 text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px] border-purple-200">${v}</span>`).join('');
+            let imgList = p.images.map(img => `<span class="bg-indigo-100 text-indigo-700 text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px]border-indigo-200">${img}</span>`).join('');
 
             const div = document.createElement('div');
             div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 border-l-purple-500";
@@ -7841,13 +8140,34 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         </button>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2">
-                    ${p.varnames.length > 0 ? `<div class="text-[9px] font-mono flex flex-wrap gap-1 leading-tight"><span class="font-bold text-gray-500 uppercase mt-0.5 mr-1">Vars:</span> ${varList}</div>` : ''}
-                    ${p.images.length > 0 ? `<div class="text-[9px] font-mono flex flex-wrap gap-1 leading-tight mt-1"><span class="font-bold text-gray-500 uppercase mt-0.5 mr-1">Imgs:</span> ${imgList}</div>` : ''}
-                </div>
-                <div class="mt-auto pt-2 border-t border-gray-100 text-[9px] font-bold text-gray-400 uppercase">
+
+                <div class="mt-auto text-[9px] font-bold text-gray-400 uppercase">
                     ${usageCount > 0 ? `<span class="text-purple-600">Active on Canvas</span>` : 'Inactive'}
                 </div>
+
+                ${p.varnames.length > 0 ? `
+                <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase">Variables</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto hide-scrollbar">
+                        ${varList}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${p.images.length > 0 ? `
+                <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase">Images</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto hide-scrollbar">
+                        ${imgList}
+                    </div>
+                </div>
+                ` : ''}
+
+                
             `;
             container.appendChild(div);
         });
@@ -7908,21 +8228,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 `;
             }
 
-            let rowListHTML = `<div class="max-h-32 overflow-y-auto border border-gray-200 bg-gray-50/50 rounded p-1 flex flex-col mt-2">`;
-            for (let i = startIndex; i < src.data.length; i++) {
-                let isExcluded = src.excludedRows && src.excludedRows[i];
-                let rowLabel = src.data[i].join(', ').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 60) || `Row ${i}`;
-                rowListHTML += `
-                    <label class="flex items-center gap-2 text-[10px] text-gray-600 cursor-pointer px-1.5 py-1 hover:bg-white rounded border border-transparent hover:border-gray-200 transition-colors">
-                        <input type="checkbox" id="row-cb-${id}-${i}" class="rounded text-blue-600 focus:ring-blue-500" ${isExcluded ? '' : 'checked'} onchange="toggleRowExclusion('${id}', ${i}, this.checked)">
-                        <span class="truncate select-none">${rowLabel}</span>
-                    </label>
-                `;
-            }
-            rowListHTML += `</div>`;
-
             const div = document.createElement('div');
-            div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md";
+            div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 border-l-green-500";
             div.innerHTML = `
                 <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
                     <div class="flex items-center gap-2 overflow-hidden">
@@ -7930,6 +8237,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         <span class="text-xs font-bold text-gray-700 truncate" title="${src.filename}">${src.filename}</span>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openCSVEditor('${id}')" class="text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100 rounded transition-colors" title="Edit CSV">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
                         <button onclick="exportDataSource('${id}')" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Export CSV">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         </button>
@@ -7947,17 +8257,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         <input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleMergeHeader('${id}', this.checked)" ${src.hasHeader ? 'checked' : ''}> Has Header
                     </label>
                 </div>
-                <details class="group mt-2">
-                    <summary class="text-[10px] font-bold text-gray-500 uppercase cursor-pointer hover:text-blue-600 flex items-center gap-1 list-none [&::-webkit-details-marker]:hidden bg-gray-50 p-1.5 rounded border border-gray-200 transition-colors">
-                        <svg class="w-3 h-3 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        Manage Rows
-                    </summary>
-                    ${rowListHTML}
-                    <div class="flex gap-3 mt-1.5 px-1">
-                         <button onclick="toggleAllRows('${id}', true)" class="text-[9px] font-bold uppercase text-blue-600 hover:text-blue-800 transition-colors">Select All</button>
-                         <button onclick="toggleAllRows('${id}', false)" class="text-[9px] font-bold uppercase text-red-600 hover:text-red-800 transition-colors">Deselect All</button>
-                    </div>
-                </details>
                 ${imageStatusHTML}
             `;
             container.appendChild(div);
@@ -7983,7 +8282,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         if (!sourceSelect || !colSelect) return;
 
         sourceSelect.innerHTML = '<option value="">Select Source...</option>';
-        colSelect.innerHTML = '<option value="">Select Column...</option>';
+        colSelect.innerHTML = '<option value="">Select Variable...</option>';
         colSelect.disabled = true;
 
         for (let id in mergeSources) {
@@ -7993,7 +8292,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (hasImageCols) {
                     let opt = document.createElement('option');
                     opt.value = id;
-                    opt.innerText = src.filename;
+                    opt.innerText = "[CSV] " + src.filename;
                     sourceSelect.appendChild(opt);
                 }
             }
@@ -8013,7 +8312,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const colSelect = document.getElementById('bank-merge-col-select');
         if (!colSelect) return;
 
-        colSelect.innerHTML = '<option value="">Select Column...</option>';
+        colSelect.innerHTML = '<option value="">Select Variable...</option>';
         
         if (!sourceId) {
             colSelect.disabled = true;
@@ -8040,7 +8339,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
                         let opt = document.createElement('option');
                         opt.value = colIdx;
-                        opt.innerText = hdr.trim();
+                        opt.innerText = hdr.trim().replace(/^Images:\s*/i, '');
                         colSelect.appendChild(opt);
                         added++;
                     }
@@ -8097,14 +8396,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         const missingAssets = Array.from(requiredAssets).filter(val => !imageAssets[val]);
 
-        // Check if plugins have any images
-        let hasPluginImages = false;
-        plugKeys.forEach(id => {
-            if (pluginsData[id].images && pluginsData[id].images.length > 0) hasPluginImages = true;
-        });
-
-        if (keys.length === 0 && missingAssets.length === 0 && !hasPluginImages) {
-            container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No images in the bank. Upload some or add a plugin to get started!</div>`;
+        if (keys.length === 0 && missingAssets.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No images in the bank. Upload some or add a data source to get started!</div>`;
             return;
         }
 
@@ -8141,47 +8434,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             });
         }
 
-        // Render Plugin Images
-        if (hasPluginImages) {
-            html += `<div class="col-span-full ${keys.length > 0 ? 'mt-4' : 'mt-1'} mb-1">
-                <h4 class="text-xs font-bold text-purple-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg> Plugin Placeholders</h4>
-            </div>`;
-
-            plugKeys.forEach(pId => {
-                const p = pluginsData[pId];
-                const inst = pluginInstances[pId];
-                p.images.forEach(imgName => {
-                    let previewSrc = '';
-                    if (inst && typeof inst.renderTemplateImage === 'function') {
-                        try {
-                            const ctx = getPluginContext(globalMergeIndex);
-                            let pImg = inst.renderTemplateImage(imgName, ctx);
-                            if (pImg && pImg.trim().startsWith('<')) {
-                                previewSrc = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
-                            } else {
-                                previewSrc = pImg || '';
-                            }
-                        } catch(e) {}
-                    }
-                    
-                    const safeName = imgName.replace(/'/g, "\\'");
-                    
-                    html += `
-                    <div class="bg-purple-50 border border-purple-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group relative">
-                        <div class="h-28 w-full bg-white border border-purple-200 border-dashed rounded-lg flex items-center justify-center overflow-hidden relative">
-                            ${previewSrc ? `<img src="${previewSrc}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />` : `<div class="flex flex-col items-center opacity-50 text-purple-400"><svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold">No Preview</span></div>`}
-                        </div>
-                        <div class="text-[10px] font-mono text-purple-700 truncate w-full text-center px-1" title="${imgName}">${imgName} <span class="text-purple-400">(${p.name})</span></div>
-                        <button onclick="placePluginImage('${pId}', '${safeName}')" class="mt-auto py-1.5 w-full bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place on Canvas</button>
-                    </div>
-                    `;
-                });
-            });
-        }
-
         // Render Missing Assets Warning Block
         if (missingAssets.length > 0) {
-            html += `<div class="col-span-full ${keys.length > 0 || hasPluginImages ? 'mt-4' : 'mt-1'} mb-1">
+            html += `<div class="col-span-full ${keys.length > 0 ? 'mt-4' : 'mt-1'} mb-1">
                 <h4 class="text-xs font-bold text-red-600 uppercase flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Missing from CSV / Canvas</h4>
             </div>`;
 
@@ -8345,7 +8600,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         el.dataset.objectPositionY = 'center';
         el.dataset.imageScale = '1';
 
-        const innerContent = getBaseImageContentHTML(p(150), p(150), '', `Plugin: ${imgName}`, 'contain', 'center', 'center');
+        const plugin = pluginsData[pluginId];
+        const pName = plugin ? plugin.name : pluginId;
+        const placeholderText = `Plugin: ${pName}, var: ${imgName}`;
+
+        const innerContent = getBaseImageContentHTML(p(150), p(150), '', placeholderText, 'contain', 'center', 'center', '1', 'data-empty bg-gray-100 border-gray-300 text-gray-400');
         el.innerHTML = getControlsHTML(false) + innerContent;
         contentArea.appendChild(el);
 
@@ -8366,14 +8625,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     }
     
 
-    function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image', fit = 'contain', posX = 'center', posY = 'center', scale = '1') {
+    function getBaseImageContentHTML(w, h, dataUrl = '', missingText = 'Image', fit = 'contain', posX = 'center', posY = 'center', scale = '1', themeCls = 'bg-red-50 border-red-400 text-red-500') {
         const hasUrl = !!dataUrl;
         return `<div class="resizable relative" style="width: ${w}px; height: ${h}px;">
-            <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border border-dashed ${hasUrl ? 'hidden' : 'bg-red-50 border-red-400 text-red-500'}" style="display: ${hasUrl ? 'none' : 'flex'};">
+            <div class="image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border border-dashed ${hasUrl ? 'hidden' : themeCls}" style="display: ${hasUrl ? 'none' : 'flex'};">
                 <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
             </div>
-            <img src="${dataUrl}" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; display: ${hasUrl ? 'block' : 'none'};" />
+            <img src="${dataUrl}" onerror="this.style.display='none'; if(this.previousElementSibling) { this.previousElementSibling.style.display='flex'; }" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; display: ${hasUrl ? 'block' : 'none'};" />
         </div>`;
     }
 
@@ -8381,16 +8640,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const img = el.querySelector('img');
         if (!img) return;
 
-        // Only recreate the placeholder if we are NOT in print mode
         let placeholder = el.querySelector('.image-placeholder');
         if (!placeholder && !isPrint) {
             placeholder = document.createElement('div');
-            el.querySelector('.resizable').insertBefore(placeholder, img);
-        }
-
-        if (placeholder) {
-            placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border-2 border-dashed';
+            placeholder.className = 'image-placeholder absolute inset-0 z-0 flex flex-col items-center justify-center p-2 text-center overflow-hidden border border-dashed';
             placeholder.innerHTML = `<svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none"></span>`;
+            el.querySelector('.resizable').insertBefore(placeholder, img);
         }
 
         const pText = placeholder ? placeholder.querySelector('.placeholder-text') : null;
@@ -8402,7 +8657,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         
         img.style.objectFit = fit;
         img.style.objectPosition = `${posX} ${posY}`;
-        
         img.style.width = `calc(100% / ${scale})`;
         img.style.height = `calc(100% / ${scale})`;
         img.style.maxWidth = 'none'; 
@@ -8410,7 +8664,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         img.style.left = '50%';
         img.style.transform = `translate(-50%, -50%) scale(${scale})`;
         img.style.transformOrigin = 'center';
-        img.style.position = 'absolute'; // Critical fix for the SVG Print Engine!
+        img.style.position = 'absolute';
 
         img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0', 'absolute');
 
@@ -8419,32 +8673,41 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             displayVal = el.dataset.imageBankKey;
         }
 
+        if (placeholder) {
+            placeholder.classList.remove('bg-red-50', 'border-red-400', 'text-red-500', 'bg-purple-50', 'border-purple-400', 'text-purple-500', 'bg-gray-100', 'border-gray-300', 'text-gray-400', 'data-empty');
+            
+            if (el.dataset.pluginImageId) {
+                placeholder.classList.add('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
+                if (pText) {
+                    const pId = el.dataset.pluginImageId;
+                    const pName = pluginsData[pId] ? pluginsData[pId].name : pId;
+                    pText.innerText = `Plugin: ${pName}, var: ${el.dataset.pluginImageName || 'Missing'}`;
+                }
+            } else if (el.dataset.mergeSourceId) {
+                placeholder.classList.add('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
+                if (pText) {
+                    if (mergeSources[el.dataset.mergeSourceId]) {
+                        const src = mergeSources[el.dataset.mergeSourceId];
+                        const colIdx = parseInt(el.dataset.mergeCol, 10);
+                        const cleanColName = (src.data[0] && src.data[0][colIdx] !== undefined ? String(src.data[0][colIdx]) : `Var ${colIdx}`).replace(/^Images:\s*/i, '');
+                        pText.innerText = `Images: ${src.filename}, column: ${cleanColName}`;
+                    } else {
+                        pText.innerText = 'Empty Data';
+                    }
+                }
+            } else if (el.dataset.imageBankKey) {
+                placeholder.classList.add('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
+                if (pText) pText.innerText = `${el.dataset.imageBankKey}`;
+            } else {
+                placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
+                if (pText) pText.innerText = 'Image';
+            }
+        }
+
         if (!displayVal) {
             img.style.display = 'none';
             img.removeAttribute('src'); 
-            if (placeholder) {
-                placeholder.style.display = 'flex';
-                if (el.dataset.mergeSourceId) {
-                    placeholder.classList.add('data-empty');
-                    placeholder.classList.remove('bg-red-50', 'border-red-400', 'text-red-500');
-                    placeholder.classList.add('bg-gray-100', 'border-gray-300', 'text-gray-400');
-                } else {
-                    placeholder.classList.remove('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
-                    placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
-                }
-                
-                if (pText) {
-                    if (el.dataset.mergeSourceId && mergeSources[el.dataset.mergeSourceId]) {
-                        const src = mergeSources[el.dataset.mergeSourceId];
-                        const colIdx = parseInt(el.dataset.mergeCol, 10);
-                        const rawColName = src.data[0] && src.data[0][colIdx] !== undefined ? String(src.data[0][colIdx]) : `Col ${colIdx}`;
-                        const cleanColName = rawColName.replace(/^Images:\s*/i, '');
-                        pText.innerText = `[ ${cleanColName} ]`;
-                    } else {
-                        pText.innerText = 'Empty';
-                    }
-                }
-            }
+            if (placeholder) placeholder.style.display = 'flex';
         } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
             const baseSrc = imageAssets[displayVal] || displayVal;
             if (el.dataset.c2aEnabled === 'true') {
@@ -8460,63 +8723,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             img.removeAttribute('src'); 
             if (placeholder) {
                 placeholder.style.display = 'flex';
+                placeholder.classList.remove('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400', 'bg-purple-50', 'border-purple-400', 'text-purple-500');
                 placeholder.classList.add('bg-red-50', 'border-red-400', 'text-red-500');
                 if (pText) pText.innerText = 'Missing: ' + displayVal;
             }
         }
     }
 
-    // function placeBankImage(filename) {
-    //     filename = filename || '';
-    //     const dataUrl = imageAssets[filename] || '';
-    //     const p = (val) => Math.round(val * (PX_PER_IN / 100));
-    //     const contentArea = document.getElementById('card-content');
-    //     if (!contentArea) return;
-
-    //     const createEl = (w, h, dUrl) => {
-    //         const el = document.createElement('div');
-    //         el.className = 'element-container bg-transparent';
-    //         const offset = (zIndexCounter % 10) * (PX_PER_IN / 10) + (PX_PER_IN / 5);
-    //         el.style.left = offset + 'px';
-    //         el.style.top = offset + 'px';
-    //         el.style.zIndex = zIndexCounter++;
-    //         el.dataset.type = 'image';
-    //         if (filename) el.dataset.imageBankKey = filename;
-    //         el.dataset.objectFit = 'contain';
-    //         el.dataset.objectPositionX = 'center';
-    //         el.dataset.objectPositionY = 'center';
-    //         el.dataset.imageScale = '1';
-
-    //         const innerContent = getBaseImageContentHTML(w, h, dUrl, filename || 'Image', 'contain', 'center', 'center');
-    //         el.innerHTML = getControlsHTML(false) + innerContent;
-    //         contentArea.appendChild(el);
-
-    //         setActiveElement(el);
-    //         closeImageBankModal();
-    //         saveState();
-    //     };
-
-    //     if (!dataUrl) {
-    //         createEl(p(75), p(75), '');
-    //         return;
-    //     }
-
-    //     const tempImg = new Image();
-    //     tempImg.onload = function() {
-    //         let w = tempImg.naturalWidth;
-    //         let h = tempImg.naturalHeight;
-    //         const maxDim = p(200);
-    //         if (w > maxDim || h > maxDim) {
-    //             const ratio = Math.min(maxDim / w, maxDim / h);
-    //             w = Math.round(w * ratio);
-    //             h = Math.round(h * ratio);
-    //         }
-    //         w = Math.max(p(20), w);
-    //         h = Math.max(p(20), h);
-    //         createEl(w, h, dataUrl);
-    //     };
-    //     tempImg.src = dataUrl;
-    // }
 
     function placeBankImage(filename) {
         filename = filename || '';
@@ -8586,7 +8799,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         const colIdxStr = colSelect.value;
 
         if (!sourceId || !colIdxStr) {
-            showToast("Please select a data source and an image column.", true);
+            showToast("Please select a data source and an image variable.", true);
             return;
         }
         
@@ -8643,7 +8856,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             el.dataset.objectPositionY = 'center';
             el.dataset.imageScale = '1';
 
-            const innerContent = getBaseImageContentHTML(w, h, dUrl, placeholderText, 'contain', 'center', 'center', '1');
+            const innerContent = getBaseImageContentHTML(w, h, dUrl, placeholderText, 'contain', 'center', 'center', '1', 'data-empty bg-gray-100 border-gray-300 text-gray-400');
             el.innerHTML = getControlsHTML(false) + innerContent;
             contentArea.appendChild(el);
 
@@ -8771,9 +8984,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     function startNewCard() {
         if (confirm("Are you sure you want to start a new card? All unsaved progress will be lost.")) {
             localStorage.removeItem(SAVE_KEY);
-            StorageDB.delete(SAVE_KEY).finally(() => {
-                location.reload();
-            });
+            localStorage.removeItem('card_designer_autosave');
+            let reloaded = false;
+            const doReload = () => { if (!reloaded) { reloaded = true; location.reload(); } };
+            setTimeout(doReload, 500);
+            Promise.all([
+                StorageDB.delete(SAVE_KEY).catch(()=>{}),
+                StorageDB.delete('card_designer_autosave').catch(()=>{})
+            ]).finally(doReload);
         }
     }
 
@@ -9682,8 +9900,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             let maxZ = 100;
             document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+                if (el.dataset.baselineZ !== undefined) {
+                    el.style.zIndex = el.dataset.baselineZ;
+                    delete el.dataset.baselineZ;
+                }
                 let z = parseInt(el.style.zIndex) || 100;
-                if (z > maxZ) maxZ = z;
+                if (z > maxZ && z < 99999) maxZ = z;
             });
             zIndexCounter = maxZ + 1;
 
@@ -9713,7 +9935,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         if (laserOverlay) laserOverlay.remove();
 
         temp.querySelectorAll('.ui-control, .controls, .col-resizer, .row-resizer, .rot-handle, .image-placeholder').forEach(el => el.remove());
-        temp.querySelectorAll('.element-container').forEach(el => el.classList.remove('active', 'rotation-active'));
+        temp.querySelectorAll('.element-container').forEach(el => {
+            el.classList.remove('active', 'rotation-active');
+            if (el.dataset.baselineZ !== undefined) {
+                el.style.zIndex = el.dataset.baselineZ;
+                delete el.dataset.baselineZ;
+            }
+        });
         temp.querySelectorAll('[contenteditable="true"]').forEach(el => {
             el.removeAttribute('contenteditable');
             el.style.cursor = 'default';
