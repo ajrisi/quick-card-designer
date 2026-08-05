@@ -1278,6 +1278,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             <div id="shape-radius-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Rad</span>
                 <input type="range" id="shape-radius" min="0" max="100" value="0" class="w-14 accent-blue-600" oninput="applyShapeStyle('radius', this.value)">
+                <span class="text-[9px] text-blue-600 font-bold w-2" id="shape-radius-val">0</span>
             </div>
             <div id="shape-sides-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Sides</span>
@@ -5788,6 +5789,11 @@ function redo() {
                 drawShape(el);
             }
         });
+        if (prop === 'strokeWidth') {
+            document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
+        } else if (prop === 'radius') {
+            document.getElementById('shape-radius-val').innerText = document.getElementById('shape-radius').value;
+        }
         if (prop === 'shape') syncShapeSettingsUI();
         saveState(true);
     }
@@ -6234,6 +6240,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             document.getElementById('vertical-align-group').classList.add('hidden');
             document.getElementById('vertical-align-group').classList.remove('flex');
             document.getElementById('data-merge-section').style.display = 'none';
+            
+            // Reset Shape Sliders
+            document.getElementById('shape-stroke-width').value = 2;
+            document.getElementById('shape-stroke-val').innerText = '2';
+            document.getElementById('shape-radius').value = 0;
+            document.getElementById('shape-radius-val').innerText = '0';
+            document.getElementById('shape-sides').value = 3;
+            document.getElementById('shape-sides-val').innerText = '3';
         }
     }
 
@@ -6249,8 +6263,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         document.getElementById('shape-stroke-width').value = Math.round(parseFloat(activeElement.dataset.strokeWidth || (2 * (PX_PER_IN / 100))) / (PX_PER_IN / 100));
         document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
-
-        if (shape === 'rect') document.getElementById('shape-radius').value = activeElement.dataset.radius || 0;
+        
+        if (shape === 'rect') {
+            document.getElementById('shape-radius').value = activeElement.dataset.radius || 0;
+            document.getElementById('shape-radius-val').innerText = activeElement.dataset.radius || 0;
+        }
         if (shape === 'polygon') {
             document.getElementById('shape-sides').value = activeElement.dataset.sides || 3;
             document.getElementById('shape-sides-val').innerText = activeElement.dataset.sides || 3;
