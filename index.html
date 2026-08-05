@@ -2926,6 +2926,27 @@ function updateBgSettings() {
             if (!savedData) {
                 savedData = localStorage.getItem(SAVE_KEY);
             }
+
+            // --- LEGACY DATA MIGRATION ---
+            // If the default workspace is empty, check for old workspace-less saves
+            if (!savedData && currentWorkspace === 'default') {
+                const LEGACY_KEY = 'card_designer_autosave';
+                try {
+                    savedData = await StorageDB.load(LEGACY_KEY);
+                    if (!savedData) savedData = localStorage.getItem(LEGACY_KEY);
+                    
+                    if (savedData) {
+                        // Port the data to the new default workspace key
+                        await StorageDB.save(SAVE_KEY, savedData);
+                        // Clean up the old keys to prevent dead data from eating up quota
+                        localStorage.removeItem(LEGACY_KEY);
+                        StorageDB.delete(LEGACY_KEY).catch(()=>{});
+                        console.log("Successfully migrated legacy save data to the default workspace.");
+                    }
+                } catch (e) { 
+                    console.warn("Legacy data migration failed", e); 
+                }
+            }
         }
 
         if (savedData) {
