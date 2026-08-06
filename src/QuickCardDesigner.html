@@ -3932,10 +3932,30 @@ function updateUILayer() {
     }
 
     const uiSafeZone = document.getElementById('ui-safe-zone');
-    const safeT = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
-    const safeR = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
-    const safeB = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
-    const safeL = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
+    let safeT = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
+    let safeR = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
+    let safeB = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
+    let safeL = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
+
+    if (editingSide === 'back' && document.getElementById('print-duplex')?.checked) {
+        const gridRevCol = document.getElementById('grid-reverse-col')?.checked;
+        const gridRevRow = document.getElementById('grid-reverse-row')?.checked;
+        const mirrorH = document.getElementById('mirror-horizontal')?.checked;
+        const mirrorV = document.getElementById('mirror-vertical')?.checked;
+        const rot180 = document.getElementById('rotate-180')?.checked;
+
+        // Physical sheet flip alignments
+        if (gridRevCol) { let t = safeL; safeL = safeR; safeR = t; }
+        if (gridRevRow) { let t = safeT; safeT = safeB; safeB = t; }
+        
+        // CSS Print Transforms applied to the back
+        if (mirrorH) { let t = safeL; safeL = safeR; safeR = t; }
+        if (mirrorV) { let t = safeT; safeT = safeB; safeB = t; }
+        if (rot180) { 
+            let tX = safeL; safeL = safeR; safeR = tX; 
+            let tY = safeT; safeT = safeB; safeB = tY; 
+        }
+    }
 
     if (uiSafeZone) {
         if (safeT > 0 || safeR > 0 || safeB > 0 || safeL > 0) {
@@ -4021,6 +4041,28 @@ function updateUILayer() {
             groupBox.style.top = (panY + groupUBox.y * canvasScale) + 'px';
             groupBox.style.width = (groupUBox.w * canvasScale) + 'px';
             groupBox.style.height = (groupUBox.h * canvasScale) + 'px';
+
+            const isGroupRotating = activeElements.some(el => el.classList.contains('rotation-active'));
+            if (isGroupRotating) {
+                groupBox.innerHTML = `
+                    <div class="rot-handle nw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                    <div class="rot-handle ne pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                    <div class="rot-handle sw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                    <div class="rot-handle se pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+                `;
+            } else {
+                groupBox.innerHTML = `
+                    <div class="resizer n pointer-events-auto" style="display: block;" data-dir="n"></div>
+                    <div class="resizer s pointer-events-auto" style="display: block;" data-dir="s"></div>
+                    <div class="resizer e pointer-events-auto" style="display: block;" data-dir="e"></div>
+                    <div class="resizer w pointer-events-auto" style="display: block;" data-dir="w"></div>
+                    <div class="resizer nw pointer-events-auto" style="display: block;" data-dir="nw"></div>
+                    <div class="resizer ne pointer-events-auto" style="display: block;" data-dir="ne"></div>
+                    <div class="resizer sw pointer-events-auto" style="display: block;" data-dir="sw"></div>
+                    <div class="resizer se pointer-events-auto" style="display: block;" data-dir="se"></div>
+                `;
+            }
+
             boxesContainer.appendChild(groupBox);
         }
 
@@ -9059,6 +9101,30 @@ function setActiveElement(el, multi = false) {
     function populateSnapTargets() {
         dragSnapTargets = { x: [], y: [] };
         const unitMult = currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN;
+        
+        let sTop = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
+        let sRight = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
+        let sBottom = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
+        let sLeft = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
+
+        // Mirror physical snap targets on the back side
+        if (editingSide === 'back' && document.getElementById('print-duplex')?.checked) {
+            const gridRevCol = document.getElementById('grid-reverse-col')?.checked;
+            const gridRevRow = document.getElementById('grid-reverse-row')?.checked;
+            const mirrorH = document.getElementById('mirror-horizontal')?.checked;
+            const mirrorV = document.getElementById('mirror-vertical')?.checked;
+            const rot180 = document.getElementById('rotate-180')?.checked;
+
+            if (gridRevCol) { let t = sLeft; sLeft = sRight; sRight = t; }
+            if (gridRevRow) { let t = sTop; sTop = sBottom; sBottom = t; }
+            if (mirrorH) { let t = sLeft; sLeft = sRight; sRight = t; }
+            if (mirrorV) { let t = sTop; sTop = sBottom; sBottom = t; }
+            if (rot180) { 
+                let tX = sLeft; sLeft = sRight; sRight = tX; 
+                let tY = sTop; sTop = sBottom; sBottom = tY; 
+            }
+        }
+
         const sTopPx = (parseFloat(document.getElementById('safe-margin-top')?.value) || 0) * unitMult;
         const sRightPx = (parseFloat(document.getElementById('safe-margin-right')?.value) || 0) * unitMult;
         const sBottomPx = (parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0) * unitMult;
@@ -10310,9 +10376,14 @@ container.style.minWidth = '0px';
             e.preventDefault();
             
             // Gather all top-level elements under the current mouse pointer
-            const elementsUnder = document.elementsFromPoint(lastMouseX, lastMouseY)
+            let elementsUnder = document.elementsFromPoint(lastMouseX, lastMouseY)
                 .map(el => el.closest('.element-container'))
                 .filter((el, index, self) => el && self.indexOf(el) === index && el.parentElement?.id === 'card-content');
+
+            // If mouse is over the background (no elements under cursor), cycle ALL elements
+            if (elementsUnder.length === 0) {
+                elementsUnder = Array.from(document.querySelectorAll('#card-content > .element-container'));
+            }
 
             if (elementsUnder.length > 0) {
                 // Sort them by their true visual z-index stack
@@ -10324,6 +10395,12 @@ container.style.minWidth = '0px';
 
                 let currentIndex = elementsUnder.indexOf(activeElement);
                 let nextIndex = (currentIndex + 1) % elementsUnder.length;
+                
+                // Allow Shift+Tab to reverse the cycle direction!
+                if (e.shiftKey) {
+                    nextIndex = (currentIndex - 1 + elementsUnder.length) % elementsUnder.length;
+                }
+                
                 setActiveElement(elementsUnder[nextIndex]);
             }
             return;
