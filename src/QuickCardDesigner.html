@@ -1801,8 +1801,10 @@
     let startX, startY;
     let initialDragStates = [];
 
-    let popoverCorner = 'nw'; // Defaults to top-left (North-West)
     let isDraggingPopover = false;
+    let draggedPopover = null;
+    let popoverDragStartX = 0;
+    let popoverDragStartY = 0;
 
     // Rotation state variables
     let isRotating = false;
@@ -3712,6 +3714,16 @@ function updateUILayer() {
 
     if (hoveredElement && !activeElements.includes(hoveredElement)) {
         drawBox(hoveredElement, true);
+
+        window.toolbarOffsets = window.toolbarOffsets || {};
+        const offset = window.toolbarOffsets[hoveredElement.id] || { x: 0, y: 0 };
+        const hoverControls = hoveredElement.querySelector('.controls');
+        if (hoverControls) {
+            hoverControls.style.marginLeft = offset.x + 'px';
+            hoverControls.style.marginTop = offset.y + 'px';
+            hoverControls.dataset.offsetX = offset.x;
+            hoverControls.dataset.offsetY = offset.y;
+        }
     }
 
     activeElements.forEach(el => drawBox(el, false));
@@ -3721,6 +3733,15 @@ function updateUILayer() {
         el.classList.add('hide-controls');
         if (activeElements.length > 1) el.classList.add('multi-select');
         else el.classList.remove('multi-select');
+        window.toolbarOffsets = window.toolbarOffsets || {};
+            const offset = window.toolbarOffsets[el.id] || { x: 0, y: 0 };
+            const singleControls = el.querySelector('.controls');
+            if (singleControls) {
+                singleControls.style.marginLeft = offset.x + 'px';
+                singleControls.style.marginTop = offset.y + 'px';
+                singleControls.dataset.offsetX = offset.x;
+                singleControls.dataset.offsetY = offset.y;
+            }
     });
 
     let multiControls = document.getElementById('multi-select-controls');
@@ -3815,19 +3836,17 @@ function updateUILayer() {
         let msX = panX + box.x * canvasScale - 2;
         let msY = panY + box.y * canvasScale - msH - 4; 
 
-        if (popoverCorner === 'ne') {
-            msX = panX + (box.x + box.w) * canvasScale - msW + 2;
-            msY = panY + box.y * canvasScale - msH - 4;
-        } else if (popoverCorner === 'sw') {
-            msX = panX + box.x * canvasScale - 2;
-            msY = panY + (box.y + box.h) * canvasScale + 4;
-        } else if (popoverCorner === 'se') {
-            msX = panX + (box.x + box.w) * canvasScale - msW + 2;
-            msY = panY + (box.y + box.h) * canvasScale + 4;
-        }
+// Restore offset from runtime dictionary so fresh selections start exactly in the NW corner
+        window.toolbarOffsets = window.toolbarOffsets || {};
+        const selectionKey = activeElements.map(el => el.id).sort().join(',');
+        const offset = window.toolbarOffsets[selectionKey] || { x: 0, y: 0 };
 
-        ms.style.left = msX + 'px';
-        ms.style.top = msY + 'px';
+        ms.style.left = (msX + offset.x) + 'px';
+        ms.style.top = (msY + offset.y) + 'px';
+        
+        // Sync dataset so dragging continues smoothly
+        ms.dataset.offsetX = offset.x;
+        ms.dataset.offsetY = offset.y;
 
         ms.dataset.lasers = activeElements[0]?.dataset.lasers === 'true' ? 'true' : 'false';
         ms.dataset.rotating = activeElements[0]?.classList.contains('rotation-active') ? 'true' : 'false';
@@ -5677,7 +5696,8 @@ function getAbsoluteBounds(el, mode = 'bbox') {
         }
     } else {
         let targetRect = null;
-
+        
+        // Temporarily strip CSS transforms so the browser measures flat, local ink bounds
         const oldTransform = el.style.transform;
         el.style.transform = 'none';
 
@@ -5691,14 +5711,8 @@ function getAbsoluteBounds(el, mode = 'bbox') {
         } else if (el.dataset.type === 'image') {
             const img = el.querySelector('img');
             if (img) targetRect = img.getBoundingClientRect();
-        } else if (el.dataset.type === 'table') {
-            const tbl = el.querySelector('.card-table-wrapper');
-            if (tbl) targetRect = tbl.getBoundingClientRect();
-        } else if (el.dataset.type === 'divider') {
-            const div = el.querySelector('.card-divider');
-            if (div) targetRect = div.getBoundingClientRect();
-        }
-
+        } 
+        
         if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
             const canvasRect = document.getElementById('canvas-container').getBoundingClientRect();
             vX = (targetRect.left - canvasRect.left - panX) / canvasScale;
@@ -5706,7 +5720,7 @@ function getAbsoluteBounds(el, mode = 'bbox') {
             vW = targetRect.width / canvasScale;
             vH = targetRect.height / canvasScale;
         }
-
+        
         // Restore the original rotation
         el.style.transform = oldTransform;
     }
@@ -5810,7 +5824,7 @@ function getAbsoluteBounds(el, mode = 'bbox') {
 
 function getControlsHTML(isGroup) {
         return `
-        <div class="controls ui-control popover-${popoverCorner}" contenteditable="false">
+        <div class="controls ui-control popover-nw" contenteditable="false">
             <span class="control-btn drag-handle cursor-move" title="Drag">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
             </span>
@@ -8231,14 +8245,23 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         if (e.shiftKey) { mergeCells(cell, 'horizontal'); return; }
 
                         const startX = e.clientX;
+                        const startY = e.clientY;
+                        
                         const wrapper = table.closest('.card-table-wrapper');
+                        const el = wrapper.closest('.element-container');
+                        const rot = getRotation(el) * (Math.PI / 180);
+                        
                         const startTableW = wrapper.offsetWidth;
-
                         const targetColIndex = cellC + cs - 1;
                         const initialWidths = cols.map(c => parseFloat(c.style.width) || (100 / cols.length));
 
                         const mouseMoveHandler = (ev) => {
-                            let dx = (ev.clientX - startX) / canvasScale;
+                            let rawDx = (ev.clientX - startX) / canvasScale;
+                            let rawDy = (ev.clientY - startY) / canvasScale;
+                            
+                            // Un-rotate the mouse drag to match the table's orientation
+                            let dx = rawDx * Math.cos(-rot) - rawDy * Math.sin(-rot);
+                            
                             let precision = 2;
                             if (ev.ctrlKey || ev.metaKey) {
                                 dx *= 0.1;
@@ -8284,15 +8307,24 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                         e.stopPropagation();
                         if (e.shiftKey) { mergeCells(cell, 'vertical'); return; }
 
+                        const startX = e.clientX;
                         const startY = e.clientY;
+                        
                         const wrapper = table.closest('.card-table-wrapper');
+                        const el = wrapper.closest('.element-container');
+                        const rot = getRotation(el) * (Math.PI / 180);
+                        
                         const startTableH = wrapper.offsetHeight;
                         const initialHeights = rows.map(r => parseFloat(r.children[0]?.style?.height) || (100 / rows.length));
-
                         const targetRowIndex = cellR + rs - 1;
 
                         const mouseMoveHandler = (ev) => {
-                            let dy = (ev.clientY - startY) / canvasScale;
+                            let rawDx = (ev.clientX - startX) / canvasScale;
+                            let rawDy = (ev.clientY - startY) / canvasScale;
+                            
+                            // Un-rotate the mouse drag to match the table's orientation
+                            let dy = rawDx * Math.sin(-rot) + rawDy * Math.cos(-rot);
+
                             let precision = 2;
                             if (ev.ctrlKey || ev.metaKey) {
                                 dy *= 0.1;
@@ -8615,6 +8647,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         if (e.target.closest('.popover-drag-handle')) {
             isDraggingPopover = true;
+
+            draggedPopover = e.target.closest('.controls');
+            popoverDragStartX = e.clientX;
+            popoverDragStartY = e.clientY;
+            
+            draggedPopover.dataset.startOffsetX = parseFloat(draggedPopover.dataset.offsetX) || 0;
+            draggedPopover.dataset.startOffsetY = parseFloat(draggedPopover.dataset.offsetY) || 0;
+
             e.preventDefault();
             e.stopPropagation();
             return;
@@ -9271,43 +9311,30 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 return;
             }
 
-            if (isDraggingPopover) {
-            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-            const mouseX = e.clientX - containerRect.left;
-            const mouseY = e.clientY - containerRect.top;
+        if (isDraggingPopover && draggedPopover) {
+            const dx = e.clientX - popoverDragStartX;
+            const dy = e.clientY - popoverDragStartY;
 
-            const box = getGroupBoundingBox('bbox');
-            const screenX = panX + box.x * canvasScale;
-            const screenY = panY + box.y * canvasScale;
-            const screenW = box.w * canvasScale;
-            const screenH = box.h * canvasScale;
+            const startX = parseFloat(draggedPopover.dataset.startOffsetX) || 0;
+            const startY = parseFloat(draggedPopover.dataset.startOffsetY) || 0;
 
-            // Calculate distance from mouse to each of the 4 corners
-            const distNW = Math.hypot(mouseX - screenX, mouseY - screenY);
-            const distNE = Math.hypot(mouseX - (screenX + screenW), mouseY - screenY);
-            const distSW = Math.hypot(mouseX - screenX, mouseY - (screenY + screenH));
-            const distSE = Math.hypot(mouseX - (screenX + screenW), mouseY - (screenY + screenH));
+            const newOffsetX = startX + dx;
+            const newOffsetY = startY + dy;
 
-            const minDist = Math.min(distNW, distNE, distSW, distSE);
-            
-            // Snap to the closest corner
-            let newCorner = popoverCorner;
-            if (minDist === distNW) newCorner = 'nw';
-            else if (minDist === distNE) newCorner = 'ne';
-            else if (minDist === distSW) newCorner = 'sw';
-            else if (minDist === distSE) newCorner = 'se';
+            draggedPopover.dataset.offsetX = newOffsetX;
+            draggedPopover.dataset.offsetY = newOffsetY;
 
-            // Only update DOM if the corner actually changed
-            if (newCorner !== popoverCorner) {
-                popoverCorner = newCorner;
-                
-                // Live-update any individual element toolbars currently on canvas
-                document.querySelectorAll('.element-container .controls').forEach(c => {
-                    c.classList.remove('popover-nw', 'popover-ne', 'popover-sw', 'popover-se');
-                    c.classList.add(`popover-${popoverCorner}`);
-                });
-                
+            window.toolbarOffsets = window.toolbarOffsets || {};
+            const selectionKey = activeElements.map(el => el.id).sort().join(',');
+            window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
+
+            if (draggedPopover.id === 'multi-select-controls') {
+                // Multi-select is positioned globally in screen coordinates
                 if (typeof updateUILayer === 'function') updateUILayer();
+            } else {
+                // Single-element controls scale with the canvas, so divide by canvasScale
+                draggedPopover.style.marginLeft = `${newOffsetX / canvasScale}px`;
+                draggedPopover.style.marginTop = `${newOffsetY / canvasScale}px`;
             }
             return;
         }
@@ -9462,6 +9489,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             if (isDraggingPopover) {
             isDraggingPopover = false;
+            draggedPopover = null;
             return;
         }
 
