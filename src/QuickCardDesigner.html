@@ -5677,6 +5677,10 @@ function getAbsoluteBounds(el, mode = 'bbox') {
         }
     } else {
         let targetRect = null;
+
+        const oldTransform = el.style.transform;
+        el.style.transform = 'none';
+
         if (el.dataset.type === 'text' || el.dataset.type === 'title') {
             const content = el.querySelector('[contenteditable="true"]');
             if (content && content.textContent.trim() !== '') {
@@ -5702,6 +5706,9 @@ function getAbsoluteBounds(el, mode = 'bbox') {
             vW = targetRect.width / canvasScale;
             vH = targetRect.height / canvasScale;
         }
+
+        // Restore the original rotation
+        el.style.transform = oldTransform;
     }
 
     if (mode === 'visual') return { x: vX, y: vY, w: vW, h: vH };
