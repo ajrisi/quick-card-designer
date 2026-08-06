@@ -1270,6 +1270,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Spacing</span>
                 <input type="number" id="letter-spacing" step="0.5" value="0" class="w-12 border border-gray-300 rounded p-1 text-xs outline-none shadow-sm bg-white" onchange="applyStyle('letterSpacing', this.value + 'px')" title="Letter Spacing (px)">
             </div>
+
+            <!-- add text style clear -->
             
             
             
@@ -1890,6 +1892,9 @@ Check your Browserslist config to be sure that your targets are set up correctly
     let popoverDragStartX = 0;
     let popoverDragStartY = 0;
 
+    let longPressTimer = null;
+    let isLongPressTriggered = false;
+
     // Rotation state variables
     let isRotating = false;
     let rotateStartAngle = 0;
@@ -2007,6 +2012,41 @@ Check your Browserslist config to be sure that your targets are set up correctly
         input.accept = '.qcd,.svg';
         input.onchange = (e) => uploadCard(e, true);
         input.click();
+    }
+
+    function snapToolbarToCursor(elem = '.popover-drag-handle') {
+        const activeToolbar = document.getElementById('multi-select-controls');
+        if (!activeToolbar) return;
+
+        const selectionKey = activeElements.map(el => el.id).sort().join(',');
+        window.toolbarOffsets = window.toolbarOffsets || {};
+        const oldOffset = window.toolbarOffsets[selectionKey] || { x: 0, y: 0 };
+        
+        window.toolbarOffsets[selectionKey] = { x: 0, y: 0 };
+        if (typeof updateUILayer === 'function') updateUILayer();
+
+        const baseRect = activeToolbar.getBoundingClientRect();
+        const dragHandle = activeToolbar.querySelector(elem);
+        
+        if (baseRect.width > 0 && baseRect.height > 0) {
+            let anchorX, anchorY;
+            if (dragHandle) {
+                const handleRect = dragHandle.getBoundingClientRect();
+                anchorX = handleRect.left + handleRect.width / 2;
+                anchorY = handleRect.top + handleRect.height / 2;
+            } else {
+                anchorX = baseRect.left + baseRect.width / 2;
+                anchorY = baseRect.top + baseRect.height / 2;
+            }
+            const newOffsetX = lastMouseX - anchorX;
+            const newOffsetY = lastMouseY - anchorY;
+            
+            window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
+            if (typeof updateUILayer === 'function') updateUILayer();
+        } else {
+            window.toolbarOffsets[selectionKey] = oldOffset;
+            if (typeof updateUILayer === 'function') updateUILayer();
+        }
     }
 
     function processColorToAlpha(src, hexColor, tol) {
@@ -5526,6 +5566,7 @@ function redo() {
             btn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
             btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
         }
+        syncUISettingsWithActiveElement();
     }
 
     function toggleItalic() {
@@ -5551,6 +5592,7 @@ function redo() {
             btn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
             btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
         }
+        syncUISettingsWithActiveElement();
     }
 
     function parseMarkdownInElement(el) {
@@ -5792,7 +5834,24 @@ function getAbsoluteBounds(el, mode = 'bbox') {
             if (content && content.textContent.trim() !== '') {
                 const range = document.createRange();
                 range.selectNodeContents(content);
-                targetRect = range.getBoundingClientRect();
+                const inkRect = range.getBoundingClientRect();
+                const boxRect = content.getBoundingClientRect();
+                
+                // --- ADDED CLAMPING MATH ---
+                // Intersect the text ink with its container so the blue laser never escapes the hidden overflow
+                const top = Math.max(inkRect.top, boxRect.top);
+                const left = Math.max(inkRect.left, boxRect.left);
+                const bottom = Math.min(inkRect.bottom, boxRect.bottom);
+                const right = Math.min(inkRect.right, boxRect.right);
+
+                targetRect = {
+                    top: top,
+                    left: left,
+                    bottom: bottom,
+                    right: right,
+                    width: Math.max(0, right - left),
+                    height: Math.max(0, bottom - top)
+                };
             }
         } else if (el.dataset.type === 'image') {
             const img = el.querySelector('img');
@@ -6299,6 +6358,13 @@ function getControlsHTML(isGroup) {
         const scaleY = baseGroupBB.h > 0 ? newH / baseGroupBB.h : 1;
 
         baseGroupLayout.forEach(state => {
+            state.el.style.minWidth = '0px';
+            state.el.style.minHeight = '0px';
+            if (state.resizable) {
+                state.resizable.style.minWidth = '0px';
+                state.resizable.style.minHeight = '0px';
+            }
+
             let relX = state.absX - baseGroupBB.x;
             let relY = state.absY - baseGroupBB.y;
 
@@ -7582,17 +7648,29 @@ function updateLasers() {
                 target = activeTableCell && activeElement.contains(activeTableCell) ? (activeTableCell.querySelector('.cell-text') || activeTableCell) : (activeElement.querySelector('.cell-text') || target);
             }
 
-            if (target.style.fontSize) {
-                const px = parseFloat(target.style.fontSize);
-                document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
+            // Use getComputedStyle to flawlessly capture the actual rendered styling
+            const comp = window.getComputedStyle(target);
+
+            const px = parseFloat(target.style.fontSize || comp.fontSize);
+            if (!isNaN(px)) document.getElementById('font-size').value = Math.round(px / (PX_PER_IN / 72));
+
+            let fw = target.style.fontWeight || comp.fontWeight || 'normal';
+            if (fw === '700') fw = 'bold'; // Normalize browser quirks
+            if (fw === '400') fw = 'normal';
+            
+            const fwDropdown = document.getElementById('font-weight');
+            if (fwDropdown) {
+                if (Array.from(fwDropdown.options).some(opt => opt.value === fw)) {
+                    fwDropdown.value = fw;
+                } else {
+                    fwDropdown.value = 'normal';
+                }
             }
-            if (target.style.fontWeight) document.getElementById('font-weight').value = target.style.fontWeight;
 
-            // Sync Letter Spacing
-const tracking = parseFloat(target.style.letterSpacing);
-document.getElementById('letter-spacing').value = isNaN(tracking) ? 0 : tracking;
+            const tracking = parseFloat(target.style.letterSpacing || comp.letterSpacing);
+            document.getElementById('letter-spacing').value = isNaN(tracking) ? 0 : tracking;
 
-const align = target.style.textAlign || 'left';
+            const align = target.style.textAlign || comp.textAlign || 'left';
             ['left', 'center', 'right', 'justify'].forEach(a => {
                 const btn = document.getElementById(`btn-align-${a}`);
                 if (btn) {
@@ -7606,7 +7684,7 @@ const align = target.style.textAlign || 'left';
                 }
             });
 
-            const valign = target.style.justifyContent || 'flex-start';
+            const valign = target.style.justifyContent || comp.justifyContent || 'flex-start';
             ['flex-start', 'center', 'flex-end'].forEach(a => {
                 const btn = document.getElementById(`btn-valign-${a}`);
                 if (btn) {
@@ -7620,14 +7698,15 @@ const align = target.style.textAlign || 'left';
                 }
             });
 
-// Sync Line Height
-const leading = parseFloat(target.style.lineHeight);
-document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
+            // Line height from computed style might be "normal" or a pixel value, fallback gracefully
+            let leading = target.style.lineHeight || comp.lineHeight;
+            if (leading === 'normal') leading = 1.5;
+            else leading = parseFloat(leading);
+            document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             const boldBtn = document.getElementById('font-bold-btn');
             if (boldBtn) {
-                const fw = target.style.fontWeight;
-                if (fw === 'bold' || parseInt(fw) > 600) {
+                if (fw === 'bold' || parseInt(fw) >= 600) {
                     boldBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
                     boldBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
                 } else {
@@ -7638,7 +7717,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             const italicBtn = document.getElementById('font-italic-btn');
             if (italicBtn) {
-                if (target.style.fontStyle === 'italic') {
+                if ((target.style.fontStyle || comp.fontStyle) === 'italic') {
                     italicBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
                     italicBtn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
                 } else {
@@ -7647,17 +7726,17 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 }
             }
 
-            let { hex: tHex, alpha: tAlpha } = parseColorToHexAndAlpha(target.style.color || '#1f2937');
+            let { hex: tHex, alpha: tAlpha } = parseColorToHexAndAlpha(target.style.color || comp.color || '#1f2937');
             document.getElementById('text-color').value = tHex;
             document.getElementById('text-opacity').value = tAlpha;
             document.getElementById('text-opacity-val').innerText = Math.round(tAlpha * 100) + '%';
-            document.getElementById('text-color-swatch').style.backgroundColor = tAlpha < 1 ? target.style.color : tHex;
+            document.getElementById('text-color-swatch').style.backgroundColor = tAlpha < 1 ? (target.style.color || comp.color) : tHex;
 
             const fontInput = document.getElementById('font-family');
-            if (target.style.fontFamily) {
-                const rawFont = target.style.fontFamily;
-                const cleanFont = rawFont.replace(/['"]/g, '');
-                const df = typeof defaultFontsList !== 'undefined' ? defaultFontsList.find(d => d.val.replace(/['"]/g, '') === cleanFont || d.val.startsWith(cleanFont)) : null;
+            const rawFont = target.style.fontFamily || comp.fontFamily;
+            if (rawFont) {
+                const cleanFont = rawFont.replace(/['"]/g, '').split(',')[0].trim();
+                const df = typeof defaultFontsList !== 'undefined' ? defaultFontsList.find(d => d.val.replace(/['"]/g, '').split(',')[0].trim() === cleanFont || d.val.startsWith(cleanFont)) : null;
                 fontInput.value = df ? df.lbl : cleanFont;
             } else {
                 fontInput.value = '';
@@ -8486,7 +8565,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     }
 
     document.addEventListener('pointerdown', (e) => {
-        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY });
 
         if (activePointers.size === 2) {
             const isCanvasArea = e.target.closest('#canvas-container');
@@ -8615,6 +8694,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 resizeDir = e.target.closest('.resizer').dataset.dir;
 
                 const res = container.querySelector('.resizable');
+
+container.style.minWidth = '0px';
+                container.style.minHeight = '0px';
+                if (res) {
+                    res.style.minWidth = '0px';
+                    res.style.minHeight = '0px';
+                }
+
                 resizeStartW = res ? res.offsetWidth : container.offsetWidth;
                 resizeStartH = res ? res.offsetHeight : container.offsetHeight;
                 resizeAspect = resizeStartW / resizeStartH;
@@ -8700,6 +8787,8 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (typeof syncTextBgSwatch === 'function') {
                 syncTextBgSwatch(override);
             }
+
+            syncUISettingsWithActiveElement();
         }
 
         let container = e.target.closest('.element-container');
@@ -8781,12 +8870,27 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             if (!activeElements.includes(container)) {
                 setActiveElement(container, e.shiftKey || e.ctrlKey || e.metaKey);
             }
+
+            longPressTimer = setTimeout(() => {
+                isLongPressTriggered = true;
+                snapToolbarToCursor('.drag-handle');
+            }, 400);
         }
     });
 
     document.addEventListener('pointermove', (e) => {
         if (activePointers.has(e.pointerId)) {
-            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            //activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+            const ptr = activePointers.get(e.pointerId);
+            ptr.x = e.clientX;
+            ptr.y = e.clientY;
+            
+            // Cancel long-press if they dragged too far
+            if (longPressTimer && (Math.abs(e.clientX - ptr.startX) > 5 || Math.abs(e.clientY - ptr.startY) > 5)) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
         }
 
         if (isPinching && activePointers.size === 2) {
@@ -9515,6 +9619,13 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
     document.addEventListener('pointerup', (e) => {
         activePointers.delete(e.pointerId);
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+        if (isLongPressTriggered) {
+            isLongPressTriggered = false;
+        }
         if (isPinching && activePointers.size < 2) {
             isPinching = false;
             return; // Prevent accidental selection clicks when lifting fingers
@@ -9606,6 +9717,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
     document.addEventListener('pointercancel', (e) => {
         activePointers.delete(e.pointerId);
         isPinching = false;
+
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
     });
 
     document.addEventListener('keydown', (e) => {
@@ -9700,50 +9816,19 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
         }
 
         // Instantly snap the active toolbar to the mouse cursor
-        if (e.key.toLowerCase() === 't' && !isInput && activeElements.length > 0) {
-            e.preventDefault();
-            
-            // We now use the global UI layer for ALL active selections (single or multi!)
-            const activeToolbar = document.getElementById('multi-select-controls');
-            if (!activeToolbar) return;
-
-            const selectionKey = activeElements.map(el => el.id).sort().join(',');
-            window.toolbarOffsets = window.toolbarOffsets || {};
-            const oldOffset = window.toolbarOffsets[selectionKey] || { x: 0, y: 0 };
-            
-            // 1. Temporarily zero it out to find the browser's native anchor point
-            window.toolbarOffsets[selectionKey] = { x: 0, y: 0 };
-            if (typeof updateUILayer === 'function') updateUILayer();
-
-            // 2. Measure the exact screen position of that native anchor
-            const baseRect = activeToolbar.getBoundingClientRect();
-            const dragHandle = activeToolbar.querySelector('.popover-drag-handle');
-            
-            if (baseRect.width > 0 && baseRect.height > 0) {
-                // 3. Calculate exact absolute screen distance from the target to the mouse
-                let anchorX, anchorY;
-                
-                if (dragHandle) {
-                    // Snap to the exact center of the drag dot
-                    const handleRect = dragHandle.getBoundingClientRect();
-                    anchorX = handleRect.left + handleRect.width / 2;
-                    anchorY = handleRect.top + handleRect.height / 2;
-                } else {
-                    // Fallback to center of toolbar if the dot is missing
-                    anchorX = baseRect.left + baseRect.width / 2;
-                    anchorY = baseRect.top + baseRect.height / 2;
+        if (e.key.toLowerCase() === 't' && !isInput) {
+            if (hoveredElement && !activeElements.includes(hoveredElement)) {
+                let targetToSelect = hoveredElement;
+                const parentGroup = targetToSelect.closest('.group-wrapper');
+                if (parentGroup && parentGroup !== targetToSelect) {
+                    targetToSelect = parentGroup;
                 }
+                setActiveElement(targetToSelect, false);
+            }
 
-                const newOffsetX = lastMouseX - anchorX;
-                const newOffsetY = lastMouseY - anchorY;
-
-                // 4. Save and apply!
-                window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
-                if (typeof updateUILayer === 'function') updateUILayer();
-            } else {
-                // Restore if the element was somehow hidden during measurement
-                window.toolbarOffsets[selectionKey] = oldOffset;
-                if (typeof updateUILayer === 'function') updateUILayer();
+            if (activeElements.length > 0) {
+                e.preventDefault();
+                snapToolbarToCursor();
             }
             return;
         }
