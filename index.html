@@ -3803,8 +3803,8 @@ function updateUILayer() {
         const offset = window.toolbarOffsets[hoveredElement.id] || { x: 0, y: 0 };
         const hoverControls = hoveredElement.querySelector('.controls');
         if (hoverControls) {
-            hoverControls.style.marginLeft = offset.x + 'px';
-            hoverControls.style.marginTop = offset.y + 'px';
+            hoverControls.style.marginLeft = (offset.x / canvasScale) + 'px';
+            hoverControls.style.marginTop = (offset.y / canvasScale) + 'px';
             hoverControls.dataset.offsetX = offset.x;
             hoverControls.dataset.offsetY = offset.y;
         }
@@ -3821,8 +3821,8 @@ function updateUILayer() {
             const offset = window.toolbarOffsets[el.id] || { x: 0, y: 0 };
             const singleControls = el.querySelector('.controls');
             if (singleControls) {
-                singleControls.style.marginLeft = offset.x + 'px';
-                singleControls.style.marginTop = offset.y + 'px';
+                singleControls.style.marginLeft = (offset.x / canvasScale) + 'px';
+                singleControls.style.marginTop = (offset.y / canvasScale) + 'px';
                 singleControls.dataset.offsetX = offset.x;
                 singleControls.dataset.offsetY = offset.y;
             }
@@ -3850,7 +3850,7 @@ function updateUILayer() {
             // Restored the exact original SVG for the Move Handle!
             multiControls.innerHTML = `
             <span class="control-btn drag-handle cursor-move" title="Drag Selection">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path></svg>
             </span>
             <span class="control-btn rot-btn" title="Rotate Selection" onclick="toggleMultiRotation(event)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -4192,6 +4192,8 @@ function updateUILayer() {
 
     // Flush any debounced saves instantly if the user refreshes or closes the tab
     window.addEventListener('beforeunload', () => {
+        if (window.isWiping) return;
+
         if (saveStateTimeout) {
             clearTimeout(saveStateTimeout);
             // Force a synchronous localStorage write right before the thread dies
@@ -5780,7 +5782,7 @@ function getAbsoluteBounds(el, mode = 'bbox') {
         }
     } else {
         let targetRect = null;
-        
+
         // Temporarily strip CSS transforms so the browser measures flat, local ink bounds
         const oldTransform = el.style.transform;
         el.style.transform = 'none';
@@ -5910,7 +5912,7 @@ function getControlsHTML(isGroup) {
         return `
         <div class="controls ui-control popover-nw" contenteditable="false">
             <span class="control-btn drag-handle cursor-move" title="Drag">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path></svg>
             </span>
             <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -9396,9 +9398,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             }
 
         if (isDraggingPopover && draggedPopover) {
+            // Absolute screen distance moved
             const dx = e.clientX - popoverDragStartX;
             const dy = e.clientY - popoverDragStartY;
 
+            // Start offsets (in raw screen pixels)
             const startX = parseFloat(draggedPopover.dataset.startOffsetX) || 0;
             const startY = parseFloat(draggedPopover.dataset.startOffsetY) || 0;
 
@@ -9409,14 +9413,19 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             draggedPopover.dataset.offsetY = newOffsetY;
 
             window.toolbarOffsets = window.toolbarOffsets || {};
-            const selectionKey = activeElements.map(el => el.id).sort().join(',');
-            window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
-
+            
             if (draggedPopover.id === 'multi-select-controls') {
-                // Multi-select is positioned globally in screen coordinates
+                const selectionKey = activeElements.map(el => el.id).sort().join(',');
+                window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
                 if (typeof updateUILayer === 'function') updateUILayer();
             } else {
-                // Single-element controls scale with the canvas, so divide by canvasScale
+                // Find the parent element ID for the dictionary
+                const parentEl = draggedPopover.closest('.element-container');
+                if (parentEl) {
+                    window.toolbarOffsets[parentEl.id] = { x: newOffsetX, y: newOffsetY };
+                }
+                
+                // Keep the toolbar visually locked in place by scaling the internal offset
                 draggedPopover.style.marginLeft = `${newOffsetX / canvasScale}px`;
                 draggedPopover.style.marginTop = `${newOffsetY / canvasScale}px`;
             }
@@ -9688,6 +9697,55 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 if (e.shiftKey) ungroupSelected();
                 else groupSelected();
             }
+        }
+
+        // Instantly snap the active toolbar to the mouse cursor
+        if (e.key.toLowerCase() === 't' && !isInput && activeElements.length > 0) {
+            e.preventDefault();
+            
+            // We now use the global UI layer for ALL active selections (single or multi!)
+            const activeToolbar = document.getElementById('multi-select-controls');
+            if (!activeToolbar) return;
+
+            const selectionKey = activeElements.map(el => el.id).sort().join(',');
+            window.toolbarOffsets = window.toolbarOffsets || {};
+            const oldOffset = window.toolbarOffsets[selectionKey] || { x: 0, y: 0 };
+            
+            // 1. Temporarily zero it out to find the browser's native anchor point
+            window.toolbarOffsets[selectionKey] = { x: 0, y: 0 };
+            if (typeof updateUILayer === 'function') updateUILayer();
+
+            // 2. Measure the exact screen position of that native anchor
+            const baseRect = activeToolbar.getBoundingClientRect();
+            const dragHandle = activeToolbar.querySelector('.popover-drag-handle');
+            
+            if (baseRect.width > 0 && baseRect.height > 0) {
+                // 3. Calculate exact absolute screen distance from the target to the mouse
+                let anchorX, anchorY;
+                
+                if (dragHandle) {
+                    // Snap to the exact center of the drag dot
+                    const handleRect = dragHandle.getBoundingClientRect();
+                    anchorX = handleRect.left + handleRect.width / 2;
+                    anchorY = handleRect.top + handleRect.height / 2;
+                } else {
+                    // Fallback to center of toolbar if the dot is missing
+                    anchorX = baseRect.left + baseRect.width / 2;
+                    anchorY = baseRect.top + baseRect.height / 2;
+                }
+
+                const newOffsetX = lastMouseX - anchorX;
+                const newOffsetY = lastMouseY - anchorY;
+
+                // 4. Save and apply!
+                window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
+                if (typeof updateUILayer === 'function') updateUILayer();
+            } else {
+                // Restore if the element was somehow hidden during measurement
+                window.toolbarOffsets[selectionKey] = oldOffset;
+                if (typeof updateUILayer === 'function') updateUILayer();
+            }
+            return;
         }
 
         if (!isInput && activeElements.length > 0) {
@@ -11863,6 +11921,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
     function startNewCard() {
         if (confirm("Are you sure you want to start a new card? All unsaved progress will be lost.")) {
+            window.isWiping = true;
             localStorage.removeItem(SAVE_KEY);
             localStorage.removeItem('card_designer_autosave');
             let reloaded = false;
