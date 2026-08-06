@@ -68,8 +68,8 @@
         /* Interactive Canvas Elements */
         .element-container {
             position: absolute;
-            min-width: 20px;
-            min-height: 20px;
+            min-width: 10px;
+            min-height: 10px;
             box-sizing: content-box !important;
             border: none !important;
             outline: none !important;
@@ -237,10 +237,12 @@
         }
 
 /* Allow group wrappers to shrink tightly around small objects */
-        .element-container.group-wrapper {
-            min-width: 0 !important;
-            min-height: 0 !important;
-        }
+        element-container.group-wrapper,
+.element-container[data-shape="line"],
+.element-container[data-shape="curve"] {
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
         
         .line-handle {
             display: none; position: absolute; width: 12px; height: 12px;
@@ -253,6 +255,9 @@
         
         .element-container.active[data-shape="line"] > .line-handle,
         .element-container.active[data-shape="curve"] > .line-handle { display: block; }
+        
+        .element-container.active[data-shape="line"] > .bezier-handle { display: none !important; }
+        .bezier-handle { border-color: #a855f7 !important; border-radius: 50%; }
         
         /* Mobile & Touch Optimizations */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -1183,7 +1188,6 @@
                 <option value="ellipse">Ellipse / Circle</option>
                 <option value="polygon">Polygon</option>
                 <option value="line">Line</option>
-                <option value="curve">Curve</option>
             </select>
             <div class="flex items-center gap-1.5" id="shape-fill-group">
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Fill</span>
@@ -1241,14 +1245,12 @@
                 <input type="range" id="shape-sides" min="3" max="12" value="3" class="w-14 accent-blue-600" oninput="applyShapeStyle('sides', this.value)">
                 <span class="text-[9px] text-blue-600 font-bold w-2" id="shape-sides-val">3</span>
             </div>
-            <div id="shape-curve-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
-                <span class="text-[9px] font-bold text-gray-400 uppercase">Arc</span>
-                <input type="range" id="shape-curve" min="-100" max="100" value="25" class="w-14 accent-blue-600" oninput="applyShapeStyle('curve', this.value)">
-            </div>
-            <div id="shape-flip-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
-                <label class="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase cursor-pointer">
-                    <input type="checkbox" id="shape-flip" class="rounded text-blue-600" onchange="applyShapeStyle('flip', this.checked)"> Flip
-                </label>
+            <div id="shape-path-type-group" class="flex items-center gap-1 border-l border-gray-200 pl-3">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Type</span>
+                <select id="shape-path-type" class="text-[10px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="applyShapeStyle('shape', this.value)">
+                    <option value="line">Straight</option>
+                    <option value="curve">Curved</option>
+                </select>
             </div>
             <div id="shape-markers-group" class="flex items-center gap-1 border-l border-gray-200 pl-3" style="display: none;">
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Start</span>
@@ -3391,11 +3393,250 @@ function updateBgSettings(side) {
 //         syncGhostLive();
 //     }
 
+// function updateUILayer() {
+//     const uiLayer = document.getElementById('ui-layer');
+//     if (!uiLayer) return;
+
+//     // 1. Update Bleed Visualizer
+//     const uiBleed = document.getElementById('ui-bleed');
+//     const showBleed = document.getElementById('show-bleed-editor')?.checked;
+//     const bleedVal = parseFloat(document.getElementById('print-bleed')?.value) || 0;
+//     const pxPerUnit = getPxPerUnit();
+//     const bleedPx = bleedVal * pxPerUnit;
+
+//     if (showBleed && bleedPx > 0) {
+//         uiBleed.style.display = 'block';
+//         uiBleed.style.left = (panX - bleedPx * canvasScale) + 'px';
+//         uiBleed.style.top = (panY - bleedPx * canvasScale) + 'px';
+//         uiBleed.style.width = ((currentWidth + bleedPx * 2) * canvasScale) + 'px';
+//         uiBleed.style.height = ((currentHeight + bleedPx * 2) * canvasScale) + 'px';
+//     } else {
+//         uiBleed.style.display = 'none';
+//     }
+
+//     const uiSafeZone = document.getElementById('ui-safe-zone');
+    
+//     const safeT = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
+//     const safeR = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
+//     const safeB = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
+//     const safeL = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
+
+//     const safeTPx = safeT * pxPerUnit;
+//     const safeRPx = safeR * pxPerUnit;
+//     const safeBPx = safeB * pxPerUnit;
+//     const safeLPx = safeL * pxPerUnit;
+
+//     if (uiSafeZone) {
+//         if (safeTPx > 0 || safeRPx > 0 || safeBPx > 0 || safeLPx > 0) {
+//             uiSafeZone.style.display = 'block';
+//             uiSafeZone.style.top = (panY + safeTPx * canvasScale) + 'px';
+//             uiSafeZone.style.left = (panX + safeLPx * canvasScale) + 'px';
+//             uiSafeZone.style.width = ((currentWidth - safeLPx - safeRPx) * canvasScale) + 'px';
+//             uiSafeZone.style.height = ((currentHeight - safeTPx - safeBPx) * canvasScale) + 'px';
+//         } else {
+//             uiSafeZone.style.display = 'none';
+//         }
+//     }
+
+//     // 2. Update Active Element Boxes
+//     const boxesContainer = document.getElementById('ui-active-boxes');
+//     boxesContainer.innerHTML = '';
+
+//     const drawBox = (el, isHover) => {
+//         const bBox = getAbsoluteBounds(el, 'bbox');
+//         const rot = getRotation(el);
+
+//         // Check if we should hide the border (because lasers are toggled ON)
+//         const hideBorder = (!isHover && el.dataset.lasers === 'true');
+
+//         // Draw standard selection bounding box
+//         const selBox = document.createElement('div');
+//         selBox.className = `absolute ${hideBorder ? '' : `border ${isHover ? 'border-blue-300' : 'border-blue-500'} border-dashed`} pointer-events-none z-[60]`;
+//         selBox.style.left = (panX + bBox.x * canvasScale) + 'px';
+//         selBox.style.top = (panY + bBox.y * canvasScale) + 'px';
+//         selBox.style.width = (bBox.w * canvasScale) + 'px';
+//         selBox.style.height = (bBox.h * canvasScale) + 'px';
+
+//         if (rot !== 0) {
+//             selBox.style.transform = `rotate(${rot}deg)`;
+//             selBox.style.transformOrigin = 'center center';
+//         }
+//         boxesContainer.appendChild(selBox);
+//     };
+
+//     if (hoveredElement && !activeElements.includes(hoveredElement)) {
+//         drawBox(hoveredElement, true);
+//     }
+
+//     activeElements.forEach(el => drawBox(el, false));
+
+//     // --- GLOBAL SELECTION POPOVER LOGIC ---
+//     const multiControls = document.getElementById('multi-select-controls');
+    
+//     if (activeElements.length > 0) {
+        
+//         if (activeElements.length > 1) {
+//             // --- Draw Group Bounding Box ---
+//             const groupBB = getGroupBoundingBox('bbox');
+//             const groupBox = document.createElement('div');
+            
+//             // Check if we should hide the group border (because lasers are toggled ON)
+//             const hideGroupBorder = activeElements[0]?.dataset.lasers === 'true';
+//             groupBox.className = `absolute ${hideGroupBorder ? '' : 'border border-blue-500 border-dashed'} pointer-events-none z-[60]`;
+//             groupBox.style.left = (panX + groupBB.x * canvasScale) + 'px';
+//             groupBox.style.top = (panY + groupBB.y * canvasScale) + 'px';
+//             groupBox.style.width = (groupBB.w * canvasScale) + 'px';
+//             groupBox.style.height = (groupBB.h * canvasScale) + 'px';
+            
+//             const isGroupRotating = activeElements.some(el => el.classList.contains('rotation-active'));
+//             if (isGroupRotating) {
+//                 groupBox.innerHTML = `
+//                     <div class="rot-handle nw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+//                     <div class="rot-handle ne pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+//                     <div class="rot-handle sw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+//                     <div class="rot-handle se pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
+//                 `;
+//             } else {
+//                 groupBox.innerHTML = `
+//                     <div class="resizer n pointer-events-auto" style="display: block;" data-dir="n"></div>
+//                     <div class="resizer s pointer-events-auto" style="display: block;" data-dir="s"></div>
+//                     <div class="resizer e pointer-events-auto" style="display: block;" data-dir="e"></div>
+//                     <div class="resizer w pointer-events-auto" style="display: block;" data-dir="w"></div>
+//                     <div class="resizer nw pointer-events-auto" style="display: block;" data-dir="nw"></div>
+//                     <div class="resizer ne pointer-events-auto" style="display: block;" data-dir="ne"></div>
+//                     <div class="resizer sw pointer-events-auto" style="display: block;" data-dir="sw"></div>
+//                     <div class="resizer se pointer-events-auto" style="display: block;" data-dir="se"></div>
+//                 `;
+//             }
+//             boxesContainer.appendChild(groupBox);
+//         }
+
+//         // Hide the rotated internal toolbars so the global one can take over
+//         activeElements.forEach(el => {
+//             el.classList.add('hide-controls');
+//             if (activeElements.length > 1) el.classList.add('multi-select');
+//             else el.classList.remove('multi-select');
+//         });
+        
+//         const box = getGroupBoundingBox('bbox');
+
+//         // Build the global popover once if it doesn't exist
+//         if (!multiControls) {
+//             const ms = document.createElement('div');
+//             ms.id = 'multi-select-controls';
+//             ms.className = 'controls absolute flex bg-white border border-gray-200 rounded-md p-1 shadow-md z-[1000] gap-1 items-center pointer-events-auto';
+//             ms.innerHTML = `
+//             <span class="control-btn drag-handle cursor-move" title="Drag Selection">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path>
+//                 </svg>
+//             </span>
+            
+//             <span class="control-btn rot-btn" title="Rotate Selection" onclick="toggleMultiRotation(event)">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+//             </span>
+//             <span class="control-btn laser-btn" title="Toggle Alignment Lasers" onclick="toggleMultiLasers(event)">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v16M16 4v16M4 8h16M4 16h16"></path></svg>
+//             </span>
+//             <span class="control-btn z-btn" title="Group" onclick="groupSelected(); event.stopPropagation();">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"/>
+//                     <circle cx="4" cy="4" r="2.5" fill="currentColor" stroke="none"/>
+//                     <circle cx="20" cy="4" r="2.5" fill="currentColor" stroke="none"/>
+//                     <circle cx="4" cy="20" r="2.5" fill="currentColor" stroke="none"/>
+//                     <circle cx="20" cy="20" r="2.5" fill="currentColor" stroke="none"/>
+//                     <rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/>
+//                     <rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/>
+//                 </svg>
+//             </span>
+//             <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected(); event.stopPropagation();">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
+//             </span>
+//             <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+//             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+//         </span>
+//         <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+//             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+//         </span>
+//             <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
+//                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+//             </span>
+            
+//             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
+//                 <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
+//                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
+//                 <button onclick="scrubMergeData(1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
+//             </div>
+            
+//             <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+//             <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
+//                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
+//             </span>
+//         `;
+//             document.getElementById('ui-layer').appendChild(ms);
+//         }
+
+//         const ms = document.getElementById('multi-select-controls');
+        
+//         // Toggle specific buttons based on selection context
+//         const grpBtn = ms.querySelector('.z-btn[title="Group"]');
+//         const ungrpBtn = ms.querySelector('.z-btn[title="Ungroup"]');
+//         if (grpBtn) grpBtn.style.display = activeElements.length > 1 ? 'flex' : 'none';
+//         if (ungrpBtn) ungrpBtn.style.display = activeElements.some(e => e.dataset.type === 'group') ? 'flex' : 'none';
+
+//         // Toggle Merge Scrubber
+//         const scrubber = ms.querySelector('.merge-scrubber');
+//         if (scrubber) {
+//             if (activeElements.length === 1 && activeElements[0].dataset.mergeData) {
+//                 scrubber.classList.remove('hidden');
+//                 scrubber.classList.add('flex');
+//             } else {
+//                 scrubber.classList.add('hidden');
+//                 scrubber.classList.remove('flex');
+//             }
+//         }
+
+//         ms.style.display = 'flex'; // Trigger display early for bounding box math
+//         const msW = ms.offsetWidth || 230;
+//         const msH = ms.offsetHeight || 34;
+
+//         let msX = panX + box.x * canvasScale - 2;
+//         let msY = panY + box.y * canvasScale - msH - 4; // nw
+
+//         if (popoverCorner === 'ne') {
+//             msX = panX + (box.x + box.w) * canvasScale - msW + 2;
+//             msY = panY + box.y * canvasScale - msH - 4;
+//         } else if (popoverCorner === 'sw') {
+//             msX = panX + box.x * canvasScale - 2;
+//             msY = panY + (box.y + box.h) * canvasScale + 4;
+//         } else if (popoverCorner === 'se') {
+//             msX = panX + (box.x + box.w) * canvasScale - msW + 2;
+//             msY = panY + (box.y + box.h) * canvasScale + 4;
+//         }
+
+//         ms.style.left = msX + 'px';
+//         ms.style.top = msY + 'px';
+
+//         // Sync active states
+//         ms.dataset.lasers = activeElements[0]?.dataset.lasers === 'true' ? 'true' : 'false';
+//         ms.dataset.rotating = activeElements[0]?.classList.contains('rotation-active') ? 'true' : 'false';
+
+//     } else {
+//         activeElements.forEach(el => {
+//             el.classList.remove('hide-controls');
+//             el.classList.remove('multi-select');
+//         });
+//         if (multiControls) multiControls.style.display = 'none';
+//     }
+    
+//     if (typeof updateLasers === 'function') updateLasers();
+//     if (typeof updateMergeUI === 'function') updateMergeUI();
+//     syncGhostLive();
+// }
 function updateUILayer() {
     const uiLayer = document.getElementById('ui-layer');
     if (!uiLayer) return;
 
-    // 1. Update Bleed Visualizer
     const uiBleed = document.getElementById('ui-bleed');
     const showBleed = document.getElementById('show-bleed-editor')?.checked;
     const bleedVal = parseFloat(document.getElementById('print-bleed')?.value) || 0;
@@ -3413,51 +3654,47 @@ function updateUILayer() {
     }
 
     const uiSafeZone = document.getElementById('ui-safe-zone');
-    
     const safeT = parseFloat(document.getElementById('safe-margin-top')?.value) || 0;
     const safeR = parseFloat(document.getElementById('safe-margin-right')?.value) || 0;
     const safeB = parseFloat(document.getElementById('safe-margin-bottom')?.value) || 0;
     const safeL = parseFloat(document.getElementById('safe-margin-left')?.value) || 0;
 
-    const safeTPx = safeT * pxPerUnit;
-    const safeRPx = safeR * pxPerUnit;
-    const safeBPx = safeB * pxPerUnit;
-    const safeLPx = safeL * pxPerUnit;
-
     if (uiSafeZone) {
-        if (safeTPx > 0 || safeRPx > 0 || safeBPx > 0 || safeLPx > 0) {
+        if (safeT > 0 || safeR > 0 || safeB > 0 || safeL > 0) {
             uiSafeZone.style.display = 'block';
-            uiSafeZone.style.top = (panY + safeTPx * canvasScale) + 'px';
-            uiSafeZone.style.left = (panX + safeLPx * canvasScale) + 'px';
-            uiSafeZone.style.width = ((currentWidth - safeLPx - safeRPx) * canvasScale) + 'px';
-            uiSafeZone.style.height = ((currentHeight - safeTPx - safeBPx) * canvasScale) + 'px';
+            uiSafeZone.style.top = (panY + safeT * pxPerUnit * canvasScale) + 'px';
+            uiSafeZone.style.left = (panX + safeL * pxPerUnit * canvasScale) + 'px';
+            uiSafeZone.style.width = ((currentWidth - safeL * pxPerUnit - safeR * pxPerUnit) * canvasScale) + 'px';
+            uiSafeZone.style.height = ((currentHeight - safeT * pxPerUnit - safeB * pxPerUnit) * canvasScale) + 'px';
         } else {
             uiSafeZone.style.display = 'none';
         }
     }
 
-    // 2. Update Active Element Boxes
     const boxesContainer = document.getElementById('ui-active-boxes');
     boxesContainer.innerHTML = '';
 
     const drawBox = (el, isHover) => {
+        // Use the union box for the blue UI selection
+        const uBox = getAbsoluteBounds(el, 'union');
         const bBox = getAbsoluteBounds(el, 'bbox');
         const rot = getRotation(el);
 
-        // Check if we should hide the border (because lasers are toggled ON)
         const hideBorder = (!isHover && el.dataset.lasers === 'true');
 
-        // Draw standard selection bounding box
         const selBox = document.createElement('div');
         selBox.className = `absolute ${hideBorder ? '' : `border ${isHover ? 'border-blue-300' : 'border-blue-500'} border-dashed`} pointer-events-none z-[60]`;
-        selBox.style.left = (panX + bBox.x * canvasScale) + 'px';
-        selBox.style.top = (panY + bBox.y * canvasScale) + 'px';
-        selBox.style.width = (bBox.w * canvasScale) + 'px';
-        selBox.style.height = (bBox.h * canvasScale) + 'px';
+        selBox.style.left = (panX + uBox.x * canvasScale) + 'px';
+        selBox.style.top = (panY + uBox.y * canvasScale) + 'px';
+        selBox.style.width = (uBox.w * canvasScale) + 'px';
+        selBox.style.height = (uBox.h * canvasScale) + 'px';
 
+        // Keep the selection box orbiting the true structural center of the object
         if (rot !== 0) {
             selBox.style.transform = `rotate(${rot}deg)`;
-            selBox.style.transformOrigin = 'center center';
+            const originX = (bBox.x + bBox.w / 2 - uBox.x) * canvasScale;
+            const originY = (bBox.y + bBox.h / 2 - uBox.y) * canvasScale;
+            selBox.style.transformOrigin = `${originX}px ${originY}px`;
         }
         boxesContainer.appendChild(selBox);
     };
@@ -3468,68 +3705,37 @@ function updateUILayer() {
 
     activeElements.forEach(el => drawBox(el, false));
 
-    // --- GLOBAL SELECTION POPOVER LOGIC ---
-    const multiControls = document.getElementById('multi-select-controls');
+    // Force ALL active elements to hide their internal toolbars
+    activeElements.forEach(el => {
+        el.classList.add('hide-controls');
+        if (activeElements.length > 1) el.classList.add('multi-select');
+        else el.classList.remove('multi-select');
+    });
+
+    let multiControls = document.getElementById('multi-select-controls');
     
     if (activeElements.length > 0) {
-        
         if (activeElements.length > 1) {
-            // --- Draw Group Bounding Box ---
-            const groupBB = getGroupBoundingBox('bbox');
+            const groupUBox = getGroupBoundingBox('union');
             const groupBox = document.createElement('div');
-            
-            // Check if we should hide the group border (because lasers are toggled ON)
             const hideGroupBorder = activeElements[0]?.dataset.lasers === 'true';
             groupBox.className = `absolute ${hideGroupBorder ? '' : 'border border-blue-500 border-dashed'} pointer-events-none z-[60]`;
-            groupBox.style.left = (panX + groupBB.x * canvasScale) + 'px';
-            groupBox.style.top = (panY + groupBB.y * canvasScale) + 'px';
-            groupBox.style.width = (groupBB.w * canvasScale) + 'px';
-            groupBox.style.height = (groupBB.h * canvasScale) + 'px';
-            
-            const isGroupRotating = activeElements.some(el => el.classList.contains('rotation-active'));
-            if (isGroupRotating) {
-                groupBox.innerHTML = `
-                    <div class="rot-handle nw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
-                    <div class="rot-handle ne pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
-                    <div class="rot-handle sw pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
-                    <div class="rot-handle se pointer-events-auto" style="display: block;" title="Drag to Rotate"></div>
-                `;
-            } else {
-                groupBox.innerHTML = `
-                    <div class="resizer n pointer-events-auto" style="display: block;" data-dir="n"></div>
-                    <div class="resizer s pointer-events-auto" style="display: block;" data-dir="s"></div>
-                    <div class="resizer e pointer-events-auto" style="display: block;" data-dir="e"></div>
-                    <div class="resizer w pointer-events-auto" style="display: block;" data-dir="w"></div>
-                    <div class="resizer nw pointer-events-auto" style="display: block;" data-dir="nw"></div>
-                    <div class="resizer ne pointer-events-auto" style="display: block;" data-dir="ne"></div>
-                    <div class="resizer sw pointer-events-auto" style="display: block;" data-dir="sw"></div>
-                    <div class="resizer se pointer-events-auto" style="display: block;" data-dir="se"></div>
-                `;
-            }
+            groupBox.style.left = (panX + groupUBox.x * canvasScale) + 'px';
+            groupBox.style.top = (panY + groupUBox.y * canvasScale) + 'px';
+            groupBox.style.width = (groupUBox.w * canvasScale) + 'px';
+            groupBox.style.height = (groupUBox.h * canvasScale) + 'px';
             boxesContainer.appendChild(groupBox);
         }
 
-        // Hide the rotated internal toolbars so the global one can take over
-        activeElements.forEach(el => {
-            el.classList.add('hide-controls');
-            if (activeElements.length > 1) el.classList.add('multi-select');
-            else el.classList.remove('multi-select');
-        });
-        
-        const box = getGroupBoundingBox('bbox');
-
-        // Build the global popover once if it doesn't exist
         if (!multiControls) {
-            const ms = document.createElement('div');
-            ms.id = 'multi-select-controls';
-            ms.className = 'controls absolute flex bg-white border border-gray-200 rounded-md p-1 shadow-md z-[1000] gap-1 items-center pointer-events-auto';
-            ms.innerHTML = `
+            multiControls = document.createElement('div');
+            multiControls.id = 'multi-select-controls';
+            multiControls.className = 'controls absolute flex bg-white border border-gray-200 rounded-md p-1 shadow-md z-[1000] gap-1 items-center pointer-events-auto';
+            // Restored the exact original SVG for the Move Handle!
+            multiControls.innerHTML = `
             <span class="control-btn drag-handle cursor-move" title="Drag Selection">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path>
-                </svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
             </span>
-            
             <span class="control-btn rot-btn" title="Rotate Selection" onclick="toggleMultiRotation(event)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </span>
@@ -3551,38 +3757,35 @@ function updateUILayer() {
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
             </span>
             <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-        </span>
-        <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </span>
-            <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
             </span>
-            
+            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </span>
             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                 <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
                 <button onclick="scrubMergeData(1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
             </div>
-            
+            <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </span>
             <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
             <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
-        `;
-            document.getElementById('ui-layer').appendChild(ms);
+            `;
+            document.getElementById('ui-layer').appendChild(multiControls);
         }
 
-        const ms = document.getElementById('multi-select-controls');
-        
-        // Toggle specific buttons based on selection context
+        const ms = multiControls;
+        const box = getGroupBoundingBox('union');
+
         const grpBtn = ms.querySelector('.z-btn[title="Group"]');
         const ungrpBtn = ms.querySelector('.z-btn[title="Ungroup"]');
         if (grpBtn) grpBtn.style.display = activeElements.length > 1 ? 'flex' : 'none';
         if (ungrpBtn) ungrpBtn.style.display = activeElements.some(e => e.dataset.type === 'group') ? 'flex' : 'none';
 
-        // Toggle Merge Scrubber
         const scrubber = ms.querySelector('.merge-scrubber');
         if (scrubber) {
             if (activeElements.length === 1 && activeElements[0].dataset.mergeData) {
@@ -3594,12 +3797,12 @@ function updateUILayer() {
             }
         }
 
-        ms.style.display = 'flex'; // Trigger display early for bounding box math
+        ms.style.display = 'flex';
         const msW = ms.offsetWidth || 230;
         const msH = ms.offsetHeight || 34;
 
         let msX = panX + box.x * canvasScale - 2;
-        let msY = panY + box.y * canvasScale - msH - 4; // nw
+        let msY = panY + box.y * canvasScale - msH - 4; 
 
         if (popoverCorner === 'ne') {
             msX = panX + (box.x + box.w) * canvasScale - msW + 2;
@@ -3615,15 +3818,10 @@ function updateUILayer() {
         ms.style.left = msX + 'px';
         ms.style.top = msY + 'px';
 
-        // Sync active states
         ms.dataset.lasers = activeElements[0]?.dataset.lasers === 'true' ? 'true' : 'false';
         ms.dataset.rotating = activeElements[0]?.classList.contains('rotation-active') ? 'true' : 'false';
 
     } else {
-        activeElements.forEach(el => {
-            el.classList.remove('hide-controls');
-            el.classList.remove('multi-select');
-        });
         if (multiControls) multiControls.style.display = 'none';
     }
     
@@ -5266,7 +5464,144 @@ function redo() {
         Array.from(el.childNodes).forEach(walk);
     }
 
-    function getAbsoluteBounds(el, mode = 'bbox') {
+// function getAbsoluteBounds(el, mode = 'bbox') {
+//     if (!el) return { x: 0, y: 0, w: 0, h: 0 };
+
+//     if (el.dataset.type === 'group' && mode === 'visual') {
+//         const children = Array.from(el.querySelectorAll(':scope > .element-container'));
+//         if (children.length > 0) {
+//             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+//             children.forEach(child => {
+//                 const cb = getAbsoluteBounds(child, 'visual');
+//                 if (cb.x < minX) minX = cb.x;
+//                 if (cb.y < minY) minY = cb.y;
+//                 if (cb.x + cb.w > maxX) maxX = cb.x + cb.w;
+//                 if (cb.y + cb.h > maxY) maxY = cb.y + cb.h;
+//             });
+//             return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+//         }
+//     }
+
+//     // Structural Base Calculation
+//     let sX = 0, sY = 0;
+//     let curr = el;
+//     while (curr && curr.id !== 'card-content' && curr.classList.contains('element-container')) {
+//         sX += parseFloat(curr.style.left) || 0;
+//         sY += parseFloat(curr.style.top) || 0;
+//         curr = curr.parentElement;
+//     }
+
+//     const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
+//     let sW = resizable ? resizable.offsetWidth : el.offsetWidth;
+//     let sH = resizable ? resizable.offsetHeight : el.offsetHeight;
+
+//     // Visual Bounds Baseline
+//     let vX = sX, vY = sY, vW = sW, vH = sH;
+
+//     if (el.dataset.type === 'shape') {
+//         const svg = el.querySelector('.shape-content svg');
+//         if (svg) {
+//             const graphics = Array.from(svg.children).filter(node => node.tagName.toLowerCase() !== 'defs');
+//             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            
+//             graphics.forEach(g => {
+//                 try {
+//                     const box = g.getBBox();
+//                     if (box.width > 0 && box.height > 0) {
+//                         if (box.x < minX) minX = box.x;
+//                         if (box.y < minY) minY = box.y;
+//                         if (box.x + box.width > maxX) maxX = box.x + box.width;
+//                         if (box.y + box.height > maxY) maxY = box.y + box.height;
+//                     }
+//                 } catch(e) {}
+//             });
+
+//             const type = el.dataset.shape || 'rect';
+//             const sw = parseFloat(el.dataset.strokeWidth || '2');
+
+//             // Force inclusion of the original mathematical endpoints since the line was artificially shortened
+//             if (type === 'line' || type === 'curve') {
+//                 const mStart = el.dataset.markerStart || 'none';
+//                 const mEnd = el.dataset.markerEnd || 'none';
+//                 const flip = el.dataset.flip === 'true';
+                
+//                 let padInner = (mStart !== 'none' || mEnd !== 'none') ? sw * 4 : sw / 2;
+//                 let x1, y1, x2, y2;
+//                 if (!flip) {
+//                     x1 = padInner; y1 = padInner;
+//                     x2 = Math.max(padInner, sW - padInner); y2 = Math.max(padInner, sH - padInner);
+//                 } else {
+//                     x1 = padInner; y1 = Math.max(padInner, sH - padInner);
+//                     x2 = Math.max(padInner, sW - padInner); y2 = padInner;
+//                 }
+
+//                 // Markers protrude laterally up to 6x the stroke width
+//                 const mRad = sw * 6; 
+                
+//                 if (x1 - mRad < minX) minX = x1 - mRad;
+//                 if (x1 + mRad > maxX) maxX = x1 + mRad;
+//                 if (y1 - mRad < minY) minY = y1 - mRad;
+//                 if (y1 + mRad > maxY) maxY = y1 + mRad;
+
+//                 if (x2 - mRad < minX) minX = x2 - mRad;
+//                 if (x2 + mRad > maxX) maxX = x2 + mRad;
+//                 if (y2 - mRad < minY) minY = y2 - mRad;
+//                 if (y2 + mRad > maxY) maxY = y2 + mRad;
+//             }
+
+//             if (minX !== Infinity) {
+//                 minX -= sw / 2; minY -= sw / 2;
+//                 maxX += sw / 2; maxY += sw / 2;
+
+//                 vX = sX + minX;
+//                 vY = sY + minY;
+//                 vW = maxX - minX;
+//                 vH = maxY - minY;
+//             }
+//         }
+//     } else {
+//         let targetRect = null;
+//         if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+//             const content = el.querySelector('[contenteditable="true"]');
+//             if (content && content.textContent.trim() !== '') {
+//                 const range = document.createRange();
+//                 range.selectNodeContents(content);
+//                 targetRect = range.getBoundingClientRect();
+//             }
+//         } else if (el.dataset.type === 'image') {
+//             const img = el.querySelector('img');
+//             if (img) targetRect = img.getBoundingClientRect();
+//         } else if (el.dataset.type === 'table') {
+//             const tbl = el.querySelector('.card-table-wrapper');
+//             if (tbl) targetRect = tbl.getBoundingClientRect();
+//         } else if (el.dataset.type === 'divider') {
+//             const div = el.querySelector('.card-divider');
+//             if (div) targetRect = div.getBoundingClientRect();
+//         }
+
+//         if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
+//             const canvasRect = document.getElementById('canvas-container').getBoundingClientRect();
+//             vX = (targetRect.left - canvasRect.left - panX) / canvasScale;
+//             vY = (targetRect.top - canvasRect.top - panY) / canvasScale;
+//             vW = targetRect.width / canvasScale;
+//             vH = targetRect.height / canvasScale;
+//         }
+//     }
+
+//     if (mode === 'visual') {
+//         return { x: vX, y: vY, w: vW, h: vH };
+//     }
+
+//     // mode === 'bbox' -> Minimum box containing both the DOM element and the visual ink
+//     const uMinX = Math.min(sX, vX);
+//     const uMinY = Math.min(sY, vY);
+//     const uMaxX = Math.max(sX + sW, vX + vW);
+//     const uMaxY = Math.max(sY + sH, vY + vH);
+
+//     return { x: uMinX, y: uMinY, w: uMaxX - uMinX, h: uMaxY - uMinY };
+// }
+
+function getAbsoluteBounds(el, mode = 'bbox') {
     if (!el) return { x: 0, y: 0, w: 0, h: 0 };
 
     if (el.dataset.type === 'group' && mode === 'visual') {
@@ -5283,92 +5618,93 @@ function redo() {
             return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
         }
     }
+    
+    if (el.dataset.type === 'group' && mode === 'union') {
+        const children = Array.from(el.querySelectorAll(':scope > .element-container'));
+        if (children.length > 0) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            children.forEach(child => {
+                const cb = getAbsoluteBounds(child, 'union');
+                if (cb.x < minX) minX = cb.x;
+                if (cb.y < minY) minY = cb.y;
+                if (cb.x + cb.w > maxX) maxX = cb.x + cb.w;
+                if (cb.y + cb.h > maxY) maxY = cb.y + cb.h;
+            });
+            return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        }
+    }
 
-    // Structural bbox calculation (always calculate this as a base)
-    let x = 0, y = 0;
+    let sX = 0, sY = 0;
     let curr = el;
     while (curr && curr.id !== 'card-content' && curr.classList.contains('element-container')) {
-        x += parseFloat(curr.style.left) || 0;
-        y += parseFloat(curr.style.top) || 0;
+        sX += parseFloat(curr.style.left) || 0;
+        sY += parseFloat(curr.style.top) || 0;
         curr = curr.parentElement;
     }
 
     const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
-    let w = resizable ? resizable.offsetWidth : el.offsetWidth;
-    let h = resizable ? resizable.offsetHeight : el.offsetHeight;
+    let sW = resizable ? resizable.offsetWidth : el.offsetWidth;
+    let sH = resizable ? resizable.offsetHeight : el.offsetHeight;
 
-    if (mode === 'visual') {
-        let targetRect = null;
+    if (mode === 'bbox') return { x: sX, y: sY, w: sW, h: sH };
 
-        if (el.dataset.type === 'shape') {
-            // SMART SELECTOR: Bypass the UI controls and grab the actual shape's SVG
-            const svg = el.querySelector('.shape-content svg');
-            
-            if (svg) {
-                const graphics = Array.from(svg.children).filter(node => node.tagName.toLowerCase() !== 'defs');
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                
-                graphics.forEach(g => {
-                    try {
-                        // Ask the browser for local geometry directly (immune to CSS transforms)
-                        const box = g.getBBox();
-                        if (box.width > 0 && box.height > 0) {
-                            if (box.x < minX) minX = box.x;
-                            if (box.y < minY) minY = box.y;
-                            if (box.x + box.width > maxX) maxX = box.x + box.width;
-                            if (box.y + box.height > maxY) maxY = box.y + box.height;
-                        }
-                    } catch(e) {}
-                });
-                
-                if (minX !== Infinity) {
-                    const mStart = el.dataset.markerStart || 'none';
-                    const mEnd = el.dataset.markerEnd || 'none';
-                    const sw = parseFloat(el.dataset.strokeWidth || '2');
-                    
-                    // getBBox ignores stroke width, so pad it out to the edge of the ink
-                    const pad = (mStart !== 'none' || mEnd !== 'none') ? sw * 4 : sw / 2;
+    let vX = sX, vY = sY, vW = sW, vH = sH;
 
-                    let vX = x + minX - pad;
-                    let vY = y + minY - pad;
-                    let vW = (maxX - minX) + pad * 2;
-                    let vH = (maxY - minY) + pad * 2;
-
-                    return { x: vX, y: vY, w: vW, h: vH };
-                }
+    if (el.dataset.type === 'shape') {
+        const tag = el.dataset.shape || 'rect';
+        if (tag === 'line' || tag === 'curve') {
+            // Read the exact bounds calculated by drawShape
+            if (el.dataset.visX !== undefined) {
+                vX = sX + parseFloat(el.dataset.visX);
+                vY = sY + parseFloat(el.dataset.visY);
+                vW = parseFloat(el.dataset.visW);
+                vH = parseFloat(el.dataset.visH);
             }
         } else {
-            if (el.dataset.type === 'text' || el.dataset.type === 'title') {
-                const content = el.querySelector('[contenteditable="true"]');
-                if (content && content.textContent.trim() !== '') {
-                    const range = document.createRange();
-                    range.selectNodeContents(content);
-                    targetRect = range.getBoundingClientRect();
-                }
-            } else if (el.dataset.type === 'image') {
-                const img = el.querySelector('img');
-                if (img) targetRect = img.getBoundingClientRect();
-            } else if (el.dataset.type === 'table') {
-                const tbl = el.querySelector('.card-table-wrapper');
-                if (tbl) targetRect = tbl.getBoundingClientRect();
-            } else if (el.dataset.type === 'divider') {
-                const div = el.querySelector('.card-divider');
-                if (div) targetRect = div.getBoundingClientRect();
+            // For standard rects/ellipses/polygons, visual bounds are just the structural box + stroke thickness
+            const sw = parseFloat(el.dataset.strokeWidth || '2');
+            vX = sX - sw / 2;
+            vY = sY - sw / 2;
+            vW = sW + sw;
+            vH = sH + sw;
+        }
+    } else {
+        let targetRect = null;
+        if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+            const content = el.querySelector('[contenteditable="true"]');
+            if (content && content.textContent.trim() !== '') {
+                const range = document.createRange();
+                range.selectNodeContents(content);
+                targetRect = range.getBoundingClientRect();
             }
+        } else if (el.dataset.type === 'image') {
+            const img = el.querySelector('img');
+            if (img) targetRect = img.getBoundingClientRect();
+        } else if (el.dataset.type === 'table') {
+            const tbl = el.querySelector('.card-table-wrapper');
+            if (tbl) targetRect = tbl.getBoundingClientRect();
+        } else if (el.dataset.type === 'divider') {
+            const div = el.querySelector('.card-divider');
+            if (div) targetRect = div.getBoundingClientRect();
+        }
 
-            if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
-                const canvasRect = document.getElementById('canvas-container').getBoundingClientRect();
-                return {
-                    x: (targetRect.left - canvasRect.left - panX) / canvasScale,
-                    y: (targetRect.top - canvasRect.top - panY) / canvasScale,
-                    w: targetRect.width / canvasScale,
-                    h: targetRect.height / canvasScale
-                };
-            }
+        if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
+            const canvasRect = document.getElementById('canvas-container').getBoundingClientRect();
+            vX = (targetRect.left - canvasRect.left - panX) / canvasScale;
+            vY = (targetRect.top - canvasRect.top - panY) / canvasScale;
+            vW = targetRect.width / canvasScale;
+            vH = targetRect.height / canvasScale;
         }
     }
-    
-    return { x, y, w, h };
+
+    if (mode === 'visual') return { x: vX, y: vY, w: vW, h: vH };
+
+    const uMinX = Math.min(sX, vX);
+    const uMinY = Math.min(sY, vY);
+    const uMaxX = Math.max(sX + sW, vX + vW);
+    const uMaxY = Math.max(sY + sH, vY + vH);
+
+    return { x: uMinX, y: uMinY, w: uMaxX - uMinX, h: uMaxY - uMinY };
 }
 
     function setAbsolutePosition(el, absX, absY) {
@@ -5398,13 +5734,68 @@ function redo() {
         return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
     }
 
-    function getControlsHTML(isGroup) {
+    // function getControlsHTML(isGroup) {
+    //     return `
+    //     <div class="controls ui-control popover-${popoverCorner}" contenteditable="false">
+    //         <span class="control-btn drag-handle cursor-move" title="Drag">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+    //         </span>
+            
+    //         <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+    //         </span>
+    //         <span class="control-btn laser-btn" title="Toggle Alignment Lasers" onclick="toggleLasers(this.closest('.element-container'), event)">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v16M16 4v16M4 8h16M4 16h16"></path></svg>
+    //         </span>
+    //         ${isGroup ? `
+    //         <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected()">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
+    //         </span>` : ''}
+    //         <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+    //         </span>
+    //         <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    //         </span>
+            
+    //         <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
+    //             <button onclick="scrubMergeData(-1)" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
+    //             <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
+    //             <button onclick="scrubMergeData(1)" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
+    //         </div>
+    //         <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
+    //             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    //         </span>
+    //         <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+    //         <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
+    //             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
+    //         </span>
+    //     </div>
+    //     <div class="rot-handle nw ui-control" title="Drag to Rotate"></div>
+    //     <div class="rot-handle ne ui-control" title="Drag to Rotate"></div>
+    //     <div class="rot-handle sw ui-control" title="Drag to Rotate"></div>
+    //     <div class="rot-handle se ui-control" title="Drag to Rotate"></div>
+    //     <div class="resizer n ui-control" data-dir="n"></div>
+    //     <div class="resizer s ui-control" data-dir="s"></div>
+    //     <div class="resizer e ui-control" data-dir="e"></div>
+    //     <div class="resizer w ui-control" data-dir="w"></div>
+    //     <div class="resizer nw ui-control" data-dir="nw"></div>
+    //     <div class="resizer ne ui-control" data-dir="ne"></div>
+    //     <div class="resizer sw ui-control" data-dir="sw"></div>
+    //     <div class="resizer se ui-control" data-dir="se"></div>
+    //     <div class="line-handle start-handle ui-control" data-end="start" title="Drag to move start point"></div>
+    //     <div class="line-handle end-handle ui-control" data-end="end" title="Drag to move end point"></div>
+    //     <div class="line-handle bezier-handle b-start-handle ui-control" data-end="b-start" title="Drag to adjust curve"></div>
+    //     <div class="line-handle bezier-handle b-end-handle ui-control" data-end="b-end" title="Drag to adjust curve"></div>
+    // `;
+    // }
+
+function getControlsHTML(isGroup) {
         return `
         <div class="controls ui-control popover-${popoverCorner}" contenteditable="false">
             <span class="control-btn drag-handle cursor-move" title="Drag">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
             </span>
-            
             <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </span>
@@ -5421,7 +5812,6 @@ function redo() {
             <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
-            
             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                 <button onclick="scrubMergeData(-1)" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
@@ -5449,6 +5839,8 @@ function redo() {
         <div class="resizer se ui-control" data-dir="se"></div>
         <div class="line-handle start-handle ui-control" data-end="start" title="Drag to move start point"></div>
         <div class="line-handle end-handle ui-control" data-end="end" title="Drag to move end point"></div>
+        <div class="line-handle bezier-handle b-start-handle ui-control" data-end="b-start" title="Drag to adjust curve"></div>
+        <div class="line-handle bezier-handle b-end-handle ui-control" data-end="b-end" title="Drag to adjust curve"></div>
     `;
     }
 
@@ -5668,7 +6060,11 @@ function redo() {
                 h: absB.h,
                 startFlipX: el.dataset.flipX === 'true' ? -1 : 1,
                 startFlipY: el.dataset.flipY === 'true' ? -1 : 1,
-                startRot: getRotation(el)
+                startRot: getRotation(el),
+                initCp1dx: parseFloat(el.dataset.cp1dx || 0),
+                initCp1dy: parseFloat(el.dataset.cp1dy || 0),
+                initCp2dx: parseFloat(el.dataset.cp2dx || 0),
+                initCp2dy: parseFloat(el.dataset.cp2dy || 0)
             };
         });
     }
@@ -5809,6 +6205,12 @@ function redo() {
                 if (dimensionChanged === 'h' || dimensionChanged === undefined) {
                     state.resizable.style.height = Math.max(1, state.h * scaleY) + 'px';
                 }
+                if (state.el.dataset.shape === 'curve') {
+                    state.el.dataset.cp1dx = state.initCp1dx * scaleX;
+                    state.el.dataset.cp1dy = state.initCp1dy * scaleY;
+                    state.el.dataset.cp2dx = state.initCp2dx * scaleX;
+                    state.el.dataset.cp2dy = state.initCp2dy * scaleY;
+                }
             } else if (state.el.dataset.type === 'group') {
                 if (dimensionChanged === 'w' || dimensionChanged === undefined) {
                     state.el.style.width = Math.max(1, state.w * scaleX) + 'px';
@@ -5833,6 +6235,12 @@ function redo() {
                                 res.style.width = (res.offsetWidth * sX) + 'px';
                                 res.style.height = (res.offsetHeight * sY) + 'px';
                             }
+                        }
+                        if (child.dataset.shape === 'curve') {
+                            child.dataset.cp1dx = parseFloat(child.dataset.cp1dx || 0) * sX;
+                            child.dataset.cp1dy = parseFloat(child.dataset.cp1dy || 0) * sY;
+                            child.dataset.cp2dx = parseFloat(child.dataset.cp2dx || 0) * sX;
+                            child.dataset.cp2dy = parseFloat(child.dataset.cp2dy || 0) * sY;
                         }
                     });
                 };
@@ -6477,128 +6885,40 @@ function redo() {
     }
 
 
-    function applyShapeStyle(prop, value) {
-        if (activeElements.length === 0) return;
-        activeElements.forEach(el => {
-            if (el.dataset.type === 'shape') {
-                const shape = el.dataset.shape || 'rect';
-                const isLine = shape === 'line' || shape === 'curve';
-                let E1x, E1y, E2x, E2y;
-                let doLineAdjustment = isLine && (prop === 'strokeWidth' || prop === 'markerStart' || prop === 'markerEnd');
-
-                if (doLineAdjustment) {
-                    const oldSw = parseFloat(el.dataset.strokeWidth || '2');
-                    const oldMStart = el.dataset.markerStart || 'none';
-                    const oldMEnd = el.dataset.markerEnd || 'none';
-                    const oldPad = (oldMStart !== 'none' || oldMEnd !== 'none') ? oldSw * 4 : oldSw / 2;
-                    
-                    const flip = el.dataset.flip === 'true';
-                    const invert = el.dataset.invert === 'true';
-                    const res = el.querySelector('.resizable');
-                    const w = res ? res.offsetWidth : el.offsetWidth;
-                    const h = res ? res.offsetHeight : el.offsetHeight;
-                    const b = getAbsoluteBounds(el, 'bbox');
-                    
-                    let localSx = oldPad, localSy = flip ? (h - oldPad) : oldPad;
-                    let localEx = w - oldPad, localEy = flip ? oldPad : (h - oldPad);
-                    if (invert) {
-                        let tx = localSx; localSx = localEx; localEx = tx;
-                        let ty = localSy; localSy = localEy; localEy = ty;
-                    }
-
-                    const rot = getRotation(el) * (Math.PI / 180);
-                    const scaleX = el.dataset.flipX === 'true' ? -1 : 1;
-                    const scaleY = el.dataset.flipY === 'true' ? -1 : 1;
-                    const cx = b.x + b.w / 2;
-                    const cy = b.y + b.h / 2;
-
-                    const transformPoint = (lx, ly) => {
-                        const relX = (lx - w/2) * scaleX;
-                        const relY = (ly - h/2) * scaleY;
-                        const rotX = relX * Math.cos(rot) - relY * Math.sin(rot);
-                        const rotY = relX * Math.sin(rot) + relY * Math.cos(rot);
-                        return { x: cx + rotX, y: cy + rotY };
-                    };
-
-                    E1x = transformPoint(localSx, localSy).x; E1y = transformPoint(localSx, localSy).y;
-                    E2x = transformPoint(localEx, localEy).x; E2y = transformPoint(localEx, localEy).y;
+function applyShapeStyle(prop, value) {
+    if (activeElements.length === 0) return;
+    activeElements.forEach(el => {
+        if (el.dataset.type === 'shape') {
+            if (prop === 'strokeWidth') {
+                el.dataset[prop] = parseFloat(value) * (PX_PER_IN / 100);
+            } else if (prop === 'shape' && (value === 'line' || value === 'curve')) {
+                const res = el.querySelector('.resizable');
+                if (res) {
+                    res.style.height = '20px';
+                    el.dataset.flip = 'false';
+                    el.dataset.invert = 'false';
                 }
-
-                if (prop === 'strokeWidth') {
-                    el.dataset[prop] = parseFloat(value) * (PX_PER_IN / 100);
-                } else if (prop === 'shape' && (value === 'line' || value === 'curve') && !isLine) {
-                    const res = el.querySelector('.resizable');
-                    if (res) {
-                        const swVal = parseFloat(el.dataset.strokeWidth || '2');
-                        const mStart = el.dataset.markerStart || 'none';
-                        const mEnd = el.dataset.markerEnd || 'none';
-                        const pad = (mStart !== 'none' || mEnd !== 'none') ? swVal * 4 : swVal / 2;
-                        res.style.height = (pad * 2) + 'px';
-                        el.dataset.flip = 'false';
-                        const b = getAbsoluteBounds(el, 'bbox');
-                        el.dataset.initLeft = b.x;
-                        el.dataset.initTop = b.y;
-                    }
-                    el.dataset[prop] = value;
-                } else {
-                    el.dataset[prop] = value;
-                }
-
-                if (doLineAdjustment) {
-                    const newSw = parseFloat(el.dataset.strokeWidth || '2');
-                    const newMStart = el.dataset.markerStart || 'none';
-                    const newMEnd = el.dataset.markerEnd || 'none';
-                    const newPad = (newMStart !== 'none' || newMEnd !== 'none') ? newSw * 4 : newSw / 2;
-                    
-                    el.dataset.flipX = 'false';
-                    el.dataset.flipY = 'false';
-                    el.style.transform = 'rotate(0deg)';
-
-                    let minX = Math.min(E1x, E2x);
-                    let minY = Math.min(E1y, E2y);
-                    
-                    let newX = minX - newPad;
-                    let newY = minY - newPad;
-                    let newW = Math.abs(E2x - E1x) + newPad * 2;
-                    let newH = Math.abs(E2y - E1y) + newPad * 2;
-                    if (newW < newPad * 2) newW = newPad * 2;
-                    if (newH < newPad * 2) newH = newPad * 2;
-                    
-                    const dx = E2x - E1x; const dy = E2y - E1y;
-                    const eps = 0.001;
-                    let isFlip = false, isInvert = false;
-                    if (dx >= -eps && dy >= -eps) { isFlip = false; isInvert = false; }
-                    else if (dx <= eps && dy <= eps) { isFlip = false; isInvert = true; }
-                    else if (dx >= -eps && dy <= eps) { isFlip = true; isInvert = false; }
-                    else { isFlip = true; isInvert = true; }
-
-                    setAbsolutePosition(el, newX, newY);
-                    el.dataset.flip = isFlip ? 'true' : 'false';
-                    el.dataset.invert = isInvert ? 'true' : 'false';
-
-                    const res = el.querySelector('.resizable');
-                    if (res) {
-                        res.style.width = newW + 'px';
-                        res.style.height = newH + 'px';
-                    }
-                }
-
-                drawShape(el);
+                el.dataset[prop] = value;
+            } else {
+                el.dataset[prop] = value;
             }
-        });
-        if (prop === 'strokeWidth') {
-            document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
-            updateLayoutInputs();
-            if (typeof updateUILayer === 'function') updateUILayer();
-        } else if (prop === 'radius') {
-            document.getElementById('shape-radius-val').innerText = document.getElementById('shape-radius').value;
-        } else if (prop === 'markerStart' || prop === 'markerEnd') {
-            updateLayoutInputs();
-            if (typeof updateUILayer === 'function') updateUILayer();
+            drawShape(el);
         }
-        if (prop === 'shape') syncShapeSettingsUI();
-        saveState(true);
+    });
+
+    if (prop === 'strokeWidth') {
+        document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
+        updateLayoutInputs();
+        if (typeof updateUILayer === 'function') updateUILayer();
+    } else if (prop === 'radius') {
+        document.getElementById('shape-radius-val').innerText = document.getElementById('shape-radius').value;
+    } else if (prop === 'markerStart' || prop === 'markerEnd') {
+        updateLayoutInputs();
+        if (typeof updateUILayer === 'function') updateUILayer();
     }
+    if (prop === 'shape') syncShapeSettingsUI();
+    saveState(true);
+}
 
     function updateShapeColors() {
         const fillHex = document.getElementById('shape-fill-color').value;
@@ -6627,143 +6947,267 @@ function redo() {
         }
     }
 
+function drawShape(el) {
+    if (el.dataset.type !== 'shape') return;
+    const resizable = el.querySelector('.resizable');
+    if (!resizable) return;
+    const w = resizable.offsetWidth;
+    const h = resizable.offsetHeight;
+
+    const type = el.dataset.shape || 'rect';
+    const fill = el.dataset.fill || '#e5e7eb';
+    const stroke = el.dataset.stroke || '#374151';
+    const sw = parseInt(el.dataset.strokeWidth || '2');
+    const radius = parseInt(el.dataset.radius || '0');
+    const sides = parseInt(el.dataset.sides || '3');
+    const flip = el.dataset.flip === 'true';
+
+    const markerStart = el.dataset.markerStart || 'none';
+    const markerEnd = el.dataset.markerEnd || 'none';
     
+    const contentDiv = resizable.querySelector('.shape-content');
+    if (!contentDiv) return;
 
-    function drawShape(el) {
-        if (el.dataset.type !== 'shape') return;
-        const resizable = el.querySelector('.resizable');
-        if (!resizable) return;
-        const w = resizable.offsetWidth;
-        const h = resizable.offsetHeight;
-
-        const type = el.dataset.shape || 'rect';
-        const fill = el.dataset.fill || '#e5e7eb';
-        const stroke = el.dataset.stroke || '#374151';
-        const sw = parseInt(el.dataset.strokeWidth || '2');
-        const radius = parseInt(el.dataset.radius || '0');
-        const sides = parseInt(el.dataset.sides || '3');
-        const curve = parseInt(el.dataset.curve || '25');
-        const flip = el.dataset.flip === 'true';
-
-        const markerStart = el.dataset.markerStart || 'none';
-        const markerEnd = el.dataset.markerEnd || 'none';
+    let defs = '';
+    let markerAttrs = '';
+    
+    if (markerStart !== 'none' || markerEnd !== 'none') {
+        const safeId = el.id || 'temp';
+        // refX="0" means the marker attaches at its base and projects forward.
+        // We will mathematically shorten the line so it stops right at this base.
+        defs = `<defs>
+            <marker id="marker-arrow-${safeId}" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse" overflow="visible">
+                <path d="M 0 2 L 10 5 L 0 8 z" fill="${stroke}" />
+            </marker>
+            <marker id="marker-circle-${safeId}" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" overflow="visible">
+                <circle cx="5" cy="5" r="4" fill="${stroke}" />
+            </marker>
+            <marker id="marker-square-${safeId}" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" overflow="visible">
+                <rect x="1" y="1" width="8" height="8" fill="${stroke}" />
+            </marker>
+        </defs>`;
         
-        const contentDiv = resizable.querySelector('.shape-content');
-        if (!contentDiv) return;
+        if (markerStart !== 'none') markerAttrs += ` marker-start="url(#marker-${markerStart}-${safeId})"`;
+        if (markerEnd !== 'none') markerAttrs += ` marker-end="url(#marker-${markerEnd}-${safeId})"`;
+    }
 
-        let defs = '';
-        let markerAttrs = '';
-        if (markerStart !== 'none' || markerEnd !== 'none') {
-            const safeId = el.id || 'temp';
-            defs = `<defs>
-                <marker id="marker-arrow-${safeId}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse" overflow="visible">
-                    <path d="M 0 1 L 10 5 L 0 9 z" fill="${stroke}" />
-                </marker>
-                <marker id="marker-circle-${safeId}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto" overflow="visible">
-                    <circle cx="5" cy="5" r="3" fill="${stroke}" />
-                </marker>
-                <marker id="marker-square-${safeId}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto" overflow="visible">
-                    <rect x="2.5" y="2.5" width="5" height="5" fill="${stroke}" />
-                </marker>
-            </defs>`;
-            
-            if (markerStart !== 'none') markerAttrs += ` marker-start="url(#marker-${markerStart}-${safeId})"`;
-            if (markerEnd !== 'none') markerAttrs += ` marker-end="url(#marker-${markerEnd}-${safeId})"`;
-        }
+    const hw = sw / 2;
+    const iw = Math.max(0.1, w - sw);
+    const ih = Math.max(0.1, h - sw);
+    const lineCap = (markerStart !== 'none' || markerEnd !== 'none') ? 'butt' : 'round';
+    let pad = (markerStart !== 'none' || markerEnd !== 'none') ? sw * 4 : sw / 2;
 
-        const hw = sw / 2;
-        const iw = Math.max(0.1, w - sw);
-        const ih = Math.max(0.1, h - sw);
-        const lineCap = (markerStart !== 'none' || markerEnd !== 'none') ? 'butt' : 'round';
-        let pad = (markerStart !== 'none' || markerEnd !== 'none') ? sw * 4 : sw / 2;
+    const cacheKey = `${type}-${markerStart}-${markerEnd}-${stroke}`;
 
-        let existingSvg = contentDiv.querySelector('svg');
-        const cacheKey = `${type}-${markerStart}-${markerEnd}-${stroke}`;
-
-        let x1, y1, x2, y2;
-        if (type === 'line' || type === 'curve') {
-            if (!flip) {
-                x1 = pad; y1 = pad;
-                x2 = Math.max(pad, w - pad); y2 = Math.max(pad, h - pad);
-            } else {
-                x1 = pad; y1 = Math.max(pad, h - pad);
-                x2 = Math.max(pad, w - pad); y2 = pad;
-            }
-            if (el.dataset.invert === 'true') {
-                let tx = x1; x1 = x2; x2 = tx;
-                let ty = y1; y1 = y2; y2 = ty;
-            }
-        }
-
-        if (existingSvg && existingSvg.dataset.cacheKey === cacheKey) {
-            existingSvg.setAttribute('width', w);
-            existingSvg.setAttribute('height', h);
-            
-            let shapeEl = existingSvg.querySelector(type === 'curve' ? 'path' : type);
-            if (shapeEl) {
-                shapeEl.setAttribute('fill', type === 'curve' || type === 'line' ? 'none' : fill);
-                shapeEl.setAttribute('stroke', stroke);
-                shapeEl.setAttribute('stroke-width', sw);
-                shapeEl.setAttribute('stroke-linecap', lineCap);
-
-                if (type === 'rect') {
-                    shapeEl.setAttribute('x', hw); shapeEl.setAttribute('y', hw);
-                    shapeEl.setAttribute('width', iw); shapeEl.setAttribute('height', ih);
-                    shapeEl.setAttribute('rx', (radius / 100) * (Math.min(iw, ih) / 2));
-                } else if (type === 'ellipse') {
-                    shapeEl.setAttribute('cx', w / 2); shapeEl.setAttribute('cy', h / 2);
-                    shapeEl.setAttribute('rx', iw / 2); shapeEl.setAttribute('ry', ih / 2);
-                } else if (type === 'polygon') {
-                    const cx = w / 2, cy = h / 2, rX = iw / 2, rY = ih / 2;
-                    let points = [];
-                    for (let i = 0; i < sides; i++) {
-                        const angle = -Math.PI / 2 + (i * 2 * Math.PI / sides);
-                        points.push(`${cx + rX * Math.cos(angle)},${cy + rY * Math.sin(angle)}`);
-                    }
-                    shapeEl.setAttribute('points', points.join(' '));
-                } else if (type === 'line') {
-                    shapeEl.setAttribute('x1', x1); shapeEl.setAttribute('x2', x2);
-                    shapeEl.setAttribute('y1', y1); shapeEl.setAttribute('y2', y2);
-                } else if (type === 'curve') {
-                    const midX = w / 2, midY = h / 2;
-                    const px = -(y2 - y1), py = x2 - x1;
-                    const cplx = midX + px * (curve / 100), cply = midY + py * (curve / 100);
-                    shapeEl.setAttribute('d', `M ${x1} ${y1} Q ${cplx} ${cply} ${x2} ${y2}`);
-                }
-            }
+    // True structural endpoints
+    let x1, y1, x2, y2;
+    if (type === 'line' || type === 'curve') {
+        if (!flip) {
+            x1 = pad; y1 = pad;
+            x2 = Math.max(pad, w - pad); y2 = Math.max(pad, h - pad);
         } else {
-            let innerSVG = '';
-            if (type === 'rect') {
-                const rx = (radius / 100) * (Math.min(iw, ih) / 2);
-                innerSVG = `<rect x="${hw}" y="${hw}" width="${iw}" height="${ih}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" />`;
-            } else if (type === 'ellipse') {
-                innerSVG = `<ellipse cx="${w/2}" cy="${h/2}" rx="${iw/2}" ry="${ih/2}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" />`;
-            } else if (type === 'polygon') {
-                const cx = w / 2, cy = h / 2, rX = iw / 2, rY = ih / 2;
-                let points = [];
-                for (let i = 0; i < sides; i++) {
-                    const angle = -Math.PI / 2 + (i * 2 * Math.PI / sides);
-                    points.push(`${cx + rX * Math.cos(angle)},${cy + rY * Math.sin(angle)}`);
-                }
-                innerSVG = `<polygon points="${points.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="${lineCap}" />`;
-            } else if (type === 'line') {
-                innerSVG = `${defs}<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" ${markerAttrs} />`;
-            } else if (type === 'curve') {
-                const midX = w / 2, midY = h / 2, px = -(y2 - y1), py = x2 - x1;
-                const cplx = midX + px * (curve / 100), cply = midY + py * (curve / 100);
-                innerSVG = `${defs}<path d="M ${x1} ${y1} Q ${cplx} ${cply} ${x2} ${y2}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" ${markerAttrs} />`;
-            }
-
-            contentDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" data-cache-key="${cacheKey}" style="display:block; overflow:visible;">${innerSVG}</svg>`;
+            x1 = pad; y1 = Math.max(pad, h - pad);
+            x2 = Math.max(pad, w - pad); y2 = pad;
         }
-        
-        const startHandle = el.querySelector('.start-handle');
-        const endHandle = el.querySelector('.end-handle');
-        if (startHandle && endHandle && (type === 'line' || type === 'curve')) {
-            startHandle.style.left = x1 + 'px'; startHandle.style.top = y1 + 'px';
-            endHandle.style.left = x2 + 'px'; endHandle.style.top = y2 + 'px';
+        if (el.dataset.invert === 'true') {
+            let tx = x1; x1 = x2; x2 = tx;
+            let ty = y1; y1 = y2; y2 = ty;
         }
     }
+
+    let innerSVG = '';
+    
+    if (type === 'rect') {
+        const rx = (radius / 100) * (Math.min(iw, ih) / 2);
+        innerSVG = `<rect x="${hw}" y="${hw}" width="${iw}" height="${ih}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" />`;
+    } else if (type === 'ellipse') {
+        innerSVG = `<ellipse cx="${w/2}" cy="${h/2}" rx="${iw/2}" ry="${ih/2}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" />`;
+    } else if (type === 'polygon') {
+        const cx = w / 2, cy = h / 2, rX = iw / 2, rY = ih / 2;
+        let points = [];
+        for (let i = 0; i < sides; i++) {
+            const angle = -Math.PI / 2 + (i * 2 * Math.PI / sides);
+            points.push(`${cx + rX * Math.cos(angle)},${cy + rY * Math.sin(angle)}`);
+        }
+        innerSVG = `<polygon points="${points.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="${lineCap}" />`;
+    } else if (type === 'line' || type === 'curve') {
+        
+        const getPullback = (mType) => {
+            if (mType === 'arrow') return sw * 6;
+            if (mType === 'circle' || mType === 'square') return sw * 5;
+            return 0;
+        };
+        const pbStart = getPullback(markerStart);
+        const pbEnd = getPullback(markerEnd);
+
+        let d1x = x1, d1y = y1, d2x = x2, d2y = y2;
+
+        if (type === 'line') {
+            let dx = x2 - x1, dy = y2 - y1;
+            let len = Math.hypot(dx, dy) || 0.001;
+            let nx = dx / len, ny = dy / len;
+            
+            // Shorten the visual line mathematically so it hides inside the marker base
+            if (pbStart + pbEnd < len) {
+                d1x = x1 + nx * pbStart;
+                d1y = y1 + ny * pbStart;
+                d2x = x2 - nx * pbEnd;
+                d2y = y2 - ny * pbEnd;
+            } else {
+                d1x = d2x = x1 + nx * (len / 2);
+                d1y = d2y = y1 + ny * (len / 2);
+            }
+            innerSVG = `${defs}<line x1="${d1x}" y1="${d1y}" x2="${d2x}" y2="${d2y}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" ${markerAttrs} />`;
+        } else if (type === 'curve') {
+            let cp1dx = parseFloat(el.dataset.cp1dx);
+            let cp1dy = parseFloat(el.dataset.cp1dy);
+            let cp2dx = parseFloat(el.dataset.cp2dx);
+            let cp2dy = parseFloat(el.dataset.cp2dy);
+            
+            if (isNaN(cp1dx)) {
+                const defaultDist = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)) * 0.3 || 20;
+                cp1dx = (x2 - x1) * 0.3;
+                cp1dy = (y2 - y1) * 0.3 - defaultDist;
+                cp2dx = (x1 - x2) * 0.3;
+                cp2dy = (y1 - y2) * 0.3 + defaultDist;
+                el.dataset.cp1dx = cp1dx;
+                el.dataset.cp1dy = cp1dy;
+                el.dataset.cp2dx = cp2dx;
+                el.dataset.cp2dy = cp2dy;
+            }
+
+            let cp1x = x1 + cp1dx;
+            let cp1y = y1 + cp1dy;
+            let cp2x = x2 + cp2dx;
+            let cp2y = y2 + cp2dy;
+
+            let t1x = cp1x - x1, t1y = cp1y - y1;
+            let len1 = Math.hypot(t1x, t1y);
+            if (len1 < 0.001) { t1x = x2 - x1; t1y = y2 - y1; len1 = Math.hypot(t1x, t1y) || 0.001; }
+            d1x = x1 + (t1x / len1) * pbStart;
+            d1y = y1 + (t1y / len1) * pbStart;
+
+            let t2x = cp2x - x2, t2y = cp2y - y2;
+            let len2 = Math.hypot(t2x, t2y);
+            if (len2 < 0.001) { t2x = x1 - x2; t2y = y1 - y2; len2 = Math.hypot(t2x, t2y) || 0.001; }
+            d2x = x2 + (t2x / len2) * pbEnd;
+            d2y = y2 + (t2y / len2) * pbEnd;
+            
+            innerSVG = `${defs}<path d="M ${d1x} ${d1y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${d2x} ${d2y}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${lineCap}" ${markerAttrs} />`;
+            innerSVG += `<g class="ui-bezier-lines ui-control pointer-events-none">
+                <line x1="${x1}" y1="${y1}" x2="${cp1x}" y2="${cp1y}" stroke="#a855f7" stroke-width="1" stroke-dasharray="2,2" />
+                <line x1="${x2}" y1="${y2}" x2="${cp2x}" y2="${cp2y}" stroke="#a855f7" stroke-width="1" stroke-dasharray="2,2" />
+            </g>`;
+        }
+    }
+
+    contentDiv.innerHTML = `<svg class="shape-actual-svg" xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" data-cache-key="${cacheKey}" style="display:block; overflow:visible;">${innerSVG}</svg>`;
+    
+    // Lock the interactive handles exactly at the true endpoints
+    const startHandle = el.querySelector('.start-handle');
+    const endHandle = el.querySelector('.end-handle');
+    const bStartHandle = el.querySelector('.b-start-handle');
+    const bEndHandle = el.querySelector('.b-end-handle');
+    if (startHandle && endHandle && (type === 'line' || type === 'curve')) {
+        startHandle.style.left = x1 + 'px'; startHandle.style.top = y1 + 'px';
+        endHandle.style.left = x2 + 'px'; endHandle.style.top = y2 + 'px';
+    }
+    
+    if (type === 'curve' && bStartHandle && bEndHandle) {
+        bStartHandle.style.display = 'block';
+        bEndHandle.style.display = 'block';
+        
+        let cp1dx = parseFloat(el.dataset.cp1dx) || 0;
+        let cp1dy = parseFloat(el.dataset.cp1dy) || 0;
+        let cp2dx = parseFloat(el.dataset.cp2dx) || 0;
+        let cp2dy = parseFloat(el.dataset.cp2dy) || 0;
+        
+        bStartHandle.style.left = (x1 + cp1dx) + 'px';
+        bStartHandle.style.top = (y1 + cp1dy) + 'px';
+        bEndHandle.style.left = (x2 + cp2dx) + 'px';
+        bEndHandle.style.top = (y2 + cp2dy) + 'px';
+    } else if (bStartHandle && bEndHandle) {
+        bStartHandle.style.display = 'none';
+        bEndHandle.style.display = 'none';
+    }
+
+    // Align standard 8-way resize handles & rotation handles to the UNION bounds (Blue Dashed Selection Box)
+    const svgEl = contentDiv.querySelector('.shape-actual-svg');
+    if (svgEl && (type === 'curve' || type === 'line')) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        Array.from(svgEl.children).forEach(g => {
+            if (g.tagName.toLowerCase() === 'defs' || g.classList.contains('ui-bezier-lines')) return;
+            try {
+                const box = g.getBBox();
+                if (box.width >= 0 && box.height >= 0) {
+                    if (box.x < minX) minX = box.x;
+                    if (box.y < minY) minY = box.y;
+                    if (box.x + box.width > maxX) maxX = box.x + box.width;
+                    if (box.y + box.height > maxY) maxY = box.y + box.height;
+                }
+            } catch(e) {}
+        });
+
+        if (minX !== Infinity) {
+            // Apply stroke padding to match the visual bounds
+            minX -= sw / 2; minY -= sw / 2;
+            maxX += sw / 2; maxY += sw / 2;
+            if (markerStart !== 'none' || markerEnd !== 'none') {
+                minX -= sw * 3; minY -= sw * 3;
+                maxX += sw * 3; maxY += sw * 3;
+            }
+
+            // EXACT UNION MATCH: Bounding box must encompass both the structural container (0 to w/h) and the visual ink
+            const offsetL = Math.min(0, minX);
+            const offsetT = Math.min(0, minY);
+            const offsetR = w - Math.max(w, maxX); 
+            const offsetB = h - Math.max(h, maxY); 
+
+            el.dataset.visX = minX;
+            el.dataset.visY = minY;
+            el.dataset.visW = maxX - minX;
+            el.dataset.visH = maxY - minY;
+
+            const setPos = (selector, props) => {
+                const r = el.querySelector(selector);
+                if (r) {
+                    for (let p in props) r.style.setProperty(p, props[p], 'important');
+                }
+            };
+
+            // Shift all 8 resizers to sit perfectly on the blue dashed union edges
+            setPos('.resizer.n', { top: `${offsetT - 6}px`, left: `${offsetL + 6}px`, right: `${offsetR + 6}px`, bottom: 'auto' });
+            setPos('.resizer.s', { bottom: `${offsetB - 6}px`, left: `${offsetL + 6}px`, right: `${offsetR + 6}px`, top: 'auto' });
+            setPos('.resizer.e', { right: `${offsetR - 6}px`, top: `${offsetT + 6}px`, bottom: `${offsetB + 6}px`, left: 'auto' });
+            setPos('.resizer.w', { left: `${offsetL - 6}px`, top: `${offsetT + 6}px`, bottom: `${offsetB + 6}px`, right: 'auto' });
+            
+            setPos('.resizer.nw', { top: `${offsetT - 6}px`, left: `${offsetL - 6}px`, right: 'auto', bottom: 'auto' });
+            setPos('.resizer.ne', { top: `${offsetT - 6}px`, right: `${offsetR - 6}px`, left: 'auto', bottom: 'auto' });
+            setPos('.resizer.sw', { bottom: `${offsetB - 6}px`, left: `${offsetL - 6}px`, right: 'auto', top: 'auto' });
+            setPos('.resizer.se', { bottom: `${offsetB - 6}px`, right: `${offsetR - 6}px`, left: 'auto', top: 'auto' });
+
+            // Shift rotation handles to match
+            setPos('.rot-handle.nw', { top: `${offsetT - 6}px`, left: `${offsetL - 6}px`, right: 'auto', bottom: 'auto' });
+            setPos('.rot-handle.ne', { top: `${offsetT - 6}px`, right: `${offsetR - 6}px`, left: 'auto', bottom: 'auto' });
+            setPos('.rot-handle.sw', { bottom: `${offsetB - 6}px`, left: `${offsetL - 6}px`, right: 'auto', top: 'auto' });
+            setPos('.rot-handle.se', { bottom: `${offsetB - 6}px`, right: `${offsetR - 6}px`, left: 'auto', top: 'auto' });
+        }
+    } else {
+        // Clear dynamic offsets for rectangles/ellipses
+        const resetPos = (selector) => {
+            const r = el.querySelector(selector);
+            if (r) {
+                r.style.top = ''; r.style.bottom = ''; r.style.left = ''; r.style.right = '';
+            }
+        };
+        ['n','s','e','w','nw','ne','sw','se'].forEach(dir => resetPos(`.resizer.${dir}`));
+        ['nw','ne','sw','se'].forEach(dir => resetPos(`.rot-handle.${dir}`));
+        delete el.dataset.visX;
+        delete el.dataset.visY;
+        delete el.dataset.visW;
+        delete el.dataset.visH;
+    }
+}
         
 
     function toggleLasers(el, event) {
@@ -6833,7 +7277,7 @@ function redo() {
     //         overlay.innerHTML = svg;
     //     } else {
     //         overlay.style.display = 'none';
-    //         overlay.innerHTML = '';
+    //         overlay.innerHTML = 
     //     }
     // }
 
@@ -6861,20 +7305,21 @@ function updateLasers() {
             const screenVy = panY + vBox.y * canvasScale;
             const screenVyH = panY + (vBox.y + vBox.h) * canvasScale;
 
-            // Bounding box laser (structural bounds) -> Blue dashed (matches normal selection box)
-            const blue = 'rgba(59, 130, 246, 0.8)';
-            svg += `<line x1="${screenBx}" y1="-50000" x2="${screenBx}" y2="50000" stroke="${blue}" stroke-width="1" stroke-dasharray="4" />`;
-            svg += `<line x1="${screenBxW}" y1="-50000" x2="${screenBxW}" y2="50000" stroke="${blue}" stroke-width="1" stroke-dasharray="4" />`;
-            svg += `<line x1="-50000" y1="${screenBy}" x2="50000" y2="${screenBy}" stroke="${blue}" stroke-width="1" stroke-dasharray="4" />`;
-            svg += `<line x1="-50000" y1="${screenByH}" x2="50000" y2="${screenByH}" stroke="${blue}" stroke-width="1" stroke-dasharray="4" />`;
-
-            // Ink-tight laser (visual bounds) -> Superfine solid red
-            const red = 'rgba(239, 68, 68, 0.8)';
             const sw = "0.5";
-            svg += `<line x1="${screenVx}" y1="-50000" x2="${screenVx}" y2="50000" stroke="${red}" stroke-width="${sw}" />`;
-            svg += `<line x1="${screenVxW}" y1="-50000" x2="${screenVxW}" y2="50000" stroke="${red}" stroke-width="${sw}" />`;
-            svg += `<line x1="-50000" y1="${screenVy}" x2="50000" y2="${screenVy}" stroke="${red}" stroke-width="${sw}" />`;
-            svg += `<line x1="-50000" y1="${screenVyH}" x2="50000" y2="${screenVyH}" stroke="${red}" stroke-width="${sw}" />`;
+
+            // Structural Bounding Box Laser -> Superfine solid red
+            const red = 'rgba(239, 68, 68, 0.8)';
+            svg += `<line x1="${screenBx}" y1="-50000" x2="${screenBx}" y2="50000" stroke="${red}" stroke-width="${sw}" />`;
+            svg += `<line x1="${screenBxW}" y1="-50000" x2="${screenBxW}" y2="50000" stroke="${red}" stroke-width="${sw}" />`;
+            svg += `<line x1="-50000" y1="${screenBy}" x2="50000" y2="${screenBy}" stroke="${red}" stroke-width="${sw}" />`;
+            svg += `<line x1="-50000" y1="${screenByH}" x2="50000" y2="${screenByH}" stroke="${red}" stroke-width="${sw}" />`;
+
+            // Ink-Tight Visual Laser -> Superfine solid light blue
+            const blue = 'rgba(59, 130, 246, 0.8)';
+            svg += `<line x1="${screenVx}" y1="-50000" x2="${screenVx}" y2="50000" stroke="${blue}" stroke-width="${sw}" />`;
+            svg += `<line x1="${screenVxW}" y1="-50000" x2="${screenVxW}" y2="50000" stroke="${blue}" stroke-width="${sw}" />`;
+            svg += `<line x1="-50000" y1="${screenVy}" x2="50000" y2="${screenVy}" stroke="${blue}" stroke-width="${sw}" />`;
+            svg += `<line x1="-50000" y1="${screenVyH}" x2="50000" y2="${screenVyH}" stroke="${blue}" stroke-width="${sw}" />`;
         }
     });
 
@@ -7227,13 +7672,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
     function syncShapeSettingsUI() {
         const shape = activeElement.dataset.shape || 'rect';
-        document.getElementById('shape-type').value = shape;
+        document.getElementById('shape-type').value = (shape === 'curve') ? 'line' : shape;
 
         document.getElementById('shape-fill-group').style.display = (shape === 'line' || shape === 'curve') ? 'none' : 'flex';
         document.getElementById('shape-radius-group').style.display = shape === 'rect' ? 'flex' : 'none';
         document.getElementById('shape-sides-group').style.display = shape === 'polygon' ? 'flex' : 'none';
-        document.getElementById('shape-curve-group').style.display = shape === 'curve' ? 'flex' : 'none';
-        document.getElementById('shape-flip-group').style.display = (shape === 'line' || shape === 'curve') ? 'flex' : 'none';
+        document.getElementById('shape-path-type-group').style.display = (shape === 'line' || shape === 'curve') ? 'flex' : 'none';
+        if (shape === 'line' || shape === 'curve') {
+            document.getElementById('shape-path-type').value = shape;
+        }
         
         document.getElementById('shape-markers-group').style.display = (shape === 'line' || shape === 'curve') ? 'flex' : 'none';
         document.getElementById('shape-marker-start').value = activeElement.dataset.markerStart || 'none';
@@ -7250,8 +7697,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             document.getElementById('shape-sides').value = activeElement.dataset.sides || 3;
             document.getElementById('shape-sides-val').innerText = activeElement.dataset.sides || 3;
         }
-        if (shape === 'curve') document.getElementById('shape-curve').value = activeElement.dataset.curve || 50;
-        if (shape === 'line' || shape === 'curve') document.getElementById('shape-flip').checked = activeElement.dataset.flip === 'true';
 
         let { hex: fHex, alpha: fAlpha } = parseColorToHexAndAlpha(activeElement.dataset.fill || '#e5e7eb');
         document.getElementById('shape-fill-color').value = fHex;
@@ -7944,9 +8389,11 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 y: (endRect.top + endRect.height / 2 - containerRect.top - panY) / canvasScale
             };
 
-            el.dataset.flipX = 'false';
-            el.dataset.flipY = 'false';
-            el.style.transform = 'rotate(0deg)';
+            if (draggedLineHandle === 'start' || draggedLineHandle === 'end') {
+                el.dataset.flipX = 'false';
+                el.dataset.flipY = 'false';
+                el.style.transform = 'rotate(0deg)';
+            }
 
             populateSnapTargets();
             e.preventDefault();
@@ -7956,7 +8403,9 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
         // Check for 8-way resize handle
         if (e.target.closest('.resizer')) {
-            let container = e.target.closest('.element-container');
+            let resizerEl = e.target.closest('.resizer');
+            let targetId = resizerEl.dataset.targetId;
+            let container = targetId ? document.getElementById(targetId) : resizerEl.closest('.element-container');
             
             // If we click a single item that isn't selected, select it
             if (container && !activeElements.includes(container)) {
@@ -7971,17 +8420,15 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
             if (isMulti) {
                 resizeTargetResizer = 'multi';
-                const box = getGroupBoundingBox('bbox');
+                const box = getGroupBoundingBox('bbox'); // Dragging mathematically scales structural
                 resizeStartW = box.w;
                 resizeStartH = box.h;
                 resizeAspect = resizeStartW / resizeStartH;
                 window.multiResizeInitBox = { x: box.x, y: box.y };
 
                 if (!container) {
-                    // Clicked the global group box handle
                     resizeDir = e.target.closest('.resizer').dataset.dir;
                 } else {
-                    // Clicked an individual item's handle; deduce screen direction relative to group center
                     const cx = box.x + box.w / 2;
                     const cy = box.y + box.h / 2;
                     const coords = getCanvasCoords(e);
@@ -7989,7 +8436,6 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                     let dir = '';
                     if (coords.y < cy - box.h / 6) dir += 'n';
                     else if (coords.y > cy + box.h / 6) dir += 's';
-                    
                     if (coords.x < cx - box.w / 6) dir += 'w';
                     else if (coords.x > cx + box.w / 6) dir += 'e';
                     
@@ -8009,9 +8455,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 container.dataset.startFlipX = container.dataset.flipX || 'false';
                 container.dataset.startFlipY = container.dataset.flipY || 'false';
                 if (container.dataset.type === 'group') delete container.dataset.initGroupW;
+
+                if (container.dataset.shape === 'curve') {
+                    container.dataset.initCp1dx = container.dataset.cp1dx || 0;
+                    container.dataset.initCp1dy = container.dataset.cp1dy || 0;
+                    container.dataset.initCp2dx = container.dataset.cp2dx || 0;
+                    container.dataset.initCp2dy = container.dataset.cp2dy || 0;
+                }
             }
 
-            updateBaseLayout(); // Prepare base anchors for multi-scaling
+            updateBaseLayout();
             populateSnapTargets();
 
             e.preventDefault();
@@ -8019,53 +8472,49 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             return;
         }
 
-// Check for rotation handle interaction first
+        // Check for rotation handle interaction
         if (e.target.classList.contains('rot-handle')) {
-                let container = e.target.closest('.element-container');
+            let targetId = e.target.dataset.targetId;
+            let container = targetId ? document.getElementById(targetId) : e.target.closest('.element-container');
+            
+            if (container || activeElements.length > 1) {
+                isRotating = true;
+                e.preventDefault();
                 
-                // Accept rotation if it's on a specific element OR our new multi-select bounding box
-                if (container || activeElements.length > 1) {
-                    isRotating = true;
-                    e.preventDefault();
-                    
-                    // Fallback: If clicked container isn't active, make it active
-                    if (container && !activeElements.includes(container)) {
-                        setActiveElement(container, false);
-                    }
-
-                    // 1. Find the center of the entire selection
-                    const groupBB = getGroupBoundingBox('bbox');
-                    rotateGroupCenter = {
-                        x: groupBB.x + groupBB.w / 2,
-                        y: groupBB.y + groupBB.h / 2
-                    };
-
-                    // 2. Convert to viewport coordinates for mouse tracking
-                    const canvasRect = document.getElementById('card-canvas').getBoundingClientRect();
-                    rotateCenter.x = canvasRect.left + rotateGroupCenter.x * canvasScale;
-                    rotateCenter.y = canvasRect.top + rotateGroupCenter.y * canvasScale;
-
-                    rotateStartAngle = Math.atan2(e.clientY - rotateCenter.y, e.clientX - rotateCenter.x);
-
-                    // 3. Store the initial exact position/rotation of every selected element
-                    initialRotateStates = activeElements.map(el => {
-                        const transform = el.style.transform || '';
-                        const match = transform.match(/rotate\(([-\d.]+)deg\)/);
-                        const initRot = match ? parseFloat(match[1]) : 0;
-                        
-                        const b = getAbsoluteBounds(el, 'bbox');
-                        return {
-                            el: el,
-                            initRot: initRot,
-                            initAbsCx: b.x + b.w / 2,
-                            initAbsCy: b.y + b.h / 2,
-                            initW: b.w,
-                            initH: b.h
-                        };
-                    });
+                if (container && !activeElements.includes(container)) {
+                    setActiveElement(container, false);
                 }
-                return;
+
+                const groupBB = getGroupBoundingBox('bbox');
+                rotateGroupCenter = {
+                    x: groupBB.x + groupBB.w / 2,
+                    y: groupBB.y + groupBB.h / 2
+                };
+
+                const canvasRect = document.getElementById('card-canvas').getBoundingClientRect();
+                rotateCenter.x = canvasRect.left + rotateGroupCenter.x * canvasScale;
+                rotateCenter.y = canvasRect.top + rotateGroupCenter.y * canvasScale;
+
+                rotateStartAngle = Math.atan2(e.clientY - rotateCenter.y, e.clientX - rotateCenter.x);
+
+                initialRotateStates = activeElements.map(el => {
+                    const transform = el.style.transform || '';
+                    const match = transform.match(/rotate\(([-\d.]+)deg\)/);
+                    const initRot = match ? parseFloat(match[1]) : 0;
+                    
+                    const b = getAbsoluteBounds(el, 'bbox');
+                    return {
+                        el: el,
+                        initRot: initRot,
+                        initAbsCx: b.x + b.w / 2,
+                        initAbsCy: b.y + b.h / 2,
+                        initW: b.w,
+                        initH: b.h
+                    };
+                });
             }
+            return;
+        }
 
         const cell = e.target.closest('td, th');
         if (cell) {
@@ -8215,6 +8664,59 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
             let targetX = (e.clientX - containerRect.left - panX) / canvasScale;
             let targetY = (e.clientY - containerRect.top - panY) / canvasScale;
+
+            if (draggedLineHandle === 'b-start' || draggedLineHandle === 'b-end') {
+                const b = getAbsoluteBounds(el, 'bbox');
+                const rot = getRotation(el) * (Math.PI / 180);
+                const cx = b.x + b.w / 2;
+                const cy = b.y + b.h / 2;
+                
+                const dx_c = targetX - cx;
+                const dy_c = targetY - cy;
+                
+                const localDx = dx_c * Math.cos(-rot) - dy_c * Math.sin(-rot);
+                const localDy = dx_c * Math.sin(-rot) + dy_c * Math.cos(-rot);
+                
+                const scaleX = el.dataset.flipX === 'true' ? -1 : 1;
+                const scaleY = el.dataset.flipY === 'true' ? -1 : 1;
+                
+                const localX = b.w / 2 + (localDx * scaleX);
+                const localY = b.h / 2 + (localDy * scaleY);
+                
+                const swVal = parseFloat(el.dataset.strokeWidth || '2');
+                const mStart = el.dataset.markerStart || 'none';
+                const mEnd = el.dataset.markerEnd || 'none';
+                const pad = (mStart !== 'none' || mEnd !== 'none') ? swVal * 4 : swVal / 2;
+                const flip = el.dataset.flip === 'true';
+                const invert = el.dataset.invert === 'true';
+                
+                let x1, y1, x2, y2;
+                if (!flip) {
+                    x1 = pad; y1 = pad;
+                    x2 = Math.max(pad, b.w - pad); y2 = Math.max(pad, b.h - pad);
+                } else {
+                    x1 = pad; y1 = Math.max(pad, b.h - pad);
+                    x2 = Math.max(pad, b.w - pad); y2 = pad;
+                }
+                if (invert) {
+                    let tx = x1; x1 = x2; x2 = tx;
+                    let ty = y1; y1 = y2; y2 = ty;
+                }
+                
+                if (draggedLineHandle === 'b-start') {
+                    el.dataset.cp1dx = localX - x1;
+                    el.dataset.cp1dy = localY - y1;
+                } else {
+                    el.dataset.cp2dx = localX - x2;
+                    el.dataset.cp2dy = localY - y2;
+                }
+                
+                drawShape(el);
+                if (typeof updateUILayer === 'function') updateUILayer();
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
 
             const snappingEnabled = document.getElementById('enable-snapping')?.checked !== false;
             activeSnapLines = { x: null, y: null };
@@ -8528,6 +9030,14 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             
             const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
             if (resizable) {
+                if (el.dataset.shape === 'curve') {
+                    const sX = newW / resizeStartW;
+                    const sY = newH / resizeStartH;
+                    el.dataset.cp1dx = parseFloat(el.dataset.initCp1dx || 0) * sX;
+                    el.dataset.cp1dy = parseFloat(el.dataset.initCp1dy || 0) * sY;
+                    el.dataset.cp2dx = parseFloat(el.dataset.initCp2dx || 0) * sX;
+                    el.dataset.cp2dy = parseFloat(el.dataset.initCp2dy || 0) * sY;
+                }
                 resizable.style.width = newW + 'px';
                 resizable.style.height = newH + 'px';
             } else {
@@ -8556,6 +9066,12 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                     res.style.height = ((parseFloat(child.dataset.initGroupH) || res.offsetHeight) * scaleY) + 'px';
                                 }
                             }
+                            if (child.dataset.shape === 'curve') {
+                                child.dataset.cp1dx = parseFloat(child.dataset.initCp1dx || child.dataset.cp1dx || 0) * sX;
+                                child.dataset.cp1dy = parseFloat(child.dataset.initCp1dy || child.dataset.cp1dy || 0) * sY;
+                                child.dataset.cp2dx = parseFloat(child.dataset.initCp2dx || child.dataset.cp2dx || 0) * sX;
+                                child.dataset.cp2dy = parseFloat(child.dataset.initCp2dy || child.dataset.cp2dy || 0) * sY;
+                            }
                         });
                     };
                     
@@ -8569,6 +9085,16 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                                     child.dataset.initGroupW = parseFloat(child.style.width) || 0;
                                     child.dataset.initGroupH = parseFloat(child.style.height) || 0;
                                     captureState(child);
+                                } else if (child.dataset.shape === 'curve') {
+                                    const res = child.querySelector('.resizable');
+                                    child.dataset.initCp1dx = child.dataset.cp1dx;
+                                    child.dataset.initCp1dy = child.dataset.cp1dy;
+                                    child.dataset.initCp2dx = child.dataset.cp2dx;
+                                    child.dataset.initCp2dy = child.dataset.cp2dy;
+                                    if (res) {
+                                        child.dataset.initGroupW = res.offsetWidth;
+                                        child.dataset.initGroupH = res.offsetHeight;
+                                    }
                                 } else {
                                     const res = child.querySelector('.resizable');
                                     if (res) {
