@@ -1197,6 +1197,7 @@
                 <option value="rect">Rectangle</option>
                 <option value="ellipse">Ellipse / Circle</option>
                 <option value="polygon">Polygon</option>
+                <option value="right-triangle">Right Triangle</option>
                 <option value="line">Line</option>
             </select>
             <div class="flex items-center gap-1.5" id="shape-fill-group">
@@ -7049,6 +7050,10 @@ function drawShape(el) {
             points.push(`${cx + rX * Math.cos(angle)},${cy + rY * Math.sin(angle)}`);
         }
         innerSVG = `<polygon points="${points.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="${lineCap}" />`;
+    } else if (type === 'right-triangle') {
+        // Points: Top-Left, Bottom-Left, Bottom-Right
+        const points = `${hw},${hw} ${hw},${hw + ih} ${hw + iw},${hw + ih}`;
+        innerSVG = `<polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="${lineCap}" />`;
     } else if (type === 'line' || type === 'curve') {
         
         const getPullback = (mType) => {
