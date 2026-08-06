@@ -6990,7 +6990,7 @@ function drawShape(el) {
                 <path d="M 0 2 L 10 5 L 0 8 z" fill="${stroke}" />
             </marker>
             <marker id="marker-circle-${safeId}" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" overflow="visible">
-                <circle cx="5" cy="5" r="4" fill="${stroke}" />
+                <circle cxf="5" cy="5" r="4" fill="${stroke}" />
             </marker>
             <marker id="marker-square-${safeId}" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse" overflow="visible">
                 <rect x="1" y="1" width="8" height="8" fill="${stroke}" />
@@ -8958,28 +8958,27 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             let localDx = (dx * Math.cos(-rot) - dy * Math.sin(-rot)) * startFlipX;
             let localDy = (dx * Math.sin(-rot) + dy * Math.cos(-rot)) * startFlipY;
 
-if (el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve')) {
+// Scale mouse drag delta for lines/curves so structural box scales properly
+            let unionL = 0, unionR = resizeStartW, unionT = 0, unionB = resizeStartH;
+            let isVisualShape = el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve');
+
+            if (isVisualShape) {
                 const visX = parseFloat(el.dataset.initVisX) || 0;
                 const visY = parseFloat(el.dataset.initVisY) || 0;
                 const visW = parseFloat(el.dataset.initVisW) || resizeStartW;
                 const visH = parseFloat(el.dataset.initVisH) || resizeStartH;
                 
-                let scaleX = 1;
-                let scaleY = 1;
+                unionL = Math.min(0, visX);
+                unionR = Math.max(resizeStartW, visX + visW);
+                unionT = Math.min(0, visY);
+                unionB = Math.max(resizeStartH, visY + visH);
                 
-                if (resizeDir.includes('e') && (visX + visW) !== 0) {
-                    scaleX = resizeStartW / (visX + visW);
-                } else if (resizeDir.includes('w') && (resizeStartW - visX) !== 0) {
-                    scaleX = resizeStartW / (resizeStartW - visX);
-                }
+                const unionW = unionR - unionL;
+                const unionH = unionB - unionT;
                 
-                if (resizeDir.includes('s') && (visY + visH) !== 0) {
-                    scaleY = resizeStartH / (visY + visH);
-                } else if (resizeDir.includes('n') && (resizeStartH - visY) !== 0) {
-                    scaleY = resizeStartH / (resizeStartH - visY);
-                }
+                let scaleX = unionW !== 0 ? resizeStartW / unionW : 1;
+                let scaleY = unionH !== 0 ? resizeStartH / unionH : 1;
                 
-                // Safety bound to prevent infinite scaling
                 localDx *= Math.max(0.01, Math.min(scaleX, 100));
                 localDy *= Math.max(0.01, Math.min(scaleY, 100));
             }
@@ -9107,6 +9106,18 @@ if (el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.sh
             if (resizeDir.includes('w')) deltaCx_local = -(newW * signX - resizeStartW) / 2;
             if (resizeDir.includes('s')) deltaCy_local = (newH * signY - resizeStartH) / 2;
             if (resizeDir.includes('n')) deltaCy_local = -(newH * signY - resizeStartH) / 2;
+
+            if (isVisualShape) {
+                const sX = newW / resizeStartW;
+                const sY = newH / resizeStartH;
+                
+                // Push the element backwards to neutralize visual overflow scaling
+                if (resizeDir.includes('e')) deltaCx_local += -unionL * (sX - 1);
+                if (resizeDir.includes('w')) deltaCx_local += -(unionR - resizeStartW) * (sX - 1);
+                if (resizeDir.includes('s')) deltaCy_local += -unionT * (sY - 1);
+                if (resizeDir.includes('n')) deltaCy_local += -(unionB - resizeStartH) * (sY - 1);
+            }
+ 
 
             deltaCx_local *= startFlipX;
             deltaCy_local *= startFlipY;
