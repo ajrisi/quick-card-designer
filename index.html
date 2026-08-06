@@ -5661,17 +5661,13 @@ function getAbsoluteBounds(el, mode = 'bbox') {
     let vX = sX, vY = sY, vW = sW, vH = sH;
 
     if (el.dataset.type === 'shape') {
-        const tag = el.dataset.shape || 'rect';
-        if (tag === 'line' || tag === 'curve') {
-            // Read the exact bounds calculated by drawShape
-            if (el.dataset.visX !== undefined) {
-                vX = sX + parseFloat(el.dataset.visX);
-                vY = sY + parseFloat(el.dataset.visY);
-                vW = parseFloat(el.dataset.visW);
-                vH = parseFloat(el.dataset.visH);
-            }
+        // Read the exact bounds calculated by drawShape for ALL shapes
+        if (el.dataset.visX !== undefined) {
+            vX = sX + parseFloat(el.dataset.visX);
+            vY = sY + parseFloat(el.dataset.visY);
+            vW = parseFloat(el.dataset.visW);
+            vH = parseFloat(el.dataset.visH);
         } else {
-            // For standard rects/ellipses/polygons, visual bounds are just the structural box + stroke thickness
             const sw = parseFloat(el.dataset.strokeWidth || '2');
             vX = sX - sw / 2;
             vY = sY - sw / 2;
@@ -5708,6 +5704,10 @@ function getAbsoluteBounds(el, mode = 'bbox') {
     }
 
     if (mode === 'visual') return { x: vX, y: vY, w: vW, h: vH };
+
+    if (el.dataset.type === 'shape') {
+        return { x: vX, y: vY, w: vW, h: vH }; // Structural container is invisible, only ink matters
+    }
 
     const uMinX = Math.min(sX, vX);
     const uMinY = Math.min(sY, vY);
@@ -6916,16 +6916,22 @@ function applyShapeStyle(prop, value) {
         }
     });
 
+    // 1. Update text labels for sliders
     if (prop === 'strokeWidth') {
         document.getElementById('shape-stroke-val').innerText = document.getElementById('shape-stroke-width').value;
-        updateLayoutInputs();
-        if (typeof updateUILayer === 'function') updateUILayer();
     } else if (prop === 'radius') {
         document.getElementById('shape-radius-val').innerText = document.getElementById('shape-radius').value;
-    } else if (prop === 'markerStart' || prop === 'markerEnd') {
+    } else if (prop === 'sides') {
+        document.getElementById('shape-sides-val').innerText = document.getElementById('shape-sides').value;
+    }
+
+    // 2. If the property changes the physical dimensions, refresh the math and UI lasers!
+    if (['strokeWidth', 'radius', 'sides', 'markerStart', 'markerEnd', 'shape'].includes(prop)) {
+        updateBaseLayout();
         updateLayoutInputs();
         if (typeof updateUILayer === 'function') updateUILayer();
     }
+    
     if (prop === 'shape') syncShapeSettingsUI();
     saveState(true);
 }
@@ -7127,6 +7133,9 @@ function drawShape(el) {
 
     contentDiv.innerHTML = `<svg class="shape-actual-svg" xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" data-cache-key="${cacheKey}" style="display:block; overflow:visible;">${innerSVG}</svg>`;
     
+    // Force a synchronous browser reflow so getBBox() has actual geometry to read instantly
+    void contentDiv.offsetHeight;
+
     // Lock the interactive handles exactly at the true endpoints
     const startHandle = el.querySelector('.start-handle');
     const endHandle = el.querySelector('.end-handle');
@@ -7155,9 +7164,9 @@ function drawShape(el) {
         bEndHandle.style.display = '';
     }
 
-    // Align standard 8-way resize handles & rotation handles to the UNION bounds (Blue Dashed Selection Box)
+
     const svgEl = contentDiv.querySelector('.shape-actual-svg');
-    if (svgEl && (type === 'curve' || type === 'line')) {
+    if (svgEl) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         Array.from(svgEl.children).forEach(g => {
             if (g.tagName.toLowerCase() === 'defs' || g.classList.contains('ui-bezier-lines')) return;
@@ -7176,125 +7185,28 @@ function drawShape(el) {
             // Apply stroke padding to match the visual bounds
             minX -= sw / 2; minY -= sw / 2;
             maxX += sw / 2; maxY += sw / 2;
+
+            // Only run the marker parser if the shape actually has endpoints
+            const markers = [];
+            if (type === 'line' || type === 'curve') {
+                markers.push({ type: markerStart, px: d1x, py: d1y, dir: dirStart });
+                markers.push({ type: markerEnd, px: d2x, py: d2y, dir: dirEnd });
+            }
             
-
-            const markers = [
-                { type: markerStart, px: d1x, py: d1y, dir: dirStart },
-                { type: markerEnd, px: d2x, py: d2y, dir: dirEnd }
-            ];
-
             markers.forEach(m => {
-                if (m.type !== 'none') {
-                    const markerId = `marker-${m.type}-${el.id || 'temp'}`;
-                    const markerEl = svgEl.querySelector(`#${markerId}`);
-                    
-                    if (markerEl) {
-                        // Dynamically read raw SVG properties
-                        const vb = markerEl.getAttribute('viewBox').split(' ').map(Number);
-                        const refX = parseFloat(markerEl.getAttribute('refX') || 0);
-                        const refY = parseFloat(markerEl.getAttribute('refY') || 0);
-                        const mw = parseFloat(markerEl.getAttribute('markerWidth') || 3);
-                        const mh = parseFloat(markerEl.getAttribute('markerHeight') || 3);
-                        
-                        const vw = vb[2], vh = vb[3];
-                        const scaleX = (mw / vw) * sw;
-                        const scaleY = (mh / vh) * sw;
-                        let corners = [];
-                        const graphic = markerEl.firstElementChild;
-                        
-                        if (graphic) {
-                            const tagName = graphic.tagName.toLowerCase();
-                            
-                            if (tagName === 'path') {
-                                // Extract every X,Y number pair directly from the 'd' attribute string!
-                                const d = graphic.getAttribute('d') || '';
-                                const coords = d.match(/-?[\d.]+/g);
-                                if (coords) {
-                                    for (let i = 0; i < coords.length; i += 2) {
-                                        corners.push({
-                                            x: parseFloat(coords[i]), 
-                                            y: parseFloat(coords[i+1] || 0)
-                                        });
-                                    }
-                                }
-                            } else if (tagName === 'circle') {
-                                // Map the 4 absolute edge points of a circle
-                                const cx = parseFloat(graphic.getAttribute('cx') || 0);
-                                const cy = parseFloat(graphic.getAttribute('cy') || 0);
-                                const r = parseFloat(graphic.getAttribute('r') || 0);
-                                corners = [
-                                    {x: cx - r, y: cy}, {x: cx + r, y: cy},
-                                    {x: cx, y: cy - r}, {x: cx, y: cy + r}
-                                ];
-                            } else if (tagName === 'rect') {
-                                // Map the 4 corners of a rectangle
-                                const x = parseFloat(graphic.getAttribute('x') || 0);
-                                const y = parseFloat(graphic.getAttribute('y') || 0);
-                                const w = parseFloat(graphic.getAttribute('width') || 0);
-                                const h = parseFloat(graphic.getAttribute('height') || 0);
-                                corners = [
-                                    {x: x, y: y}, {x: x + w, y: y},
-                                    {x: x + w, y: y + h}, {x: x, y: y + h}
-                                ];
-                            }
-                        }
-                        
-                        // Fallback to the viewBox if parsing fails
-                        if (corners.length === 0) {
-                            corners = [
-                                {x: 0, y: 0}, {x: vw, y: 0},
-                                {x: vw, y: vh}, {x: 0, y: vh}
-                            ];
-                        }
-                        
-                        corners.forEach(c => {
-                            // Translate relative to ref point, apply marker scale
-                            const localX = (c.x - refX) * scaleX;
-                            const localY = (c.y - refY) * scaleY;
-                            
-                            // Rotate by the line's directional slope
-                            const rotX = localX * m.dir.x - localY * m.dir.y;
-                            const rotY = localX * m.dir.y + localY * m.dir.x;
-                            
-                            // Translate to the absolute point on the canvas
-                            const absX = m.px + rotX;
-                            const absY = m.py + rotY;
-                            
-                            // No stroke pad needed here because markers use SVG 'fill' only
-                            if (absX < minX) minX = absX;
-                            if (absX > maxX) maxX = absX;
-                            if (absY < minY) minY = absY;
-                            if (absY > maxY) maxY = absY;
-                        });
-                    }
-                }
+                // ... (Keep your existing dynamic marker parser here!) ...
             });
 
-            // EXACT UNION MATCH: Bounding box must encompass both the structural container (0 to w/h) and the visual ink
-            const offsetL = Math.min(0, minX);
-            const offsetT = Math.min(0, minY);
-            const offsetR = w - Math.max(w, maxX); 
-            const offsetB = h - Math.max(h, maxY); 
+            // TIGHT INK BOUNDS: Ignore the structural container and hug the ink perfectly
+            const offsetL = minX;
+            const offsetT = minY;
+            const offsetR = w - maxX; 
+            const offsetB = h - maxY; 
 
             el.dataset.visX = minX;
             el.dataset.visY = minY;
             el.dataset.visW = maxX - minX;
             el.dataset.visH = maxY - minY;
-
-            let hitbox = el.querySelector('.shape-hitbox');
-            if (!hitbox) {
-                hitbox = document.createElement('div');
-                // The 'ui-control' class ensures it is safely ignored during print/export
-                hitbox.className = 'shape-hitbox ui-control absolute z-[-1] pointer-events-auto';
-                el.insertBefore(hitbox, el.firstChild);
-            }
-
-            // Expand the hitbox by an extra 10px in all directions so thin lines are easy to hover!
-            const hitPad = 10;
-            hitbox.style.left = (offsetL - hitPad) + 'px';
-            hitbox.style.top = (offsetT - hitPad) + 'px';
-            hitbox.style.right = (offsetR - hitPad) + 'px';
-            hitbox.style.bottom = (offsetB - hitPad) + 'px';
 
             const setPos = (selector, props) => {
                 const r = el.querySelector(selector);
@@ -7303,7 +7215,7 @@ function drawShape(el) {
                 }
             };
 
-            // Shift all 8 resizers to sit perfectly on the blue dashed union edges
+            // Shift all 8 resizers to sit perfectly on the ink edges
             setPos('.resizer.n', { top: `${offsetT - 6}px`, left: `${offsetL + 6}px`, right: `${offsetR + 6}px`, bottom: 'auto' });
             setPos('.resizer.s', { bottom: `${offsetB - 6}px`, left: `${offsetL + 6}px`, right: `${offsetR + 6}px`, top: 'auto' });
             setPos('.resizer.e', { right: `${offsetR - 6}px`, top: `${offsetT + 6}px`, bottom: `${offsetB + 6}px`, left: 'auto' });
@@ -7319,33 +7231,20 @@ function drawShape(el) {
             setPos('.rot-handle.ne', { top: `${offsetT - 6}px`, right: `${offsetR - 6}px`, left: 'auto', bottom: 'auto' });
             setPos('.rot-handle.sw', { bottom: `${offsetB - 6}px`, left: `${offsetL - 6}px`, right: 'auto', top: 'auto' });
             setPos('.rot-handle.se', { bottom: `${offsetB - 6}px`, right: `${offsetR - 6}px`, left: 'auto', top: 'auto' });
-        }
-    } else {
-        // Clear dynamic offsets for rectangles/ellipses
-        const resetPos = (selector) => {
-            const r = el.querySelector(selector);
-            if (r) {
-                r.style.top = ''; r.style.bottom = ''; r.style.left = ''; r.style.right = '';
-            }
-        };
-        ['n','s','e','w','nw','ne','sw','se'].forEach(dir => resetPos(`.resizer.${dir}`));
-        ['nw','ne','sw','se'].forEach(dir => resetPos(`.rot-handle.${dir}`));
-        delete el.dataset.visX;
-        delete el.dataset.visY;
-        delete el.dataset.visW;
-        delete el.dataset.visH;
-
-        let hitbox = el.querySelector('.shape-hitbox');
+            
+            // Expand the hover hitbox to match the ink
+            let hitbox = el.querySelector('.shape-hitbox');
             if (!hitbox) {
                 hitbox = document.createElement('div');
                 hitbox.className = 'shape-hitbox ui-control absolute z-[-1] pointer-events-auto';
                 el.insertBefore(hitbox, el.firstChild);
             }
             const hitPad = 10;
-            hitbox.style.left = -hitPad + 'px';
-            hitbox.style.top = -hitPad + 'px';
-            hitbox.style.right = -hitPad + 'px';
-            hitbox.style.bottom = -hitPad + 'px';
+            hitbox.style.left = (offsetL - hitPad) + 'px';
+            hitbox.style.top = (offsetT - hitPad) + 'px';
+            hitbox.style.right = (offsetR - hitPad) + 'px';
+            hitbox.style.bottom = (offsetB - hitPad) + 'px';
+        }
     }
 }
         
@@ -9026,7 +8925,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
 
 // Scale mouse drag delta for lines/curves so structural box scales properly
             let unionL = 0, unionR = resizeStartW, unionT = 0, unionB = resizeStartH;
-            let isVisualShape = el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve');
+            let isVisualShape = el.dataset.type === 'shape';
 
             if (isVisualShape) {
                 const visX = parseFloat(el.dataset.initVisX) || 0;
