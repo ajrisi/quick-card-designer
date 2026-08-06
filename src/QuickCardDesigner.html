@@ -1957,8 +1957,12 @@
     // 1. Establish Workspace from URL, fallback to Tab Session, fallback to 'default'
     let currentWorkspace = urlWorkspace || sessionStorage.getItem('tab_workspace_id');
 
-    if (!currentWorkspace || currentWorkspace === '_blank' || (openUrl && !urlWorkspace)) {
+    if (!currentWorkspace || currentWorkspace === '_blank') {
         currentWorkspace = 'default';
+    }
+
+    if (openUrl && !urlWorkspace) {
+        currentWorkspace = 'ws_' + Math.random().toString(36).substring(2, 15);
     }
 
     // Always lock the current workspace to this browser tab
@@ -2001,7 +2005,13 @@
         mergeSources[newId] = {
             filename: "New_Data.csv",
             data: [["Column 1", "Column 2"], ["", ""]],
-            hasHeader: true
+            hasHeader: true,
+            isPrimary: Object.keys(mergeSources).length === 0,
+            primaryFilter: "",
+            joinType: 'simple',
+            joinLocal: 0,
+            joinForeign: 0,
+            joinQuery: ""
         };
         isNewCSVBeingCreated = true;
         renderDataSourcesList();
@@ -4153,13 +4163,17 @@ function updateUILayer() {
                     const fileHandle = launchParams.files[0];
                     const file = await fileHandle.getFile();
                     const text = await file.text();
-                    const baseName = file.name.replace(/\.[^/.]+$/, "");
                     
-                    // Wait for the app to finish its initial boot sequences, then load the file!
-                    setTimeout(() => {
-                        processCardXML(text, baseName);
-                        showToast(`Loaded ${file.name}!`);
-                    }, 200);
+                    // bounce OS-launched files into a unique workspace
+                    // This prevents the OS payload from silently overwriting your active default tab!
+                    const transferId = 'transfer_' + Math.random().toString(36).substring(2, 15);
+                    const newWsId = 'ws_' + Math.random().toString(36).substring(2, 15);
+                    
+                    await StorageDB.save(transferId, text);
+                    await StorageDB.save(transferId + '_name', file.name);
+                    
+                    window.location.replace(window.location.pathname + '?load_transfer=' + transferId + '&workspace=' + newWsId);
+                    // ---------------------------------------------------------------------------
                 }
             });
         }
@@ -4570,12 +4584,39 @@ function updateUILayer() {
         let didRemoteLoad = false;
 
         // 1. Check for Internal Transfers (Open in New Workspace via file)
+        // if (loadTransfer) {
+        //     const transferData = localStorage.getItem(loadTransfer);
+        //     const transferName = localStorage.getItem(loadTransfer + '_name') || 'New Card';
+        //     if (transferData) {
+        //         localStorage.removeItem(loadTransfer);
+        //         localStorage.removeItem(loadTransfer + '_name');
+        //         processCardXML(transferData, transferName.replace(/\.[^/.]+$/, ""));
+                
+        //         urlParams.delete('load_transfer');
+        //         window.history.replaceState({}, '', `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`);
+        //         didRemoteLoad = true;
+        //     }
+        // }
+        // 1. Check for Internal Transfers (Open in New Workspace via file)
         if (loadTransfer) {
-            const transferData = localStorage.getItem(loadTransfer);
-            const transferName = localStorage.getItem(loadTransfer + '_name') || 'New Card';
+            // Check the high-capacity DB first, fallback to LocalStorage for legacy links
+            let transferData = await StorageDB.load(loadTransfer);
+            let transferName = await StorageDB.load(loadTransfer + '_name');
+            
+            if (!transferData) {
+                transferData = localStorage.getItem(loadTransfer);
+                transferName = localStorage.getItem(loadTransfer + '_name');
+            }
+            
+            if (!transferName) transferName = 'New Card';
+
             if (transferData) {
+                // Clean up both DBs to prevent ghost files from eating up quota
+                StorageDB.delete(loadTransfer).catch(()=>{});
+                StorageDB.delete(loadTransfer + '_name').catch(()=>{});
                 localStorage.removeItem(loadTransfer);
                 localStorage.removeItem(loadTransfer + '_name');
+                
                 processCardXML(transferData, transferName.replace(/\.[^/.]+$/, ""));
                 
                 urlParams.delete('load_transfer');
@@ -4725,9 +4766,24 @@ function updateUILayer() {
                 }
                 
                 // Backwards compatibility for older saves without the header property
+                let hasPrimary = false;
                 Object.values(mergeSources).forEach(src => {
                     if (src.hasHeader === undefined) src.hasHeader = true;
+                    if (src.isPrimary) hasPrimary = true;
+                    if (src.primaryFilter === undefined) src.primaryFilter = "";
+                    if (src.joinType === undefined) src.joinType = 'simple';
+                    if (src.joinLocal === undefined) src.joinLocal = 0;
+                    if (src.joinForeign === undefined) src.joinForeign = 0;
+                    if (src.joinQuery === undefined) src.joinQuery = "";
                 });
+                
+                // If there are legacy data sources but none are marked primary, automatically promote the first one!
+                const sourceKeys = Object.keys(mergeSources);
+                if (!hasPrimary && sourceKeys.length > 0) {
+                    mergeSources[sourceKeys[0]].isPrimary = true;
+                }
+
+
                 renderDataSourcesList();
                 // Restore DPI early so the DOM aligns perfectly before initialization
                 if (data.dpi) {
@@ -11029,6 +11085,34 @@ function getPluginContext(activeRow, cardElement = null) {
         saveState(true);
     }
 
+    function evaluateQuery(query, localRow, localHeaders, foreignRow = null, foreignHeaders = null) {
+        if (!query || !query.trim()) return true;
+        let parsedQuery = query;
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        if (localHeaders && localRow) {
+            localHeaders.forEach((header, idx) => {
+                if (!header) return;
+                const safeVal = JSON.stringify(localRow[idx] !== undefined ? localRow[idx] : "");
+                parsedQuery = parsedQuery.replace(new RegExp(`\\[${escapeRegex(header)}\\]`, 'g'), safeVal);
+            });
+        }
+        
+        if (foreignHeaders && foreignRow) {
+            foreignHeaders.forEach((header, idx) => {
+                if (!header) return;
+                const safeVal = JSON.stringify(foreignRow[idx] !== undefined ? foreignRow[idx] : "");
+                parsedQuery = parsedQuery.replace(new RegExp(`\\[${escapeRegex(header)}\\]`, 'g'), safeVal);
+            });
+        }
+
+        try {
+            return new Function(`return !!(${parsedQuery})`)();
+        } catch(e) {
+            return false;
+        }
+    }
+
     function recomputeAllMergeData() {
         const processContainer = (container) => {
             container.querySelectorAll('.element-container').forEach(el => {
@@ -11059,13 +11143,63 @@ function getPluginContext(activeRow, cardElement = null) {
                             el.dataset.mergeCol = "0";
                         }
 
-                        let startIndex = source.hasHeader ? 1 : 0;
+                        // --- UPGRADED RELATIONAL EXTRACTION ---
+                        let primaryId = Object.keys(mergeSources).find(k => mergeSources[k].isPrimary);
+                        let primarySrc = primaryId ? mergeSources[primaryId] : null;
+                        
                         let extracted = [];
-                        for (let i = startIndex; i < source.data.length; i++) {
-                            if (source.excludedRows && source.excludedRows[i]) continue;
-                            extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+                        
+                        // If this is the primary source (or there is no primary), just grab every valid row sequentially
+                        if (source.isPrimary || !primarySrc) {
+                            let startIndex = source.hasHeader ? 1 : 0;
+                            let headers = source.hasHeader ? source.data[0] : null;
+                            for (let i = startIndex; i < source.data.length; i++) {
+                                if (source.excludedRows && source.excludedRows[i]) continue;
+                                if (source.primaryFilter && !evaluateQuery(source.primaryFilter, source.data[i], headers)) continue;
+                                extracted.push(source.data[i][colIdx] !== undefined ? source.data[i][colIdx] : '');
+                            }
+                        } 
+                        // If this is a secondary source, perform a Relational Join!
+                        else {
+                            let primaryStartIndex = primarySrc.hasHeader ? 1 : 0;
+                            let localStartIndex = source.hasHeader ? 1 : 0;
+                            let primaryHeaders = primarySrc.hasHeader ? primarySrc.data[0] : null;
+                            let localHeaders = source.hasHeader ? source.data[0] : null;
+                            
+                            // Iterate through the PRIMARY source to determine how many cards we are generating
+                            for (let i = primaryStartIndex; i < primarySrc.data.length; i++) {
+                                if (primarySrc.excludedRows && primarySrc.excludedRows[i]) continue;
+                                if (primarySrc.primaryFilter && !evaluateQuery(primarySrc.primaryFilter, primarySrc.data[i], primaryHeaders)) continue;
+                                
+                                let foundMatch = '';
+
+                                // Evaluate Advanced Text Query
+                                if (source.joinType === 'advanced' && source.joinQuery) {
+                                    for (let j = localStartIndex; j < source.data.length; j++) {
+                                        if (source.excludedRows && source.excludedRows[j]) continue;
+                                        if (evaluateQuery(source.joinQuery, source.data[j], localHeaders, primarySrc.data[i], primaryHeaders)) {
+                                            foundMatch = source.data[j][colIdx] !== undefined ? source.data[j][colIdx] : '';
+                                            break;
+                                        }
+                                    }
+                                } 
+                                // Evaluate Simple Dropdown
+                                else {
+                                    let targetValueToMatch = primarySrc.data[i][source.joinForeign];
+                                    for (let j = localStartIndex; j < source.data.length; j++) {
+                                        if (source.excludedRows && source.excludedRows[j]) continue;
+                                        if (source.data[j][source.joinLocal] == targetValueToMatch) {
+                                            foundMatch = source.data[j][colIdx] !== undefined ? source.data[j][colIdx] : '';
+                                            break; 
+                                        }
+                                    }
+                                }
+                                extracted.push(foundMatch);
+                            }
                         }
                         el.dataset.mergeData = JSON.stringify(extracted);
+                        // --------------------------------------
+
                     } else {
                         el.removeAttribute('data-merge-source-id');
                         el.removeAttribute('data-merge-col');
@@ -11076,7 +11210,7 @@ function getPluginContext(activeRow, cardElement = null) {
                         const target = el.querySelector('div[contenteditable="true"]');
                         if (target) {
                             target.removeAttribute('data-template-raw');
-                            target.innerText = ''; //'Merge Data Cleared';
+                            target.innerText = '';
                         }
                     }
                 }
@@ -11387,7 +11521,17 @@ function getPluginContext(activeRow, cardElement = null) {
                 mergeSources[id].data = data;
             } else {
                 id = 'src_' + Date.now();
-                mergeSources[id] = { filename: file.name, data: data, hasHeader: true };
+                mergeSources[id] = {
+                    filename: file.name, // (or "New_Data.csv")
+            data: data,
+            hasHeader: true,
+            isPrimary: Object.keys(mergeSources).length === 0,
+            primaryFilter: "",
+            joinType: 'simple',
+            joinLocal: 0,
+            joinForeign: 0,
+            joinQuery: ""
+                };
             }
 
             renderDataSourcesList();
@@ -11674,7 +11818,6 @@ function getPluginContext(activeRow, cardElement = null) {
             if (fullHtml.includes(`{{${p.name}:`) || fullHtml.includes(`data-plugin-image-id="${id}"`)) usageCount++;
 
 
-
             let varList = p.varnames.map(v => `<span class="bg-purple-100 text-purple-700 text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px] border-purple-200">${v}</span>`).join('');
             let imgList = p.images.map(img => `<span class="bg-indigo-100 text-indigo-700 text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px]border-indigo-200">${img}</span>`).join('');
 
@@ -11738,19 +11881,24 @@ function getPluginContext(activeRow, cardElement = null) {
             const src = mergeSources[id];
             const startIndex = src.hasHeader ? 1 : 0;
             
+            let headers = src.hasHeader ? src.data[0] : null;
             let activeRowCount = 0;
             for(let i = startIndex; i < src.data.length; i++) {
-                if (!(src.excludedRows && src.excludedRows[i])) activeRowCount++;
+                if (!(src.excludedRows && src.excludedRows[i])) {
+                    if (!src.primaryFilter || evaluateQuery(src.primaryFilter, src.data[i], headers)) {
+                        activeRowCount++;
+                    }
+                }
             }
             
             // Find linked images within this specific source
             const requiredImages = new Set();
             if (src.hasHeader && src.data.length > 0) {
-                const headers = src.data[0];
                 headers.forEach((hdr, colIdx) => {
                     if (hdr && typeof hdr === 'string' && hdr.trim().toLowerCase().startsWith('images:')) {
                         for (let i = startIndex; i < src.data.length; i++) {
                             if (src.excludedRows && src.excludedRows[i]) continue;
+                            if (src.primaryFilter && !evaluateQuery(src.primaryFilter, src.data[i], headers)) continue;
                             const val = src.data[i][colIdx];
                             if (val && typeof val === 'string' && val.trim() !== '' && !val.startsWith('http') && !val.startsWith('data:')) {
                                 requiredImages.add(val.trim());
@@ -11765,28 +11913,66 @@ function getPluginContext(activeRow, cardElement = null) {
             if (requiredImages.size > 0) {
                 const missingCount = Array.from(requiredImages).filter(img => !imageAssets[img]).length;
                 const totalCount = requiredImages.size;
-                
                 const imgListHTML = Array.from(requiredImages).map(img => {
                     const isFound = !!imageAssets[img];
                     const colorCls = isFound ? 'text-green-600 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200';
-                    const icon = isFound ? '✓' : '✗';
-                    return `<div class="text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px] ${colorCls}" title="${img}">${icon} ${img}</div>`;
+                    return `<div class="text-[8.5px] font-mono border rounded px-1 py-0.5 truncate max-w-[120px] ${colorCls}" title="${img}">${isFound ? '✓' : '✗'} ${img}</div>`;
                 }).join('');
                 
                 imageStatusHTML = `
                     <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
                             <span class="text-[9px] font-bold text-gray-500 uppercase">Linked Images</span>
-                            ${missingCount > 0 
-                                ? `<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">${missingCount} Missing</span>`
-                                : `<span class="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">All ${totalCount} Found</span>`
-                            }
+                            ${missingCount > 0 ? `<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">${missingCount} Missing</span>` : `<span class="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">All ${totalCount} Found</span>`}
                         </div>
-                        <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto hide-scrollbar">
-                            ${imgListHTML}
-                        </div>
-                    </div>
-                `;
+                        <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto hide-scrollbar">${imgListHTML}</div>
+                    </div>`;
+            }
+
+            // --- ADDED RELATIONAL UI ---
+            let primaryId = Object.keys(mergeSources).find(k => mergeSources[k].isPrimary);
+            let primarySrc = primaryId ? mergeSources[primaryId] : null;
+
+            let relationHTML = '';
+            if (src.isPrimary) {
+                const safeFilter = (src.primaryFilter || '').replace(/"/g, '&quot;');
+                relationHTML = `
+                <div class="mt-2 pt-2 border-t border-gray-100 flex items-center gap-1">
+                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0">⭐ Primary Filter</span>
+                    <input type="text" value="${safeFilter}" onchange="updatePrimaryFilter('${id}', this.value)" class="ml-auto w-full max-w-[160px] text-[9px] border border-blue-300 rounded p-1 bg-white outline-none shadow-sm font-mono placeholder-blue-300" placeholder="[Col] === 'Value'">
+                </div>`;
+            } else if (primarySrc) {
+                let localOpts = src.data[0]?.map((h, i) => `<option value="${i}" ${src.joinLocal == i ? 'selected' : ''}>${String(h).substring(0, 15)}</option>`).join('') || '';
+                let foreignOpts = primarySrc.data[0]?.map((h, i) => `<option value="${i}" ${src.joinForeign == i ? 'selected' : ''}>${String(h).substring(0, 15)}</option>`).join('') || '';
+
+                if (src.joinType === 'simple') {
+                    relationHTML = `
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center gap-1">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase">Link:</span>
+                        <select onchange="updateJoin('${id}', 'local', this.value)" class="w-20 text-[9px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm">${localOpts}</select>
+                        <span class="text-[9px] font-bold text-gray-400">=</span>
+                        <select onchange="updateJoin('${id}', 'foreign', this.value)" class="w-20 text-[9px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm">${foreignOpts}</select>
+                        <button onclick="toggleJoinType('${id}', 'advanced')" class="ml-auto text-yellow-400 hover:text-yellow-600 p-1 bg-yellow-50 hover:bg-yellow-100 rounded transition-colors" title="Power User Query">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </button>
+                        <button onclick="setPrimarySource('${id}')" class="text-amber-400 hover:text-amber-600 p-1 bg-amber-50 hover:bg-amber-100 rounded transition-colors" title="Set as Primary">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                        </button>
+                    </div>`;
+                } else {
+                    const safeQuery = (src.joinQuery || '').replace(/"/g, '&quot;');
+                    relationHTML = `
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center gap-1">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase">Query:</span>
+                        <input type="text" value="${safeQuery}" onchange="updateJoin('${id}', 'query', this.value)" class="flex-1 text-[9px] border border-gray-300 rounded p-1 bg-white outline-none shadow-sm font-mono" placeholder="[col1] === [col2]">
+                        <button onclick="toggleJoinType('${id}', 'simple')" class="ml-auto text-gray-400 hover:text-gray-600 p-1 bg-gray-50 hover:bg-gray-100 rounded transition-colors" title="Simple Dropdowns">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        </button>
+                        <button onclick="setPrimarySource('${id}')" class="text-amber-400 hover:text-amber-600 p-1 bg-amber-50 hover:bg-amber-100 rounded transition-colors" title="Set as Primary">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                        </button>
+                    </div>`;
+                }
             }
 
             const div = document.createElement('div');
@@ -11818,12 +12004,53 @@ function getPluginContext(activeRow, cardElement = null) {
                         <input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleMergeHeader('${id}', this.checked)" ${src.hasHeader ? 'checked' : ''}> Has Header
                     </label>
                 </div>
+                ${relationHTML}
                 ${imageStatusHTML}
             `;
             container.appendChild(div);
+
         });
         
         updateMergeUI();
+    }
+
+    function setPrimarySource(id) {
+        Object.keys(mergeSources).forEach(k => mergeSources[k].isPrimary = (k === id));
+        renderDataSourcesList();
+        recomputeAllMergeData();
+        saveState();
+    }
+
+    function updateJoin(id, field, value) {
+        if (field === 'local') mergeSources[id].joinLocal = parseInt(value);
+        if (field === 'foreign') mergeSources[id].joinForeign = parseInt(value);
+        if (field === 'query') mergeSources[id].joinQuery = value;
+        recomputeAllMergeData();
+        saveState();
+    }
+
+    function toggleJoinType(id, type) {
+        const src = mergeSources[id];
+        src.joinType = type;
+        
+        if (type === 'advanced') {
+            let primaryId = Object.keys(mergeSources).find(k => mergeSources[k].isPrimary);
+            let primarySrc = mergeSources[primaryId];
+            let localName = src.data[0][src.joinLocal] || `Col_${src.joinLocal}`;
+            let foreignName = primarySrc.data[0][src.joinForeign] || `Col_${src.joinForeign}`;
+            src.joinQuery = `[${localName}] === [${foreignName}]`;
+        }
+        
+        renderDataSourcesList();
+        recomputeAllMergeData();
+        saveState();
+    }
+
+    function updatePrimaryFilter(id, value) {
+        if (mergeSources[id]) mergeSources[id].primaryFilter = value;
+        renderDataSourcesList();
+        recomputeAllMergeData();
+        saveState();
     }
 
     /* --- IMAGE BANK ENGINE --- */
@@ -13565,6 +13792,38 @@ document.querySelectorAll('style').forEach(s => {
         if (typeof updateUILayer === 'function') updateUILayer();
     }
 
+    // function uploadCard(event, newWorkspace = false) {
+    //     const file = event.target.files[0];
+    //     if (!file) return;
+
+    //     if (!newWorkspace) {
+    //         if (!confirm("Are you sure you want to open a different card? All unsaved progress in this workspace will be lost.")) {
+    //             event.target.value = '';
+    //             return;
+    //         }
+    //     }
+
+    //     const reader = new FileReader();
+    //     reader.onload = function(e) {
+    //         if (newWorkspace) {
+    //             const transferId = 'transfer_' + Math.random().toString(36).substring(2, 15);
+    //             try {
+    //                 localStorage.setItem(transferId, e.target.result);
+    //                 localStorage.setItem(transferId + '_name', file.name);
+    //                 window.open(window.location.pathname + '?load_transfer=' + transferId, '_blank');
+    //             } catch (err) {
+    //                 showToast("File is too large to transfer to a new workspace. Try opening it in the current workspace instead.", true);
+    //             }
+    //             event.target.value = '';
+    //             return;
+    //         }
+            
+    //         processCardXML(e.target.result, file.name.replace(/\.[^/.]+$/, ""));
+    //         event.target.value = '';
+    //     };
+    //     reader.readAsText(file);
+    // }
+
     function uploadCard(event, newWorkspace = false) {
         const file = event.target.files[0];
         if (!file) return;
@@ -13577,15 +13836,20 @@ document.querySelectorAll('style').forEach(s => {
         }
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             if (newWorkspace) {
                 const transferId = 'transfer_' + Math.random().toString(36).substring(2, 15);
+                const newWsId = 'ws_' + Math.random().toString(36).substring(2, 15);
                 try {
-                    localStorage.setItem(transferId, e.target.result);
-                    localStorage.setItem(transferId + '_name', file.name);
-                    window.open(window.location.pathname + '?load_transfer=' + transferId, '_blank');
+                    // Save to the high-capacity database instead of the 5MB local storage
+                    await StorageDB.save(transferId, e.target.result);
+                    await StorageDB.save(transferId + '_name', file.name);
+                    
+                    // Explicitly pass the brand new workspace ID in the URL!
+                    window.open(window.location.pathname + '?load_transfer=' + transferId + '&workspace=' + newWsId, '_blank');
                 } catch (err) {
-                    showToast("File is too large to transfer to a new workspace. Try opening it in the current workspace instead.", true);
+                    console.error(err);
+                    showToast("Unexpected error transferring file to new workspace.", true);
                 }
                 event.target.value = '';
                 return;
