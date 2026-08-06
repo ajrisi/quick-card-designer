@@ -703,6 +703,13 @@
         <!-- Fixed Right Section (Print & Export Options) -->
         <div id="print-and-layout" class="ml-auto flex items-center pl-2 gap-2 py-2">
             
+<button id="btn-force-plugins" onclick="forceRerunPlugins()" class="hidden p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-purple-100 hover:text-purple-800 transition-colors shadow-sm whitespace-nowrap shrink-0" title="Re-run Plugins">
+                <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="hidden md:inline">Run Plugins</span>
+            </button>
 
         <!-- PRINT MENU -->
         <details class="relative group shrink-0">
@@ -1480,7 +1487,7 @@
                     </div>
                     <div id="plugin-args-group" class="hidden items-center gap-1.5 border-l border-gray-200 pl-2 ml-1">
                         <span class="text-[9px] font-bold text-gray-400 uppercase" title="Comma separated arguments">Args</span>
-                        <input type="text" id="plugin-args-input" placeholder="arg1, arg2" class="w-24 border border-gray-300 rounded p-1 text-[10px] outline-none shadow-sm bg-white" oninput="applyMergeOptions()">
+                        <input type="text" id="plugin-args-input" placeholder="arg1, arg2" spellcheck="false" autocorrect="off" autocapitalize="off" class="w-64 border border-gray-300 rounded p-1 text-[10px] outline-none shadow-sm bg-white" oninput="applyMergeOptions()">
                     </div>
                 </div>
                 <div id="merge-status-container" class="hidden items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 shadow-sm h-full">
@@ -2694,7 +2701,7 @@ function updateBgSettings(side) {
                             if (placeholder) placeholder.style.display = 'flex';
                         }
                     } else {
-                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                         if (target && !target.hasAttribute('data-template-raw')) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
@@ -2704,11 +2711,11 @@ function updateBgSettings(side) {
                 } catch (e) {}
             } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
                 const inst = pluginInstances[el.dataset.pluginImageId];
-                if (inst && typeof inst.renderTemplateImage === 'function') {
+                if (inst && typeof inst.image === 'function') {
                     try {
                         const ctx = getPluginContext(cardIndex);
-                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
-                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
+                        const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                        const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                         let val = pImg || '';
                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                         
@@ -2733,6 +2740,13 @@ function updateBgSettings(side) {
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
             parseMarkdownInElement(el);
+        });
+
+        const ctx = getPluginContext(cardIndex, temp);
+        Object.values(pluginInstances).forEach(inst => {
+            if (typeof inst.render === 'function') {
+                try { inst.render(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
+            }
         });
 
         return temp.innerHTML;
@@ -3735,6 +3749,35 @@ function updateBgSettings(side) {
 //     if (typeof updateMergeUI === 'function') updateMergeUI();
 //     syncGhostLive();
 // }
+
+    // --- ELEMENT NAMING CONTROLS ---
+    window.toggleNameInput = function(event) {
+        if (event) event.stopPropagation();
+        const ms = document.getElementById('multi-select-controls');
+        const input = ms.querySelector('.custom-name-input');
+        if (input.classList.contains('hidden')) {
+            input.classList.remove('hidden');
+            ms.dataset.nameInputVisible = 'true';
+            input.focus();
+        } else {
+            input.classList.add('hidden');
+            ms.dataset.nameInputVisible = 'false';
+        }
+    };
+
+    window.setElementName = function(val, event) {
+        if (event) event.stopPropagation();
+        activeElements.forEach(el => {
+            if (val.trim()) {
+                el.dataset.customName = val.trim();
+            } else {
+                delete el.dataset.customName;
+            }
+        });
+        saveState(true);
+    };
+
+
 function updateUILayer() {
     const uiLayer = document.getElementById('ui-layer');
     if (!uiLayer) return;
@@ -3883,6 +3926,10 @@ function updateUILayer() {
             <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
+            <span class="control-btn id-btn" title="Set Element ID" onclick="toggleNameInput(event)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            </span>
+            <input type="text" class="custom-name-input border border-gray-300 bg-gray-50 text-gray-700 w-20 px-1.5 ml-1 rounded text-[10px] outline-none shadow-sm h-6" placeholder="Element ID..." spellcheck="false" oninput="setElementName(this.value, event)" onkeydown="if(event.key==='Enter')this.blur();" onclick="event.stopPropagation()">
             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                 <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
@@ -3917,6 +3964,20 @@ function updateUILayer() {
                 scrubber.classList.remove('flex');
             }
         }
+
+        const nameInput = ms.querySelector('.custom-name-input');
+        if (nameInput) {
+            const customName = activeElements[0]?.dataset.customName || '';
+            if (document.activeElement !== nameInput) {
+                nameInput.value = customName;
+            }
+            if (customName || ms.dataset.nameInputVisible === 'true') {
+                nameInput.classList.remove('hidden');
+            } else {
+                nameInput.classList.add('hidden');
+            }
+        }
+
 
         ms.style.display = 'flex';
         const msW = ms.offsetWidth || 230;
@@ -7668,8 +7729,30 @@ function updateLasers() {
         overlay.innerHTML = '';
     }
 }
+function setActiveElement(el, multi = false) {
+        // --- ADDED: SHIFT-CLICK TOGGLE TO REMOVE ---
+        if (multi && el && activeElements.includes(el)) {
+            // Remove it from the active array
+            activeElements = activeElements.filter(e => e !== el);
+            
+            // Deselect the visual element
+            el.classList.remove('active', 'rotation-active');
+            if (el.dataset.baselineZ !== undefined) {
+                el.style.zIndex = el.dataset.baselineZ;
+                delete el.dataset.baselineZ;
+            }
+            const oldRes = el.querySelector('.resizable');
+            if (oldRes) resizeObserver.unobserve(oldRes);
+            
+            // Re-sync the UI with whatever elements are left
+            activeElement = activeElements.length > 0 ? activeElements[0] : null;
+            syncUISettingsWithActiveElement();
+            if (typeof updateUILayer === 'function') updateUILayer();
+            
+            return; // Halt the function here!
+        }
+        // -------------------------------------------
 
-    function setActiveElement(el, multi = false) {
         if (!multi) {
             activeElements.forEach(e => {
                 e.classList.remove('active');
@@ -7704,6 +7787,68 @@ function updateLasers() {
         syncUISettingsWithActiveElement();
         if (typeof updateUILayer === 'function') updateUILayer();
     }
+
+    // function setActiveElement(el, multi = false) {
+    //     const ms = document.getElementById('multi-select-controls');
+    //     if (ms) ms.dataset.nameInputVisible = 'false';
+
+    //     if (multi && activeElements.includes(el)) {
+    //         // Deselect the visual element
+    //         el.classList.remove('active');
+    //         el.classList.remove('rotation-active');
+    //         if (el.dataset.baselineZ !== undefined) {
+    //             el.style.zIndex = el.dataset.baselineZ;
+    //             delete el.dataset.baselineZ;
+    //         }
+    //         const oldRes = el.querySelector('.resizable');
+    //         if (oldRes) resizeObserver.unobserve(oldRes);
+            
+    //         // Remove it from the active array
+    //         activeElements = activeElements.filter(e => e !== el);
+            
+    //         // Re-render or hide the toolbar depending on what is left
+    //         if (activeElements.length > 0) {
+    //             updateUILayer();
+    //         } else {
+    //             document.getElementById('ui-layer').innerHTML = '';
+    //         }
+    //         return; // Halt the function here so it doesn't get re-added!
+    //     }
+
+    //     if (!multi) {
+    //         activeElements.forEach(e => {
+    //             e.classList.remove('active');
+    //             e.classList.remove('rotation-active');
+    //             // Restore baseline Z-Index on deselection
+    //             if (e.dataset.baselineZ !== undefined) {
+    //                 e.style.zIndex = e.dataset.baselineZ;
+    //                 delete e.dataset.baselineZ;
+    //             }
+    //             const oldRes = e.querySelector('.resizable');
+    //             if (oldRes) resizeObserver.unobserve(oldRes);
+    //         });
+    //         activeElements = [];
+    //     }
+
+    //     if (el && !activeElements.includes(el)) {
+    //         // If already active in multi-select, don't re-trigger baseline logic
+    //         if (!el.dataset.baselineZ) {
+    //             el.dataset.baselineZ = el.style.zIndex || '100';
+    //         }
+    //         activeElements.push(el);
+    //         el.classList.add('active');
+            
+    //         // Bring to top for editing visibility
+    //         if (el.dataset.type !== 'group') el.style.zIndex = 99999;
+            
+    //         const resizable = el.querySelector('.resizable');
+    //         if (resizable) resizeObserver.observe(resizable);
+    //     }
+
+    //     activeElement = activeElements.length > 0 ? activeElements[0] : null;
+    //     syncUISettingsWithActiveElement();
+    //     if (typeof updateUILayer === 'function') updateUILayer();
+    // }
 
     function showSecondaryToolbar() {
         const tb = document.getElementById('secondary-toolbar');
@@ -7804,10 +7949,25 @@ function updateLasers() {
             });
 
             // Line height from computed style might be "normal" or a pixel value, fallback gracefully
-            let leading = target.style.lineHeight || comp.lineHeight;
-            if (leading === 'normal') leading = 1.5;
-            else leading = parseFloat(leading);
-            document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
+            let leading = target.style.lineHeight;
+            
+            if (!leading) {
+                let compLeading = comp.lineHeight;
+                if (compLeading === 'normal') {
+                    leading = 1.5;
+                } else if (compLeading.endsWith('px')) {
+                    let compFontSize = parseFloat(comp.fontSize) || 16;
+                    leading = parseFloat(compLeading) / compFontSize;
+                } else {
+                    leading = parseFloat(compLeading);
+                }
+            } else {
+                leading = parseFloat(leading);
+            }
+
+            // Round to 1 decimal place to prevent floating point weirdness (e.g., 1.5000002)
+            leading = Math.round((isNaN(leading) ? 1.5 : leading) * 10) / 10;
+            document.getElementById('line-height').value = leading;
 
             const boldBtn = document.getElementById('font-bold-btn');
             if (boldBtn) {
@@ -8979,7 +9139,9 @@ container.style.minWidth = '0px';
                 }
             }
 
-            if (!activeElements.includes(container)) {
+            // Always process the click if holding a multi-select modifier so we can toggle items OFF.
+            // If NOT holding a modifier, only process it if it's a new item (so we don't accidentally destroy a group selection when clicking to drag it).
+            if ((e.shiftKey || e.ctrlKey || e.metaKey) || !activeElements.includes(container)) {
                 setActiveElement(container, e.shiftKey || e.ctrlKey || e.metaKey);
             }
 
@@ -9840,6 +10002,12 @@ container.style.minWidth = '0px';
     document.addEventListener('keydown', (e) => {
         const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
 
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+            e.preventDefault(); // Stop the native browser print dialog
+            prepareAndPrint();  // Fire the custom engine!
+            return;
+        }
+
         // Math Up/Down Arrow Handlers
         if (isInput && e.target.dataset.isMath === "true" && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
             e.preventDefault();
@@ -10083,6 +10251,7 @@ container.style.minWidth = '0px';
                 images: reg.images || []
             };
             pluginInstances[id] = inst;
+            updatePluginPlayButtonVisibility();
             return true;
         } catch(e) {
             console.error("Failed to load plugin", e);
@@ -10091,18 +10260,229 @@ container.style.minWidth = '0px';
         }
     }
 
-    function getPluginContext(activeRow) {
+
+
+    // function getPluginContext(activeRow, cardElement = null) {
+    //     const csvData = {};
+    //     for (let key in mergeSources) {
+    //         csvData[mergeSources[key].filename] = mergeSources[key].data;
+    //     }
+
+    //     // The Chainable API Wrapper
+    //     class QCDQuery {
+    //         constructor(nodes) { this.nodes = Array.from(nodes); }
+    //         each(fn) { this.nodes.forEach(fn); return this; }
+    //         text(val) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'table') {
+    //                     el.querySelectorAll('.cell-text').forEach(c => c.textContent = val);
+    //                 } else {
+    //                     const target = el.querySelector('div[contenteditable="true"]') || el.querySelector('.cell-text') || el;
+    //                     target.textContent = val;
+    //                 }
+    //             });
+    //         }
+    //         html(val) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'table') {
+    //                     el.querySelectorAll('.cell-text').forEach(c => c.innerHTML = val);
+    //                 } else {
+    //                     const target = el.querySelector('div[contenteditable="true"]') || el.querySelector('.cell-text') || el;
+    //                     target.innerHTML = val;
+    //                 }
+    //             });
+    //         }
+    //         bg(color) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'table') {
+    //                     el.querySelectorAll('td, th').forEach(c => c.style.backgroundColor = color);
+    //                 } else if (el.dataset.type === 'shape') {
+    //                     el.dataset.fill = color;
+    //                     el.querySelectorAll('.shape-actual-svg rect, .shape-actual-svg ellipse, .shape-actual-svg polygon, .shape-actual-svg path, .shape-actual-svg circle, .shape-actual-svg line').forEach(s => s.setAttribute('fill', color));
+    //                 } else {
+    //                     const target = el.querySelector('div[contenteditable="true"]') || el;
+    //                     target.style.backgroundColor = color;
+    //                 }
+    //             });
+    //         }
+    //         color(color) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'table') {
+    //                     el.querySelectorAll('.cell-text').forEach(c => c.style.color = color);
+    //                 } else {
+    //                     const target = el.querySelector('div[contenteditable="true"]') || el;
+    //                     target.style.color = color;
+    //                 }
+    //             });
+    //         }
+    //         fill(color) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'shape') {
+    //                     el.dataset.fill = color;
+    //                     el.querySelectorAll('.shape-actual-svg rect, .shape-actual-svg ellipse, .shape-actual-svg polygon, .shape-actual-svg path, .shape-actual-svg circle, .shape-actual-svg line').forEach(s => s.setAttribute('fill', color));
+    //                 }
+    //             });
+    //         }
+    //         stroke(color, width) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'shape') {
+    //                     if (color !== undefined) {
+    //                         el.dataset.stroke = color;
+    //                         el.querySelectorAll('.shape-actual-svg rect, .shape-actual-svg ellipse, .shape-actual-svg polygon, .shape-actual-svg path, .shape-actual-svg circle, .shape-actual-svg line').forEach(s => s.setAttribute('stroke', color));
+    //                     }
+    //                     if (width !== undefined) {
+    //                         el.dataset.strokeWidth = width;
+    //                         el.querySelectorAll('.shape-actual-svg rect, .shape-actual-svg ellipse, .shape-actual-svg polygon, .shape-actual-svg path, .shape-actual-svg circle, .shape-actual-svg line').forEach(s => s.setAttribute('stroke-width', width));
+    //                     }
+    //                 }
+    //             });
+    //         }
+    //         image(url) {
+    //             return this.each(el => {
+    //                 if (el.dataset.type === 'image') {
+    //                     const img = el.querySelector('img');
+    //                     const ph = el.querySelector('.image-placeholder');
+    //                     if (img) {
+    //                         img.src = url;
+    //                         img.style.display = url ? 'block' : 'none';
+    //                     }
+    //                     if (ph) ph.style.display = url ? 'none' : 'flex';
+    //                 }
+    //             });
+    //         }
+    //         css(prop, val) {
+    //             return this.each(el => {
+    //                 const target = (el.dataset.type === 'text' || el.dataset.type === 'title') ? (el.querySelector('div[contenteditable="true"]') || el) : el;
+    //                 target.style[prop] = val;
+    //             });
+    //         }
+    //         hide() { return this.each(el => el.style.display = 'none'); }
+    //         show() { return this.each(el => el.style.display = ''); }
+    //         remove() { return this.each(el => el.remove()); }
+    //     }
+
+    //     return {
+    //         rowIndex: activeRow,
+    //         csvData: csvData,
+    //         getCSVValue: (filename, col, row) => evaluateTemplateExpression(`${filename},${col}` + (row !== undefined ? `,${row}` : ''), activeRow),
+    //         getPluginValue: (pName, vName, ...pArgs) => evaluateTemplateExpression([pName, vName, ...pArgs].join(','), activeRow),
+    //         $: function(selector) {
+    //             if (!cardElement) return new QCDQuery([]);
+    //             let q = selector;
+    //             // If it's a simple string with no css syntax, assume it's a custom ID map
+    //             if (/^[a-zA-Z0-9_-]+$/.test(selector)) q = `[data-custom-name="${selector}"]`;
+    //             return new QCDQuery(cardElement.querySelectorAll(q));
+    //         }
+    //     };
+    // }
+
+function getPluginContext(activeRow, cardElement = null) {
         const csvData = {};
         for (let key in mergeSources) {
             csvData[mergeSources[key].filename] = mergeSources[key].data;
+        }
+
+        class QCDQuery {
+            constructor(nodes) { this.nodes = Array.from(nodes); }
+            each(fn) { this.nodes.forEach(fn); return this; }
+            
+            text(val) {
+                return this.each(el => {
+                    if (el.dataset.type === 'table') {
+                        el.querySelectorAll('.cell-text').forEach(c => c.textContent = val);
+                    } else {
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el;
+                        target.textContent = val;
+                    }
+                });
+            }
+            
+            html(val) {
+                return this.each(el => {
+                    if (el.dataset.type === 'table') {
+                        el.querySelectorAll('.cell-text').forEach(c => c.innerHTML = val);
+                    } else {
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el;
+                        target.innerHTML = val;
+                    }
+                });
+            }
+            
+            bg(color) {
+                return this.each(el => {
+                    if (el.dataset.type === 'table') {
+                        el.querySelectorAll('td, th').forEach(c => c.style.backgroundColor = color);
+                    } else if (el.dataset.type === 'shape') {
+                        el.dataset.fill = color;
+                        el.querySelectorAll('.shape-actual-svg *').forEach(s => {
+                            if (s.tagName.toLowerCase() !== 'defs' && s.tagName.toLowerCase() !== 'marker') s.setAttribute('fill', color);
+                        });
+                    } else {
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el;
+                        target.style.backgroundColor = color;
+                    }
+                });
+            }
+            
+            color(color) {
+                return this.each(el => {
+                    if (el.dataset.type === 'table') {
+                        el.querySelectorAll('.cell-text').forEach(c => c.style.color = color);
+                    } else {
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el;
+                        target.style.color = color;
+                    }
+                });
+            }
+            
+            fill(color) { /* ... (unchanged) ... */ }
+            stroke(color, width) { /* ... (unchanged) ... */ }
+            image(url) { /* ... (unchanged) ... */ }
+            
+            css(prop, val) {
+                return this.each(el => {
+                    const target = (el.dataset.type === 'text' || el.dataset.type === 'title') ? (el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el) : el;
+                    target.style[prop] = val;
+                });
+            }
+            
+            hide() { return this.each(el => el.style.display = 'none'); }
+            show() { return this.each(el => el.style.display = ''); }
+            remove() { return this.each(el => el.remove()); }
         }
 
         return {
             rowIndex: activeRow,
             csvData: csvData,
             getCSVValue: (filename, col, row) => evaluateTemplateExpression(`${filename},${col}` + (row !== undefined ? `,${row}` : ''), activeRow),
-            getPluginValue: (pName, vName, ...pArgs) => evaluateTemplateExpression([pName, vName, ...pArgs].join(','), activeRow)
+            getPluginValue: (pName, vName, ...pArgs) => evaluateTemplateExpression([pName, vName, ...pArgs].join(','), activeRow),
+            $: function(selector) {
+                if (!cardElement) return new QCDQuery([]);
+                let q = selector;
+                if (/^[a-zA-Z0-9_-]+$/.test(selector)) q = `[data-custom-name="${selector}"], #${selector}`; // Target by Name or strict ID
+                return new QCDQuery(cardElement.querySelectorAll(q));
+            }
         };
+    }
+
+    function updatePluginPlayButtonVisibility() {
+        const btn = document.getElementById('btn-force-plugins');
+        if (!btn) return;
+        
+        // Check if ANY loaded plugin has the "render" hook attached
+        const hasRenderPlugin = Object.values(pluginInstances).some(inst => typeof inst.render === 'function');
+        
+        if (hasRenderPlugin) {
+            btn.classList.remove('hidden');
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+
+    function forceRerunPlugins() {
+        // Re-evaluating the merge data inherently rebuilds templates and calls the render hooks globally
+        recomputeAllMergeData();
+        showToast("Plugins re-run successfully!");
     }
 
     function evaluateTemplateExpression(inner, activeRow) {
@@ -10189,13 +10569,13 @@ container.style.minWidth = '0px';
             }
         }
         
-        if (pluginInstance && typeof pluginInstance.renderTemplateVariable === 'function') {
+        if (pluginInstance && typeof pluginInstance.text === 'function') {
             try {
                 const varName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
                 const args = parts.slice(2).map(a => a.replace(/^['"]+|['"]+$/g, ''));
                 const context = getPluginContext(activeRow);
                 
-                const res = pluginInstance.renderTemplateVariable(varName, context, ...args);
+                const res = pluginInstance.text(varName, context, ...args);
                 return res !== undefined ? res : `{{${inner}}}`;
             } catch(e) {
                 console.error("Plugin template error", e);
@@ -10220,10 +10600,52 @@ container.style.minWidth = '0px';
         return result;
     }
 
+    window.renderTemplateString = renderTemplateString;
+
     function createNewPluginStub() {
         const plugCount = Object.keys(pluginsData).length + 1;
         const defaultName = `plugin${plugCount}`;
-        const stubCode = `// Quick Card Designer Plugin\n// This script runs in the browser and provides dynamic variables/images.\n(function() {\n    return {\n        // Register the plugin's name and available template variables/images\n        register: function() {\n            return {\n                name: "${defaultName}",\n                varnames: ["example_var"],\n                images: ["example_img"]\n            };\n        },\n        \n        // Return text or HTML for {{${defaultName},varname}}\n        renderTemplateVariable: function(varName, context, ...args) {\n            if (varName === "example_var") {\n                return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');\n            }\n            return "";\n        },\n        \n        // Return an image URL, path, SVG string, or data URI for images\n        renderTemplateImage: function(imgName, context, ...args) {\n            if (imgName === "example_img") {\n                return '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';\n            }\n            return "";\n        }\n    };\n})();`;
+        const stubCode = `// Quick Card Designer Plugin
+// This script runs in the browser and provides dynamic variables/images.
+(function() {
+    return {
+        // Register the plugin's name and available template variables/images
+        register: function() {
+            return {
+                name: "${defaultName}",
+                varnames: ["example_var"],
+                images: ["example_img"]
+            };
+        },
+        
+        // Return text or HTML for {{${defaultName},varname}}
+        text: function(varName, context, ...args) {
+            if (varName === "example_var") {
+                return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');
+            }
+            return "";
+        },
+        
+        // Return an image URL, path, SVG string, or data URI for images
+        image: function(imgName, context, ...args) {
+            if (imgName === "example_img") {
+                return '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';
+            }
+            return "";
+        },
+
+        // OPTIONAL: Manipulate the entire card DOM easily using the chainable API!
+        render: function(cardElement, context) {
+            // Use context.$('element_id') for ultra-smooth dynamic formatting!
+            /*
+            context.$('health_bar')
+                   .bg(context.rowIndex < 5 ? '#ef4444' : '#10b981')
+                   .text(context.rowIndex + ' HP')
+                   .show();
+            */
+        }
+    };
+})();`;
         
         activeEditPluginId = 'plug_' + Date.now();
         isNewPluginBeingCreated = true;
@@ -10315,6 +10737,8 @@ container.style.minWidth = '0px';
             delete pluginsData[id];
             delete pluginInstances[id];
 
+            updatePluginPlayButtonVisibility();
+
             const wipeElement = (el) => {
                 if (el.dataset.pluginImageId === id) {
                     el.removeAttribute('data-plugin-image-id');
@@ -10399,7 +10823,7 @@ container.style.minWidth = '0px';
         if (!activeElement) return;
         const val = document.getElementById('merge-col-select').value;
         const argsInput = document.getElementById('plugin-args-input');
-        const argsVal = argsInput ? argsInput.value.trim() : '';
+        const argsVal = argsInput ? argsInput.value : '';
         
         if (activeElement.dataset.pluginImageId) {
             activeElement.dataset.pluginImageName = val;
@@ -10556,8 +10980,16 @@ container.style.minWidth = '0px';
                 } catch (e) {}
             }
         });
-        
+        const cardContent = document.getElementById('card-content');
+        const ctx = getPluginContext(globalMergeIndex, cardContent);
+        Object.values(pluginInstances).forEach(inst => {
+            if (typeof inst.render === 'function') {
+                try { inst.render(cardContent, ctx); } catch(e) { console.error("Plugin render error", e); }
+            }
+        });
+
         updateMergeUI();
+        updateAllCanvasImages(); // Forces plugins to recalculate when scrubbing!
         if (typeof updateUILayer === 'function') updateUILayer();
         queueWorkspaceGridUpdate();
     }
@@ -10632,15 +11064,17 @@ container.style.minWidth = '0px';
                 if (argsGroup && argsInput) {
                     argsGroup.classList.remove('hidden');
                     argsGroup.classList.add('flex');
-                    if (activeElement.dataset.type === 'image') {
-                        argsInput.value = activeElement.dataset.pluginImageArgs || "";
-                    } else {
-                        const target = activeElement.querySelector('div[contenteditable="true"]');
-                        argsInput.value = "";
-                        if (target && target.hasAttribute('data-template-raw')) {
-                            const raw = target.getAttribute('data-template-raw');
-                            const match = raw.match(/^\{\{[^,]+,[^,]+(?:,(.+))?\}\}$/);
-                            if (match && match[1]) argsInput.value = match[1];
+                    if (document.activeElement !== argsInput) {
+                        if (activeElement.dataset.type === 'image') {
+                            argsInput.value = activeElement.dataset.pluginImageArgs || "";
+                        } else {
+                            const target = activeElement.querySelector('div[contenteditable="true"]');
+                            argsInput.value = "";
+                            if (target && target.hasAttribute('data-template-raw')) {
+                                const raw = target.getAttribute('data-template-raw');
+                                const match = raw.match(/^\{\{[^,]+,[^,]+(?:,(.+))?\}\}$/);
+                                if (match && match[1]) argsInput.value = match[1];
+                            }
                         }
                     }
                 }
@@ -11504,11 +11938,11 @@ container.style.minWidth = '0px';
                 } catch(e) {}
             } else if (el.dataset.pluginImageId) {
                 const inst = pluginInstances[el.dataset.pluginImageId];
-                if (inst && typeof inst.renderTemplateImage === 'function') {
+                if (inst && typeof inst.image === 'function') {
                     try {
                         const ctx = getPluginContext(globalMergeIndex);
-                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
-                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
+                        const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                        const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                         if (pImg && pImg.trim().startsWith('<')) {
                             val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
                         } else {
@@ -11930,6 +12364,36 @@ container.style.minWidth = '0px';
         return temp.innerHTML;
     }
 
+function getLiveBaseStyles() {
+    const sourceEl = document.body;
+    if (!sourceEl) return '';
+    const comp = window.getComputedStyle(sourceEl);
+    
+    const propertiesToCopy = [
+        'font-family', 'font-size', 'font-weight', 'font-style', 
+        'line-height', 'letter-spacing', 'color', 'text-align',
+        '-webkit-font-smoothing', '-moz-osx-font-smoothing', 'text-rendering'
+    ];
+    
+    let styleStr = '';
+    propertiesToCopy.forEach(prop => {
+        let val = comp.getPropertyValue(prop);
+        
+        // CRITICAL FIX: Convert absolute computed pixels back to a unitless multiplier
+        if (prop === 'line-height' && val.endsWith('px')) {
+            const fontSize = parseFloat(comp.getPropertyValue('font-size'));
+            if (fontSize) {
+                // e.g., 24px / 16px = 1.5
+                val = Math.round((parseFloat(val) / fontSize) * 1000) / 1000;
+            }
+        }
+        
+        if (val) styleStr += `${prop}: ${val}; `;
+    });
+    
+    return styleStr;
+}
+
     async function openWorkspaceDrawer() {
         const overlay = document.getElementById('workspace-drawer-overlay');
         const drawer = document.getElementById('workspace-drawer');
@@ -12091,7 +12555,26 @@ container.style.minWidth = '0px';
         const width = Math.round(data.isLandscape ? Math.max(baseW, baseH) : Math.min(baseW, baseH));
         const height = Math.round(data.isLandscape ? Math.min(baseW, baseH) : Math.max(baseW, baseH));
 
-        const customStyleTag = document.querySelector('style').innerHTML;
+        let customStyleTag = '';
+document.querySelectorAll('style').forEach(s => {
+    if (s.id !== 'custom-fonts-style') {
+        // Check if the stylesheet has rules loaded into the CSSOM
+        if (s.sheet && s.sheet.cssRules) {
+            try {
+                for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                }
+            } catch (e) {
+                // Fallback for CORS-blocked external stylesheets
+                console.warn("Could not read cssRules from stylesheet", e);
+                customStyleTag += s.innerHTML + '\n'; 
+            }
+        } else {
+            // Fallback for standard text-based style blocks
+            customStyleTag += s.innerHTML + '\n';
+        }
+    }
+});
 
         const svgContent = `
             <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" 
@@ -12145,6 +12628,8 @@ container.style.minWidth = '0px';
         setActiveElement(null);
         saveCurrentSideState();
 
+        const liveBaseStyles = getLiveBaseStyles();
+
         const originalCanvas = document.getElementById('card-canvas');
         if (!originalCanvas) return;
 
@@ -12167,7 +12652,26 @@ container.style.minWidth = '0px';
         clone.style.position = 'relative';
         clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
 
-        const customStyleTag = document.querySelector('style').innerHTML;
+        let customStyleTag = '';
+document.querySelectorAll('style').forEach(s => {
+    if (s.id !== 'custom-fonts-style') {
+        // Check if the stylesheet has rules loaded into the CSSOM
+        if (s.sheet && s.sheet.cssRules) {
+            try {
+                for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                }
+            } catch (e) {
+                // Fallback for CORS-blocked external stylesheets
+                console.warn("Could not read cssRules from stylesheet", e);
+                customStyleTag += s.innerHTML + '\n'; 
+            }
+        } else {
+            // Fallback for standard text-based style blocks
+            customStyleTag += s.innerHTML + '\n';
+        }
+    }
+});
         const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
 
         const settingsData = {
@@ -12248,7 +12752,7 @@ container.style.minWidth = '0px';
                      data-card-html-front="${frontHtmlData}"
                      data-card-html-back="${backHtmlData}">
                     <foreignObject x="0" y="0" width="100%" height="100%">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; margin: 0; padding: 0;">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px;margin: 0; padding: 0; ${liveBaseStyles}">
                             <style>
                                 <![CDATA[
                                 ${customStyleTag}
@@ -12278,19 +12782,26 @@ container.style.minWidth = '0px';
     }
 
 
-    function renderSvgToDataUri(svgContent, width, height) {
+    async function renderSvgToDataUri(svgContent, width, height) {
+        // Force the main browser document to finish all pending font loads first
+        await document.fonts.ready;
+
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, width, height);
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/png'));
+                // Because the main document has already parsed the fonts, the SVG sandbox
+                // usually just needs a couple of render frames to apply them.
+                setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                }, 50); // Reduced from 150ms to 50ms
             };
             img.onerror = () => reject(new Error("Image failed to load (SVG markup may be invalid or contains unresolvable external images)."));
             img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
@@ -12298,6 +12809,7 @@ container.style.minWidth = '0px';
     }
 
     async function downloadSingleCardPNG(side, dpi = 300) {
+        const liveBaseStyles = getLiveBaseStyles();
         saveCurrentSideState();
         const scale = dpi / (currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN);
         const canvasW = currentWidth * scale;
@@ -12324,7 +12836,7 @@ container.style.minWidth = '0px';
                     if (el.dataset.type === 'image') {
                         imagePromises.push(updateImageElementDisplay(el, val, true));
                     } else {
-                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                         if (target && !target.hasAttribute('data-template-raw')) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
@@ -12334,11 +12846,11 @@ container.style.minWidth = '0px';
                 } catch (e) {}
             } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
                 const inst = pluginInstances[el.dataset.pluginImageId];
-                if (inst && typeof inst.renderTemplateImage === 'function') {
+                if (inst && typeof inst.image === 'function') {
                     try {
                         const ctx = getPluginContext(globalMergeIndex);
-                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
-                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
+                        const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                        const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                         let val = pImg || '';
                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                         imagePromises.push(updateImageElementDisplay(el, val, true));
@@ -12348,11 +12860,17 @@ container.style.minWidth = '0px';
         });
         await Promise.all(imagePromises);
 
-
-
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
             parseMarkdownInElement(el);
+        });
+
+        const ctx = getPluginContext(globalMergeIndex, temp);
+        Object.values(pluginInstances).forEach(inst => {
+            const hook = inst.render || inst.onRenderCard;
+            if (typeof hook === 'function') {
+                try { hook(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
+            }
         });
         
         // format xml for svg engine
@@ -12361,14 +12879,33 @@ container.style.minWidth = '0px';
 
         const viewW = Math.round(currentWidth * (96 / PX_PER_IN));
         const viewH = Math.round(currentHeight * (96 / PX_PER_IN));
-        const customStyleTag = document.querySelector('style').innerHTML;
+        let customStyleTag = '';
+document.querySelectorAll('style').forEach(s => {
+    if (s.id !== 'custom-fonts-style') {
+        // Check if the stylesheet has rules loaded into the CSSOM
+        if (s.sheet && s.sheet.cssRules) {
+            try {
+                for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                }
+            } catch (e) {
+                // Fallback for CORS-blocked external stylesheets
+                console.warn("Could not read cssRules from stylesheet", e);
+                customStyleTag += s.innerHTML + '\n'; 
+            }
+        } else {
+            // Fallback for standard text-based style blocks
+            customStyleTag += s.innerHTML + '\n';
+        }
+    }
+});
         const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
         const svgContent = `
             <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
                 <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
-                    <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0; ${liveBaseStyles}">
                         <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
-                        <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
+                        <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left; font-family: 'Inter', system-ui, sans-serif; font-size: 16px;">
                             ${activeContent}
                         </div>
                     </div>
@@ -12450,6 +12987,7 @@ container.style.minWidth = '0px';
     }
 
     async function renderPagesToImages(mode, dpi) {
+        const liveBaseStyles = getLiveBaseStyles();
         saveCurrentSideState();
 
         const printCutLine = document.getElementById('print-cut-line')?.checked ?? true;
@@ -12554,7 +13092,26 @@ container.style.minWidth = '0px';
             for (let i = 0; i < sheetsNeeded; i++) targetSheets.push(i);
         }
 
-        const customStyleTag = document.querySelector('style').innerHTML;
+        let customStyleTag = '';
+document.querySelectorAll('style').forEach(s => {
+    if (s.id !== 'custom-fonts-style') {
+        // Check if the stylesheet has rules loaded into the CSSOM
+        if (s.sheet && s.sheet.cssRules) {
+            try {
+                for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                }
+            } catch (e) {
+                // Fallback for CORS-blocked external stylesheets
+                console.warn("Could not read cssRules from stylesheet", e);
+                customStyleTag += s.innerHTML + '\n'; 
+            }
+        } else {
+            // Fallback for standard text-based style blocks
+            customStyleTag += s.innerHTML + '\n';
+        }
+    }
+});
         const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
         
         showToast(`Rendering ${targetSheets.length * (isDuplex ? 2 : 1)} images... Please wait.`);
@@ -12661,7 +13218,7 @@ container.style.minWidth = '0px';
                                     if (el.dataset.type === 'image') {
                                         imagePromises.push(updateImageElementDisplay(el, val, true));
                                     } else {
-                                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                                         if (target && !target.hasAttribute('data-template-raw')) {
                                             target.textContent = val;
                                             parseMarkdownInElement(target);
@@ -12671,11 +13228,11 @@ container.style.minWidth = '0px';
                                 } catch (e) {}
                             } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
                                 const inst = pluginInstances[el.dataset.pluginImageId];
-                                if (inst && typeof inst.renderTemplateImage === 'function') {
+                                if (inst && typeof inst.image === 'function') {
                                     try {
                                         const ctx = getPluginContext(cardIndex);
-                                        const pArgs = el.dataset.pluginImageArgs ? el.dataset.pluginImageArgs.split(',').map(s => s.trim()) : [];
-                                        const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx, ...pArgs);
+                                        const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                                        const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                                         let val = pImg || '';
                                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                                         imagePromises.push(updateImageElementDisplay(el, val, true));
@@ -12689,6 +13246,14 @@ container.style.minWidth = '0px';
                             el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
                             parseMarkdownInElement(el);
                         });
+
+                        const ctx = getPluginContext(cardIndex, temp);
+                            Object.values(pluginInstances).forEach(inst => {
+                                const hook = inst.render || inst.onRenderCard;
+                                if (typeof hook === 'function') {
+                                    try { hook(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
+                                }
+                            });
 
                         // format xml for svg engine
                         temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
@@ -12767,7 +13332,7 @@ container.style.minWidth = '0px';
                 const svgWrap = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
                     <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; margin: 0; padding: 0;">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${paperW}in; height: ${paperH}in; margin: 0; padding: 0; ${liveBaseStyles}">
                             <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; } * { box-sizing: border-box; }]]></style>
                             ${pageContent}
                         </div>
@@ -13204,6 +13769,7 @@ container.style.minWidth = '0px';
         });
         
         temp.querySelectorAll('[contenteditable="true"]').forEach(el => {
+            el.classList.add('qcd-text-format-target');
             el.removeAttribute('contenteditable');
             el.style.cursor = 'default';
         });
@@ -13449,10 +14015,10 @@ container.style.minWidth = '0px';
                                     } catch (e) {}
                                 } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
                                     const inst = pluginInstances[el.dataset.pluginImageId];
-                                    if (inst && typeof inst.renderTemplateImage === 'function') {
+                                    if (inst && typeof inst.image === 'function') {
                                         try {
                                             const ctx = getPluginContext(cardIndex);
-                                            const pImg = inst.renderTemplateImage(el.dataset.pluginImageName, ctx);
+                                            const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
                                             let val = pImg || '';
                                             if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                                             imagePromises.push(updateImageElementDisplay(el, val, true));
@@ -13467,6 +14033,14 @@ container.style.minWidth = '0px';
                                 parseMarkdownInElement(el);
                             });
                             
+                            const ctx = getPluginContext(cardIndex, temp);
+                            Object.values(pluginInstances).forEach(inst => {
+                                const hook = inst.render || inst.onRenderCard;
+                                if (typeof hook === 'function') {
+                                    try { hook(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
+                                }
+                            });
+
                             activeContent = temp.innerHTML;
 
                             const bleedPx = bleedIn * PX_PER_IN;
@@ -13547,7 +14121,26 @@ container.style.minWidth = '0px';
             }
         }
 
-        const customStyleTag = document.querySelector('style').innerHTML;
+        let customStyleTag = '';
+document.querySelectorAll('style').forEach(s => {
+    if (s.id !== 'custom-fonts-style') {
+        // Check if the stylesheet has rules loaded into the CSSOM
+        if (s.sheet && s.sheet.cssRules) {
+            try {
+                for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                }
+            } catch (e) {
+                // Fallback for CORS-blocked external stylesheets
+                console.warn("Could not read cssRules from stylesheet", e);
+                customStyleTag += s.innerHTML + '\n'; 
+            }
+        } else {
+            // Fallback for standard text-based style blocks
+            customStyleTag += s.innerHTML + '\n';
+        }
+    }
+});
         const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
 
         let tailwindTag = Array.from(document.scripts).find(s => s.src.includes('tailwindcss') || s.innerHTML.includes('tailwind') || s.id === 'tailwind');
