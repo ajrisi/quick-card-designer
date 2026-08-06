@@ -12,8 +12,8 @@ def process_html_file(input_path, output_path):
         print(f"Error: Could not find file '{input_path}'")
         return
 
-    # Determine the absolute directory of the input file so we can resolve relative paths
-    input_dir = os.path.dirname(os.path.abspath(input_path))
+    # Determine the repository root (Git hooks always execute from the root)
+    repo_root = os.getcwd()
 
     # Regex to capture the full <script> tag, its attributes, and closing tag
     # re.DOTALL ensures (.*?) captures any newlines/whitespace inside the tag
@@ -39,7 +39,8 @@ def process_html_file(input_path, output_path):
                         with urllib.request.urlopen(req) as response:
                             js_content = response.read().decode('utf-8')
                     else:
-                        local_path = os.path.normpath(os.path.join(input_dir, src))
+                        # Strip leading slashes from src so os.path.join doesn't treat it as absolute
+                        local_path = os.path.normpath(os.path.join(repo_root, src.lstrip('/\\')))
                         print(f"Reading local script from: {local_path}")
                         with open(local_path, 'r', encoding='utf-8') as js_file:
                             js_content = js_file.read()
