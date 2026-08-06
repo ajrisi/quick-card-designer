@@ -178,7 +178,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
         .element-container .controls.popover-sw { bottom: -34px; top: auto; left: -2px; transform-origin: top left; }
         .element-container .controls.popover-se { bottom: -34px; top: auto; right: -2px; left: auto; transform-origin: top right; }
         
-        .element-container:hover > .controls, .element-container.active > .controls { display: flex; gap: 4px; }
+        /* legacy toolbar
+        // .element-container:hover > .controls, .element-container.active > .controls { display: flex; gap: 4px; } */
 
         .control-btn {
             display: flex; align-items: center; justify-content: center;
@@ -2482,18 +2483,30 @@ Check your Browserslist config to be sure that your targets are set up correctly
     });
 
     document.addEventListener('mouseover', (e) => {
-        const container = e.target.closest('.element-container');
-        if (container && container.closest('#card-content') && hoveredElement !== container) {
-            hoveredElement = container;
-            if (typeof updateUILayer === 'function') updateUILayer();
+        let container = e.target.closest('.element-container');
+        if (container && container.closest('#card-content')) {
+            // --- ADDED: If inside a group, shift the hover target to the Parent Group! ---
+            const parentGroup = container.closest('.group-wrapper');
+            if (parentGroup) container = parentGroup;
+            
+            if (hoveredElement !== container) {
+                hoveredElement = container;
+                if (typeof updateUILayer === 'function') updateUILayer();
+            }
         }
     });
 
     document.addEventListener('mouseout', (e) => {
-        const container = e.target.closest('.element-container');
-        if (container && hoveredElement === container) {
-            hoveredElement = null;
-            if (typeof updateUILayer === 'function') updateUILayer();
+        let container = e.target.closest('.element-container');
+        if (container) {
+            // --- ADDED: Match the mouseout target to the Parent Group ---
+            const parentGroup = container.closest('.group-wrapper');
+            if (parentGroup) container = parentGroup;
+            
+            if (hoveredElement === container) {
+                hoveredElement = null;
+                if (typeof updateUILayer === 'function') updateUILayer();
+            }
         }
     });
 
@@ -6728,41 +6741,44 @@ function getAbsoluteBounds(el, mode = 'bbox') {
     // `;
     // }
 
+
+        // <div class="controls ui-control popover-nw" contenteditable="false">
+        //     <span class="control-btn drag-handle cursor-move" title="Drag">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path></svg>
+        //     </span>
+        //     <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        //     </span>
+        //     <span class="control-btn laser-btn" title="Toggle Alignment Lasers" onclick="toggleLasers(this.closest('.element-container'), event)">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v16M16 4v16M4 8h16M4 16h16"></path></svg>
+        //     </span>
+        //     ${isGroup ? `
+        //     <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected()">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
+        //     </span>` : ''}
+        //     <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+        //     </span>
+        //     <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        //     </span>
+        //     <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
+        //         <button onclick="scrubMergeData(-1)" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
+        //         <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
+        //         <button onclick="scrubMergeData(1)" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
+        //     </div>
+        //     <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
+        //         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        //     </span>
+        //     <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+        //     <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
+        //         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
+        //     </span>
+        // </div>
+
 function getControlsHTML(isGroup) {
         return `
-        <div class="controls ui-control popover-nw" contenteditable="false">
-            <span class="control-btn drag-handle cursor-move" title="Drag">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"></path></svg>
-            </span>
-            <span class="control-btn rot-btn" title="Rotate" onclick="toggleRotationMode(this.closest('.element-container'))">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-            </span>
-            <span class="control-btn laser-btn" title="Toggle Alignment Lasers" onclick="toggleLasers(this.closest('.element-container'), event)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v16M16 4v16M4 8h16M4 16h16"></path></svg>
-            </span>
-            ${isGroup ? `
-            <span class="control-btn z-btn" title="Ungroup" onclick="ungroupSelected()">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"/><rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"/></svg>
-            </span>` : ''}
-            <span class="control-btn z-btn" title="Bring Forward" onclick="changeZIndexGlobal(1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-            </span>
-            <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </span>
-            <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
-                <button onclick="scrubMergeData(-1)" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
-                <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
-                <button onclick="scrubMergeData(1)" class="px-1 hover:text-blue-600 leading-none" title="Next Record">&gt;</button>
-            </div>
-            <span class="control-btn delete-btn" title="Delete" onclick="deleteSelectedElements(); event.stopPropagation();">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </span>
-            <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
-            <span class="control-btn popover-drag-handle cursor-grab active:cursor-grabbing" title="Move Toolbar" style="color: #9ca3af;">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>
-            </span>
-        </div>
+
         <div class="rot-handle nw ui-control" title="Drag to Rotate"></div>
         <div class="rot-handle ne ui-control" title="Drag to Rotate"></div>
         <div class="rot-handle sw ui-control" title="Drag to Rotate"></div>
@@ -10904,6 +10920,159 @@ container.style.minWidth = '0px';
             return;
         }
 
+        // if (!isInput && activeElements.length > 0) {
+        //     if ((e.key === 'Delete' || e.key === 'Backspace')) {
+        //         activeElements.forEach(el => el.remove());
+        //         setActiveElement(null);
+        //         saveState();
+        //         showToast(`Deleted item(s)`);
+        //         e.preventDefault();
+
+        //     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+        //         clipboardData = activeElements.map(el => {
+        //             const clone = el.cloneNode(true);
+        //             clone.classList.remove('active', 'rotation-active');
+        //             clone.style.zIndex = '';
+        //             clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
+        //             return clone;
+        //         });
+
+        //         const bundledAssets = {};
+        //         clipboardData.forEach(el => {
+        //             if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
+        //                 bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
+        //             }
+        //         });
+        //         const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+        //         StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
+        //             try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
+        //         });
+
+
+        //         activeElements.forEach(el => el.remove());
+        //         setActiveElement(null);
+        //         saveState();
+        //         showToast(`Cut ${clipboardData.length} item(s)`);
+        //         e.preventDefault();
+
+
+        //     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        //         clipboardData = activeElements.map(el => {
+        //             const clone = el.cloneNode(true);
+        //             clone.classList.remove('active', 'rotation-active');
+        //             clone.style.zIndex = '';
+        //             clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
+        //             return clone;
+        //         });
+
+        //         const bundledAssets = {};
+        //         clipboardData.forEach(el => {
+        //             if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
+        //                 bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
+        //             }
+        //         });
+        //         const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+        //         StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
+        //             try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
+        //         });
+
+        //         showToast(`Copied ${clipboardData.length} item(s)`);
+        //         e.preventDefault();
+        //     }
+        // }
+
+        // if (!isInput && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        //     e.preventDefault(); // Stop native browser pasting immediately
+            
+        //     (async () => {
+        //         try {
+        //             let storedClip = await StorageDB.load('qcd_clipboard');
+        //             if (!storedClip) storedClip = localStorage.getItem('qcd_clipboard');
+                    
+        //             if (storedClip) {
+        //                 const parsed = JSON.parse(storedClip);
+        //                 if (parsed.assets) {
+        //                     Object.assign(imageAssets, parsed.assets);
+        //                     // Refresh Image Bank if open so new assets appear
+        //                     if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+        //                         renderImageBankItems();
+        //                     }
+        //                 }
+        //                 clipboardData = parsed.elements.map(htmlStr => {
+        //                     const temp = document.createElement('div');
+        //                     temp.innerHTML = htmlStr;
+        //                     return temp.firstElementChild;
+        //                 });
+        //             }
+        //         } catch(err) {}
+
+        //         if (clipboardData && clipboardData.length > 0) {
+        //             setActiveElement(null);
+        //             let newGroup = [];
+                    
+        //             // 1. Calculate cursor position in canvas coordinates
+        //             const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        //             const mouseX = lastMouseX - containerRect.left;
+        //             const mouseY = lastMouseY - containerRect.top;
+        //             const targetX = (mouseX - panX) / canvasScale;
+        //             const targetY = (mouseY - panY) / canvasScale;
+
+        //             // 2. Append elements to the DOM first (needed to measure them properly)
+        //             clipboardData.forEach((node, idx) => {
+        //                 const newEl = node.cloneNode(true);
+        //                 newEl.style.zIndex = zIndexCounter++;
+                        
+        //                 // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
+        //                 const assignNewIds = (el, deepIdx) => {
+        //                     el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 10000) + '_' + deepIdx;
+        //                     if (el.dataset.type === 'group') {
+        //                         el.querySelectorAll(':scope > .element-container').forEach((child, cIdx) => assignNewIds(child, cIdx));
+        //                     }
+        //                 };
+        //                 assignNewIds(newEl, idx);
+
+        //                 document.getElementById('card-content').appendChild(newEl);
+
+        //                 newEl.querySelectorAll('.card-table').forEach(t => setupTableResizers(t));
+        //                 if (newEl.dataset.type === 'table') setupTableResizers(newEl.querySelector('.card-table'));
+        //                 if (newEl.dataset.type === 'shape') drawShape(newEl);
+
+        //                 newGroup.push(newEl);
+        //             });
+
+        //             // 3. Find the visual bounding box of the newly pasted group
+        //             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        //             newGroup.forEach(el => {
+        //                 const b = getAbsoluteBounds(el, 'bbox');
+        //                 if (b.x < minX) minX = b.x;
+        //                 if (b.y < minY) minY = b.y;
+        //                 if (b.x + b.w > maxX) maxX = b.x + b.w;
+        //                 if (b.y + b.h > maxY) maxY = b.y + b.h;
+        //             });
+
+        //             // 4. Calculate offset to center the group on the cursor and apply it
+        //             if (minX !== Infinity) {
+        //                 const groupCenterX = minX + (maxX - minX) / 2;
+        //                 const groupCenterY = minY + (maxY - minY) / 2;
+        //                 const offsetX = targetX - groupCenterX;
+        //                 const offsetY = targetY - groupCenterY;
+
+        //                 newGroup.forEach(el => {
+        //                     let currentLeft = parseFloat(el.style.left) || 0;
+        //                     let currentTop = parseFloat(el.style.top) || 0;
+        //                     el.style.left = (currentLeft + offsetX) + 'px';
+        //                     el.style.top = (currentTop + offsetY) + 'px';
+        //                 });
+        //             }
+
+        //             newGroup.forEach((el, index) => setActiveElement(el, index !== 0));
+        //             applyMergePreview();
+        //             updateAllCanvasImages();
+        //             saveState();
+        //             showToast(`Pasted ${newGroup.length} item(s)`);
+        //         }
+        //     })();
+        // }
         if (!isInput && activeElements.length > 0) {
             if ((e.key === 'Delete' || e.key === 'Backspace')) {
                 activeElements.forEach(el => el.remove());
@@ -10913,25 +11082,25 @@ container.style.minWidth = '0px';
                 e.preventDefault();
 
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
-                clipboardData = activeElements.map(el => {
-                    const clone = el.cloneNode(true);
-                    clone.classList.remove('active', 'rotation-active');
-                    clone.style.zIndex = '';
-                    clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
-                    return clone;
-                });
-
+                // 1. Collect required assets first BEFORE turning them into strings
                 const bundledAssets = {};
-                clipboardData.forEach(el => {
+                activeElements.forEach(el => {
                     if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
                         bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
                     }
                 });
-                const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+
+                // 2. Convert cleanly to sanitized HTML strings
+                clipboardData = activeElements.map(el => {
+                    const clone = el.cloneNode(true);
+                    clone.style.zIndex = '';
+                    return stripControlsFromHTML(clone.outerHTML);
+                });
+                
+                const clipPayload = JSON.stringify({ elements: clipboardData, assets: bundledAssets });
                 StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
                     try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
                 });
-
 
                 activeElements.forEach(el => el.remove());
                 setActiveElement(null);
@@ -10941,21 +11110,22 @@ container.style.minWidth = '0px';
 
 
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-                clipboardData = activeElements.map(el => {
-                    const clone = el.cloneNode(true);
-                    clone.classList.remove('active', 'rotation-active');
-                    clone.style.zIndex = '';
-                    clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
-                    return clone;
-                });
-
+                // 1. Collect required assets first BEFORE turning them into strings
                 const bundledAssets = {};
-                clipboardData.forEach(el => {
+                activeElements.forEach(el => {
                     if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
                         bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
                     }
                 });
-                const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+
+                // 2. Convert cleanly to sanitized HTML strings
+                clipboardData = activeElements.map(el => {
+                    const clone = el.cloneNode(true);
+                    clone.style.zIndex = '';
+                    return stripControlsFromHTML(clone.outerHTML);
+                });
+
+                const clipPayload = JSON.stringify({ elements: clipboardData, assets: bundledAssets });
                 StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
                     try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
                 });
@@ -10965,10 +11135,13 @@ container.style.minWidth = '0px';
             }
         }
 
+        // --- UPGRADED: Sanitized Paste Logic ---
         if (!isInput && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
             e.preventDefault(); // Stop native browser pasting immediately
             
             (async () => {
+                let localClipboardStrings = clipboardData; // Use memory as fallback
+                
                 try {
                     let storedClip = await StorageDB.load('qcd_clipboard');
                     if (!storedClip) storedClip = localStorage.getItem('qcd_clipboard');
@@ -10982,15 +11155,11 @@ container.style.minWidth = '0px';
                                 renderImageBankItems();
                             }
                         }
-                        clipboardData = parsed.elements.map(htmlStr => {
-                            const temp = document.createElement('div');
-                            temp.innerHTML = htmlStr;
-                            return temp.firstElementChild;
-                        });
+                        localClipboardStrings = parsed.elements;
                     }
                 } catch(err) {}
 
-                if (clipboardData && clipboardData.length > 0) {
+                if (localClipboardStrings && localClipboardStrings.length > 0) {
                     setActiveElement(null);
                     let newGroup = [];
                     
@@ -11002,8 +11171,12 @@ container.style.minWidth = '0px';
                     const targetY = (mouseY - panY) / canvasScale;
 
                     // 2. Append elements to the DOM first (needed to measure them properly)
-                    clipboardData.forEach((node, idx) => {
-                        const newEl = node.cloneNode(true);
+                    localClipboardStrings.forEach((htmlStr, idx) => {
+                        const temp = document.createElement('div');
+                        // RE-INJECT CLEAN CONTROLS SO THEY FUNCTION PROPERLY
+                        temp.innerHTML = injectControlsIntoHTML(htmlStr);
+                        const newEl = temp.firstElementChild;
+                        
                         newEl.style.zIndex = zIndexCounter++;
                         
                         // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
