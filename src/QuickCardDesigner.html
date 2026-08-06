@@ -4154,11 +4154,10 @@ function updateUILayer() {
         document.querySelectorAll('.hide-scrollbar').forEach(scrollContainer => {
             scrollerObserver.observe(scrollContainer);
             
-            scrollContainer.addEventListener('scroll', () => {
-                document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
-                if (typeof closeFontDropdown === 'function') closeFontDropdown();
-                updateScrollIndicator(scrollContainer);
-            }, { passive: true });
+            if (!scrollContainer.closest('details')) {
+                    document.querySelectorAll('details[open]').forEach(det => det.removeAttribute('open'));
+                    if (typeof closeFontDropdown === 'function') closeFontDropdown();
+                }
 
             if (scrollContainer.classList.contains('overflow-x-auto')) {
                 scrollContainer.addEventListener('wheel', (e) => {
