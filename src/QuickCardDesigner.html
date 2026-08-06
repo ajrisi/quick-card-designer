@@ -1496,6 +1496,21 @@
             </div>
         </div>
 
+<!-- GROUP CONTROLS -->
+<div id="group-controls" class="flex items-center gap-3 shrink-0" style="display: none;">
+    <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"></path>
+                    <circle cx="4" cy="4" r="2.5" fill="currentColor" stroke="none"></circle>
+                    <circle cx="20" cy="4" r="2.5" fill="currentColor" stroke="none"></circle>
+                    <circle cx="4" cy="20" r="2.5" fill="currentColor" stroke="none"></circle>
+                    <circle cx="20" cy="20" r="2.5" fill="currentColor" stroke="none"></circle>
+                    <rect x="7" y="11" width="6" height="4" rx="1" stroke-width="2"></rect>
+                    <rect x="11" y="8" width="6" height="4" rx="1" stroke-width="2"></rect>
+                </svg>
+        <span class="text-[10px] font-bold text-gray-600 uppercase tracking-wider" id="group-info-text">0 items</span>
+    </div>
+</div>
 
 
     </div>
@@ -8014,6 +8029,7 @@ function setActiveElement(el, multi = false) {
             if (document.getElementById('divider-controls')) document.getElementById('divider-controls').style.display = 'none';
             document.getElementById('data-merge-section').style.display = 'none';
             document.getElementById('image-controls').style.display = 'none';
+            if (document.getElementById('group-controls')) document.getElementById('group-controls').style.display = 'none';
             
             document.getElementById('table-scope-group').classList.add('hidden');
             document.getElementById('table-scope-group').classList.remove('flex');
@@ -8127,7 +8143,19 @@ function setActiveElement(el, multi = false) {
                 syncTextBgSwatch(override);
 
                 updateMergeUI();
-            }
+            } else if (activeElements.length > 1 || (activeElements.length === 1 && activeElement.dataset.type === 'group')) {
+        const groupPanel = document.getElementById('group-controls');
+        if (groupPanel) {
+            groupPanel.style.display = 'flex';
+            
+            // Calculate how many items are actually in the selection or group
+            const count = activeElements.length > 1 
+                ? activeElements.length 
+                : activeElement.querySelectorAll(':scope > .element-container').length;
+                
+            document.getElementById('group-info-text').innerText = `${count} Items Selected`;
+        }
+    }
 
         } else {
             stylePanel.classList.add('opacity-50', 'pointer-events-none');
@@ -12905,7 +12933,7 @@ document.querySelectorAll('style').forEach(s => {
                 <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
                     <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0; ${liveBaseStyles}">
                         <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
-                        <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left; font-family: 'Inter', system-ui, sans-serif; font-size: 16px;">
+                        <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
                             ${activeContent}
                         </div>
                     </div>
