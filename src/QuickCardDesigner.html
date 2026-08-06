@@ -2256,7 +2256,7 @@
 
     document.addEventListener('mouseover', (e) => {
         const container = e.target.closest('.element-container');
-        if (container && hoveredElement !== container) {
+        if (container && container.closest('#card-content') && hoveredElement !== container) {
             hoveredElement = container;
             if (typeof updateUILayer === 'function') updateUILayer();
         }
@@ -8784,6 +8784,9 @@ container.style.minWidth = '0px';
         }
 
         const cell = e.target.closest('td, th');
+        if (cell && !cell.closest('#card-content')) {
+            cell = null;
+        }
         if (cell) {
             activeTableCell = cell;
             const inner = cell.querySelector('.cell-text');
@@ -8799,6 +8802,10 @@ container.style.minWidth = '0px';
 
         let container = e.target.closest('.element-container');
         let isCanvasArea = e.target.closest('#canvas-container');
+
+        if (container && !container.closest('#card-content')) {
+            container = null;
+        }
 
         if (!container && !cell && !e.target.closest('.controls') && isCanvasArea) {
             if (!e.shiftKey && !e.key) { // Exclude Tab key presses
@@ -12744,6 +12751,7 @@ container.style.minWidth = '0px';
     }
 
     function processCardXML(contents, baseName) {
+        setActiveElement(null);
         const canvas = document.getElementById('card-canvas');
         if (canvas) canvas.style.transition = 'none';
 
