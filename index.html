@@ -1747,7 +1747,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
             </div>
             <!-- Footer -->
-            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+            <!-- <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
                 <span class="text-xs text-gray-500 font-medium">Use CSVs via the Toolbar, or Templates via <code class="bg-gray-100 px-1 rounded">{{name,var}}</code>.</span>
                 <div class="flex gap-2">
                     <button onclick="createNewPluginStub()" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-purple-700 transition-colors">
@@ -1759,6 +1759,36 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 </div>
                 <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
                 <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
+                <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
+            </div> -->
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+                <span class="text-xs text-gray-500 font-medium">Use CSVs via the Toolbar, or Templates via <code class="bg-gray-100 px-1 rounded">{{name,var}}</code>.</span>
+                <div class="flex gap-2">
+                    <div class="relative group">
+                        <button id="btn-add-plugin" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-purple-700 transition-colors select-none" title="Upload Plugin (Hold for options)">
+                            + Add Plugin
+                        </button>
+                        <div id="plugin-menu" class="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Plugin Options</div>
+                            <button onpointerup="document.getElementById('plugin-upload-input').click(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload .js File</button>
+                            <button onpointerup="createNewPluginStub(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Create New Plugin</button>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <button id="btn-add-csv" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors select-none" title="Upload CSV (Hold for options)">
+                            + Add Data
+                        </button>
+                        <div id="csv-menu" class="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Data Options</div>
+                            <button onpointerup="document.getElementById('global-merge-file-input').click(); closeCSVMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload CSV/TXT</button>
+                            <button onpointerup="createNewCSVStub(); closeCSVMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Create New CSV</button>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
+                <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
+                <input type="file" id="plugin-upload-input" accept=".js" class="hidden" onchange="handleNewPluginFile(event)">
                 <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
             </div>
         </div>
@@ -2036,6 +2066,49 @@ Check your Browserslist config to be sure that your targets are set up correctly
     function closeNewMenu() {
         const menu = document.getElementById('new-menu');
         if (menu) menu.classList.add('hidden');
+    }
+
+    let pluginPressTimer;
+    function closePluginMenu() {
+        const menu = document.getElementById('plugin-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    let csvPressTimer;
+    function closeCSVMenu() {
+        const menu = document.getElementById('csv-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    function createNewCSVStub() {
+        const newId = 'src_' + Date.now();
+        mergeSources[newId] = {
+            filename: "New_Data.csv",
+            data: [["Column 1", "Column 2"], ["", ""]],
+            hasHeader: true
+        };
+        isNewCSVBeingCreated = true;
+        renderDataSourcesList();
+        openCSVEditor(newId);
+    }
+
+    function handleNewPluginFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const code = e.target.result;
+            const newId = 'plug_' + Date.now();
+            if (loadPlugin(newId, code, file.name)) {
+                showToast(`Loaded plugin: "${file.name}"`);
+                renderDataSourcesList();
+                updateImageBankMergeUI();
+                recomputeAllMergeData();
+                saveState();
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
     }
 
     function openInNewWorkspace() {
@@ -4520,12 +4593,61 @@ function updateUILayer() {
             });
         }
 
+        // Setup Long Press on Add Plugin
+        const addPluginBtn = document.getElementById('btn-add-plugin');
+        const pluginMenu = document.getElementById('plugin-menu');
+        if (addPluginBtn) {
+            addPluginBtn.addEventListener('pointerdown', (e) => {
+                if(e.button !== 0) return;
+                pluginPressTimer = setTimeout(() => {
+                    if (pluginMenu) pluginMenu.classList.remove('hidden');
+                }, 400);
+            });
+            addPluginBtn.addEventListener('pointerup', () => clearTimeout(pluginPressTimer));
+            addPluginBtn.addEventListener('pointerleave', () => clearTimeout(pluginPressTimer));
+            addPluginBtn.addEventListener('click', (e) => {
+                if (pluginMenu && !pluginMenu.classList.contains('hidden')) {
+                    e.preventDefault();
+                } else {
+                    document.getElementById('plugin-upload-input').click();
+                }
+            });
+        }
+
+        // Setup Long Press on Add CSV
+        const addCsvBtn = document.getElementById('btn-add-csv');
+        const csvMenu = document.getElementById('csv-menu');
+        if (addCsvBtn) {
+            addCsvBtn.addEventListener('pointerdown', (e) => {
+                if(e.button !== 0) return;
+                csvPressTimer = setTimeout(() => {
+                    if (csvMenu) csvMenu.classList.remove('hidden');
+                }, 400);
+            });
+            addCsvBtn.addEventListener('pointerup', () => clearTimeout(csvPressTimer));
+            addCsvBtn.addEventListener('pointerleave', () => clearTimeout(csvPressTimer));
+            addCsvBtn.addEventListener('click', (e) => {
+                if (csvMenu && !csvMenu.classList.contains('hidden')) {
+                    e.preventDefault();
+                } else {
+                    document.getElementById('global-merge-file-input').click();
+                }
+            });
+        }
+
+
         document.addEventListener('click', (e) => {
             if (openMenu && !openMenu.classList.contains('hidden') && !openBtn.contains(e.target) && !openMenu.contains(e.target)) {
                 closeOpenMenu();
             }
             if (newMenu && !newMenu.classList.contains('hidden') && !newBtn.contains(e.target) && !newMenu.contains(e.target)) {
                 closeNewMenu();
+            }
+            if (pluginMenu && !pluginMenu.classList.contains('hidden') && addPluginBtn && !addPluginBtn.contains(e.target) && !pluginMenu.contains(e.target)) {
+                closePluginMenu();
+            }
+            if (csvMenu && !csvMenu.classList.contains('hidden') && addCsvBtn && !addCsvBtn.contains(e.target) && !csvMenu.contains(e.target)) {
+                closeCSVMenu();
             }
         });
 
@@ -11495,7 +11617,8 @@ function getPluginContext(activeRow, cardElement = null) {
     }
 
     let activeCSVId = null;
-    let csvLineExclusions = []; 
+    let csvLineExclusions = [];
+    let isNewCSVBeingCreated = false;
 
     function openCSVEditor(id) {
         activeCSVId = id;
@@ -11534,6 +11657,12 @@ function getPluginContext(activeRow, cardElement = null) {
     }
 
     function closeCSVEditor() {
+        if (isNewCSVBeingCreated && activeCSVId) {
+            delete mergeSources[activeCSVId];
+            renderDataSourcesList();
+        }
+        isNewCSVBeingCreated = false;
+
         activeCSVId = null;
         document.getElementById('csv-editor-modal').classList.add('hidden');
     }
@@ -11584,6 +11713,8 @@ function getPluginContext(activeRow, cardElement = null) {
         
         mergeSources[activeCSVId].data = data;
         mergeSources[activeCSVId].excludedRows = excludedRows;
+
+        isNewCSVBeingCreated = false;
         
         renderDataSourcesList();
         recomputeAllMergeData();
