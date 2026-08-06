@@ -7084,7 +7084,8 @@ function applyShapeStyle(prop, value) {
             } else if (prop === 'shape' && (value === 'line' || value === 'curve')) {
                 const res = el.querySelector('.resizable');
                 if (res && el.dataset.shape !== 'line' && el.dataset.shape !== 'curve') {
-                    res.style.height = '20px';
+                    const sw = parseFloat(el.dataset.strokeWidth || '2');
+                    res.style.height = sw + 'px';
                     el.dataset.flip = 'false';
                     el.dataset.invert = 'false';
                 }
@@ -7378,7 +7379,40 @@ function drawShape(el) {
             }
             
             markers.forEach(m => {
-                // ... (Keep your existing dynamic marker parser here!) ...
+                if (m.type === 'none') return;
+                
+                let forward = 0, lateral = 0, back = 0;
+                
+                // Calculate physical projection distances based on SVG viewBox and stroke width
+                if (m.type === 'arrow') {
+                    forward = sw * 6;
+                    lateral = sw * 3;
+                    back = 0;
+                } else if (m.type === 'circle' || m.type === 'square') {
+                    forward = sw * 4.5;
+                    lateral = sw * 2.5;
+                    back = sw * 0.5;
+                }
+                
+                // Calculate normal vector (perpendicular to direction) for lateral thickness
+                const nx = -m.dir.y;
+                const ny = m.dir.x;
+                
+                // Project the 4 corners of the marker's bounding box mathematically
+                const corners = [
+                    { x: m.px + m.dir.x * forward + nx * lateral, y: m.py + m.dir.y * forward + ny * lateral },
+                    { x: m.px + m.dir.x * forward - nx * lateral, y: m.py + m.dir.y * forward - ny * lateral },
+                    { x: m.px - m.dir.x * back + nx * lateral, y: m.py - m.dir.y * back + ny * lateral },
+                    { x: m.px - m.dir.x * back - nx * lateral, y: m.py - m.dir.y * back - ny * lateral }
+                ];
+                
+                // Expand the parent shape's bounding box if the marker protrudes past it
+                corners.forEach(c => {
+                    if (c.x < minX) minX = c.x;
+                    if (c.x > maxX) maxX = c.x;
+                    if (c.y < minY) minY = c.y;
+                    if (c.y > maxY) maxY = c.y;
+                });
             });
 
             // TIGHT INK BOUNDS: Ignore the structural container and hug the ink perfectly
@@ -9301,6 +9335,7 @@ container.style.minWidth = '0px';
             let minDimBase = 5;
             if (el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve')) {
                 const swVal = parseFloat(el.dataset.strokeWidth || '2');
+                minDimBase = swVal;
                 const mStart = el.dataset.markerStart || 'none';
                 const mEnd = el.dataset.markerEnd || 'none';
                 minDimBase = (mStart !== 'none' || mEnd !== 'none') ? swVal * 8 : swVal;
