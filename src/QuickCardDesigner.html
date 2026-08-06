@@ -629,6 +629,10 @@
                             <input type="checkbox" id="enable-resize-snapping" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
                             Resize Snapping
                         </label>
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="enable-cross-snap" class="rounded text-blue-600 focus:ring-blue-500" onchange="saveState(true)">
+                            Other-Side Snapping
+                        </label>
                         <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer hover:text-blue-600 transition-colors">
                             <input type="checkbox" id="show-snap-lines" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="saveState(true)">
                             Show Snap Lasers
@@ -4777,6 +4781,9 @@ function updateUILayer() {
                 if (data.resizeSnapping !== undefined && document.getElementById('enable-resize-snapping')) {
                     document.getElementById('enable-resize-snapping').checked = data.resizeSnapping;
                 }
+                if (data.crossSnapping !== undefined && document.getElementById('enable-cross-snap')) {
+                    document.getElementById('enable-cross-snap').checked = data.crossSnapping;
+                }
                 if (data.snapLines !== undefined && document.getElementById('show-snap-lines')) {
                     document.getElementById('show-snap-lines').checked = data.snapLines;
                 }
@@ -5273,6 +5280,127 @@ function updateUILayer() {
             .replace(/data-baseline-z="[^"]*"/g, '');
     }
 
+//     function saveState(debounce = false, skipHistory = false) {
+    
+//     // 2. Allow it to bypass the isRestoring block if skipHistory is true
+//     if (isRestoring && !skipHistory) return;
+//     clearTimeout(saveStateTimeout);
+
+//     const doSave = () => {
+//         saveCurrentSideState();
+//         if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
+
+//         const state = {
+//             side: editingSide,
+//             hasCustomBack: hasCustomBack,
+//             frontHTML: frontContentHTML,
+//             frontBg: frontBgClass,
+//             backHTML: backContentHTML,
+//             backBg: backBgClass,
+//             frontBgConfig: frontBgConfig,
+//             backBgConfig: backBgConfig,
+//         };
+
+//         const autoSaveData = {
+//             history: state,
+//             unit: currentUnit,
+//             dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
+//             sizeSelect: document.getElementById('size-select').value,
+//             customW: document.getElementById('custom-w').value,
+//             customH: document.getElementById('custom-h').value,
+//             isLandscape: isLandscape,
+//             projectName: document.getElementById('project-name').value,
+//             imageAssets: imageAssets,
+//             customFonts: customFonts,
+//             mergeSources: mergeSources,
+//             pluginsData: pluginsData,
+//             globalMergeIndex: globalMergeIndex,
+//             crossSnapping: document.getElementById('enable-cross-snap')?.checked ?? false,
+//             dataCluster: document.getElementById('enable-data-cluster')?.checked !== false,
+//             snapping: document.getElementById('enable-snapping')?.checked !== false,
+//             resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
+//             snapLines: document.getElementById('show-snap-lines')?.checked !== false,
+//             panX: panX,
+//             panY: panY,
+//             canvasScale: canvasScale,
+//             margin: {
+//                 t: document.getElementById('margin-top')?.value || 0,
+//                 r: document.getElementById('margin-right')?.value || 0,
+//                 b: document.getElementById('margin-bottom')?.value || 0,
+//                 l: document.getElementById('margin-left')?.value || 0
+//             },
+//             safeMargin: {
+//                 t: document.getElementById('safe-margin-top')?.value || 0,
+//                 r: document.getElementById('safe-margin-right')?.value || 0,
+//                 b: document.getElementById('safe-margin-bottom')?.value || 0,
+//                 l: document.getElementById('safe-margin-left')?.value || 0
+//             },
+//             guide: document.getElementById('show-margin-guide')?.checked ?? true,
+//             cutLineW: document.getElementById('cut-line-width')?.value || 1,
+//             cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
+//             cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
+//             printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
+//             bindingLineW: document.getElementById('binding-line-width')?.value || 1,
+//             bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
+//             bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
+//             printer: {
+//                 paper: document.getElementById('paper-size')?.value || 'letter',
+//                 orient: document.getElementById('paper-orientation')?.value || 'portrait',
+//                 alignX: document.getElementById('grid-align-x')?.value || 'center',
+//                 alignY: document.getElementById('grid-align-y')?.value || 'center',
+//                 duplex: document.getElementById('print-duplex')?.checked ?? false,
+//                 gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
+//                 gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
+//                 mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
+//                 mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
+//                 rotate180: document.getElementById('rotate-180')?.checked ?? false,
+//                 driftX: document.getElementById('print-offset-x')?.value || 0,
+//                 driftY: document.getElementById('print-offset-y')?.value || 0,
+//                 targetDpi: document.getElementById('target-dpi')?.value || 300,
+//                 bleed: document.getElementById('print-bleed')?.value || 0,
+//                 showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
+//                 cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
+//                 internalMarks: document.getElementById('print-internal-marks')?.checked ?? false,
+//                 markColor: document.getElementById('mark-color')?.value || '#000000',
+//                 vernier: document.getElementById('print-vernier')?.checked ?? false
+//             }
+//         };
+
+//         const serializedData = JSON.stringify(autoSaveData);
+//         StorageDB.save(SAVE_KEY, serializedData).catch(err => {
+//             console.warn("IndexedDB Autosave failed", err);
+//             try { localStorage.setItem(SAVE_KEY, serializedData); } catch (e) {
+//                 console.warn("LocalStorage Autosave failed, quota exceeded", e);
+//             }
+//         });
+
+//         if (skipHistory) return;
+
+//         if (historyIndex >= 0) {
+//             const top = historyStack[historyIndex];
+//             if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
+//                 getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
+//                 top.frontBg === state.frontBg && top.backBg === state.backBg &&
+//                 top.hasCustomBack === state.hasCustomBack && top.side === state.side) {
+//                 return;
+//             }
+//         }
+
+//         historyStack = historyStack.slice(0, historyIndex + 1);
+//         historyStack.push(state);
+//         if (historyStack.length > 50) historyStack.shift();
+//         else historyIndex++;
+
+//         updateUndoRedoUI();
+//     };
+
+//     if (debounce) {
+//         saveStateTimeout = setTimeout(doSave, 500);
+//     } else {
+//         doSave();
+//     }
+// }
+
     function saveState(debounce = false, skipHistory = false) {
     
     // 2. Allow it to bypass the isRestoring block if skipHistory is true
@@ -5283,6 +5411,7 @@ function updateUILayer() {
         saveCurrentSideState();
         if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
 
+        // --- UPGRADED: Deep copy configs, track layout, track data banks ---
         const state = {
             side: editingSide,
             hasCustomBack: hasCustomBack,
@@ -5290,9 +5419,22 @@ function updateUILayer() {
             frontBg: frontBgClass,
             backHTML: backContentHTML,
             backBg: backBgClass,
-            frontBgConfig: frontBgConfig,
-            backBgConfig: backBgConfig,
+            frontBgConfig: JSON.parse(JSON.stringify(frontBgConfig)), 
+            backBgConfig: JSON.parse(JSON.stringify(backBgConfig)),
+            isLandscape: isLandscape,
+            sizeSelect: document.getElementById('size-select').value,
+            customW: document.getElementById('custom-w').value,
+            customH: document.getElementById('custom-h').value,
+            currentWidth: currentWidth,
+            currentHeight: currentHeight,
+            currentUnit: currentUnit,
+            dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
+            globalMergeIndex: globalMergeIndex,
+            mergeSources: JSON.parse(JSON.stringify(mergeSources)),
+            pluginsData: JSON.parse(JSON.stringify(pluginsData)),
+            customFonts: JSON.parse(JSON.stringify(customFonts))
         };
+        // -------------------------------------------------------------------
 
         const autoSaveData = {
             history: state,
@@ -5311,6 +5453,7 @@ function updateUILayer() {
             dataCluster: document.getElementById('enable-data-cluster')?.checked !== false,
             snapping: document.getElementById('enable-snapping')?.checked !== false,
             resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
+            crossSnapping: document.getElementById('enable-cross-snap')?.checked ?? false,
             snapLines: document.getElementById('show-snap-lines')?.checked !== false,
             panX: panX,
             panY: panY,
@@ -5368,15 +5511,24 @@ function updateUILayer() {
 
         if (skipHistory) return;
 
+        // --- UPGRADED: Expanded deduplication checks ---
         if (historyIndex >= 0) {
             const top = historyStack[historyIndex];
             if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
                 getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
                 top.frontBg === state.frontBg && top.backBg === state.backBg &&
-                top.hasCustomBack === state.hasCustomBack && top.side === state.side) {
+                top.hasCustomBack === state.hasCustomBack && top.side === state.side &&
+                top.isLandscape === state.isLandscape && top.currentWidth === state.currentWidth &&
+                top.currentHeight === state.currentHeight && top.dpi === state.dpi &&
+                top.globalMergeIndex === state.globalMergeIndex &&
+                JSON.stringify(top.frontBgConfig) === JSON.stringify(state.frontBgConfig) &&
+                JSON.stringify(top.backBgConfig) === JSON.stringify(state.backBgConfig) &&
+                JSON.stringify(top.mergeSources) === JSON.stringify(state.mergeSources) &&
+                JSON.stringify(top.pluginsData) === JSON.stringify(state.pluginsData)) {
                 return;
             }
         }
+        // -----------------------------------------------
 
         historyStack = historyStack.slice(0, historyIndex + 1);
         historyStack.push(state);
@@ -5414,7 +5566,94 @@ function redo() {
     }
 }
 
-    function restoreState(state) {
+    // function restoreState(state) {
+    //     isRestoring = true;
+    //     setActiveElement(null);
+
+    //     editingSide = state.side;
+    //     hasCustomBack = state.hasCustomBack;
+
+    //     frontContentHTML = state.frontHTML;
+    //     frontBgClass = state.frontBg;
+    //     backContentHTML = state.backHTML;
+    //     backBgClass = state.backBg;
+
+    //     frontBgConfig = state.frontBgConfig || { ...defaultBgConfig };
+    //     backBgConfig = state.backBgConfig || { ...defaultBgConfig };
+        
+    //     syncBgUI(frontBgConfig, 'front');
+    //     syncBgUI(backBgConfig, 'back');
+        
+    //     document.getElementById('bg-select-front').value = frontBgClass;
+    //     document.getElementById('bg-select-back').value = backBgClass;
+        
+    //     onBgChange(frontBgClass, 'front', true);
+    //     onBgChange(backBgClass, 'back', true);
+        
+    //     const activeConfig = editingSide === 'front' ? frontBgConfig : backBgConfig;
+    //     applyBgConfig(activeConfig);
+
+    //     document.getElementById('enable-custom-back').checked = hasCustomBack;
+    //     const sideToggles = document.getElementById('side-toggles');
+    //     const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
+    //     const btnPngBack = document.getElementById('btn-png-back');
+    //     const backPatternWrapper = document.getElementById('back-pattern-wrapper');
+
+    //     if (hasCustomBack) {
+    //         sideToggles.classList.remove('opacity-50', 'pointer-events-none');
+    //         if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
+    //         if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
+    //         if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
+    //     } else {
+    //         sideToggles.classList.add('opacity-50', 'pointer-events-none');
+    //         if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
+    //         if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
+    //         if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
+    //     }
+
+    //     const btnFront = document.getElementById('btn-edit-front');
+    //     const btnBack = document.getElementById('btn-edit-back');
+    //     if (editingSide === 'front') {
+    //         btnFront.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors";
+    //         btnBack.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors";
+    //     } else {
+    //         btnFront.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 rounded-l text-xs font-medium hover:bg-gray-50 transition-colors";
+    //         btnBack.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 border-l-0 rounded-r text-xs font-medium transition-colors";
+    //     }
+
+    //     document.getElementById('card-content').innerHTML = (editingSide === 'front') ? frontContentHTML : backContentHTML;
+    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(e => {
+    //         e.classList.remove('active', 'rotation-active');
+    //         if (e.dataset.baselineZ !== undefined) {
+    //             e.style.zIndex = e.dataset.baselineZ;
+    //             delete e.dataset.baselineZ;
+    //         }
+    //     });
+        
+    //     const frontSelect = document.getElementById('bg-select-front');
+    //     const backSelect = document.getElementById('bg-select-back');
+    //     if (frontSelect) frontSelect.value = frontBgClass;
+    //     if (backSelect) backSelect.value = backBgClass;
+        
+    //     updateCanvasSettings(true);
+
+    //     document.querySelectorAll('.card-table').forEach(setupTableResizers);
+    //     migrateTableCells();
+    //     updateGhostLayer();
+    //     updateAllCanvasImages();
+
+    //     let maxZ = 100;
+    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
+    //         let z = parseInt(el.style.zIndex) || 100;
+    //         if (z > maxZ && z < 99999) maxZ = z;
+    //     });
+    //     zIndexCounter = maxZ + 1;
+
+    //     updateUndoRedoUI();
+    //     isRestoring = false;
+    // }
+
+function restoreState(state) {
         isRestoring = true;
         setActiveElement(null);
 
@@ -5426,12 +5665,87 @@ function redo() {
         backContentHTML = state.backHTML;
         backBgClass = state.backBg;
 
-        frontBgConfig = state.frontBgConfig || { ...defaultBgConfig };
-        backBgConfig = state.backBgConfig || { ...defaultBgConfig };
+        frontBgConfig = state.frontBgConfig ? JSON.parse(JSON.stringify(state.frontBgConfig)) : { ...defaultBgConfig };
+        backBgConfig = state.backBgConfig ? JSON.parse(JSON.stringify(state.backBgConfig)) : { ...defaultBgConfig };
         
         syncBgUI(frontBgConfig, 'front');
         syncBgUI(backBgConfig, 'back');
         
+        // --- UPGRADED: Restore Physical Size, Units, and Data Banks ---
+        if (state.isLandscape !== undefined) isLandscape = state.isLandscape;
+        if (state.currentWidth !== undefined) currentWidth = state.currentWidth;
+        if (state.currentHeight !== undefined) currentHeight = state.currentHeight;
+        if (state.globalMergeIndex !== undefined) globalMergeIndex = state.globalMergeIndex;
+
+        if (state.sizeSelect !== undefined) {
+            const ss = document.getElementById('size-select');
+            if (ss) ss.value = state.sizeSelect;
+        }
+        if (state.customW !== undefined) {
+            const cw = document.getElementById('custom-w');
+            if (cw) cw.value = state.customW;
+        }
+        if (state.customH !== undefined) {
+            const ch = document.getElementById('custom-h');
+            if (ch) ch.value = state.customH;
+        }
+        if (state.dpi !== undefined) {
+            PX_PER_IN = state.dpi;
+            PX_PER_MM = PX_PER_IN / 25.4;
+            const dpiSelect = document.getElementById('document-dpi');
+            if (dpiSelect) dpiSelect.value = state.dpi;
+        }
+        if (state.currentUnit !== undefined && state.currentUnit !== currentUnit) {
+            currentUnit = state.currentUnit;
+            const gu = document.getElementById('global-unit');
+            if(gu) gu.value = currentUnit;
+            document.querySelectorAll('.unit-lbl').forEach(el => el.innerText = currentUnit === 'mm' ? '(mm)' : '(in)');
+            document.querySelectorAll('.input-unit-lbl').forEach(el => el.innerText = currentUnit);
+        }
+
+        // Visually update the Orientation Toggle
+        const knob = document.getElementById('orientation-knob');
+        const lblPort = document.getElementById('lbl-port');
+        const lblLand = document.getElementById('lbl-land');
+        if (knob && lblPort && lblLand) {
+            if (isLandscape) {
+                knob.style.left = '24px';
+                knob.parentElement.classList.replace('bg-gray-400', 'bg-blue-600');
+                lblLand.classList.replace('text-gray-500', 'text-blue-600');
+                lblPort.classList.replace('text-blue-600', 'text-gray-500');
+            } else {
+                knob.style.left = '2px';
+                knob.parentElement.classList.replace('bg-blue-600', 'bg-gray-400');
+                lblPort.classList.replace('text-gray-500', 'text-blue-600');
+                lblLand.classList.replace('text-blue-600', 'text-gray-500');
+            }
+        }
+        
+        const sizeSelect = document.getElementById('size-select');
+        const customInputs = document.getElementById('custom-size-inputs');
+        if (sizeSelect && sizeSelect.value === 'custom') {
+            customInputs.classList.remove('hidden');
+            customInputs.classList.add('grid', 'grid-cols-1');
+        } else if (customInputs) {
+            customInputs.classList.add('hidden');
+            customInputs.classList.remove('grid', 'grid-cols-1');
+        }
+
+        if (state.mergeSources) mergeSources = JSON.parse(JSON.stringify(state.mergeSources));
+        if (state.pluginsData) {
+            pluginsData = JSON.parse(JSON.stringify(state.pluginsData));
+            pluginInstances = {};
+            for(let id in pluginsData) {
+                try { pluginInstances[id] = eval(pluginsData[id].code); } catch(e) {}
+            }
+        }
+        if (state.customFonts) {
+            customFonts = JSON.parse(JSON.stringify(state.customFonts));
+            injectCustomFonts();
+        }
+        renderDataSourcesList(); 
+        // --------------------------------------------------------------
+
         document.getElementById('bg-select-front').value = frontBgClass;
         document.getElementById('bg-select-back').value = backBgClass;
         
@@ -5471,7 +5785,8 @@ function redo() {
 
         document.getElementById('card-content').innerHTML = (editingSide === 'front') ? frontContentHTML : backContentHTML;
         document.getElementById('card-content').querySelectorAll('.element-container').forEach(e => {
-            e.classList.remove('active', 'rotation-active');
+            e.classList.remove('active', 'rotation-active', 'hide-controls', 'multi-select');
+            e.removeAttribute('data-lasers');
             if (e.dataset.baselineZ !== undefined) {
                 e.style.zIndex = e.dataset.baselineZ;
                 delete e.dataset.baselineZ;
@@ -9151,6 +9466,53 @@ function setActiveElement(el, multi = false) {
                 dragSnapTargets.y.push(b.y, b.y + b.h, b.y + b.h / 2);
             }
         });
+
+        // Parse the opposite side for cross-snapping targets ---
+        if (hasCustomBack && document.getElementById('enable-cross-snap')?.checked) {
+            const otherHTML = editingSide === 'front' ? backContentHTML : frontContentHTML;
+            if (otherHTML) {
+                const temp = document.createElement('div');
+                temp.innerHTML = otherHTML;
+                
+                const isDuplex = document.getElementById('print-duplex')?.checked;
+                const gridRevCol = document.getElementById('grid-reverse-col')?.checked;
+                const gridRevRow = document.getElementById('grid-reverse-row')?.checked;
+                const mirrorH = document.getElementById('mirror-horizontal')?.checked;
+                const mirrorV = document.getElementById('mirror-vertical')?.checked;
+                const rot180 = document.getElementById('rotate-180')?.checked;
+
+                temp.querySelectorAll(':scope > .element-container').forEach(el => {
+                    let sX = parseFloat(el.style.left) || 0;
+                    let sY = parseFloat(el.style.top) || 0;
+                    const res = el.querySelector('.resizable');
+                    let sW = res ? (parseFloat(res.style.width) || 0) : (parseFloat(el.style.width) || 0);
+                    let sH = res ? (parseFloat(res.style.height) || 0) : (parseFloat(el.style.height) || 0);
+                    
+                    // Adjust for exact visual ink boundaries if it is a shape
+                    if (el.dataset.type === 'shape' && el.dataset.visX !== undefined) {
+                        sX += parseFloat(el.dataset.visX);
+                        sY += parseFloat(el.dataset.visY);
+                        sW = parseFloat(el.dataset.visW);
+                        sH = parseFloat(el.dataset.visH);
+                    }
+
+                    // Apply the topological duplex transformations so the bounds map accurately to physical reality!
+                    if (isDuplex) {
+                        if (gridRevCol) { sX = currentWidth - (sX + sW); }
+                        if (gridRevRow) { sY = currentHeight - (sY + sH); }
+                        if (mirrorH) { sX = currentWidth - (sX + sW); }
+                        if (mirrorV) { sY = currentHeight - (sY + sH); }
+                        if (rot180) { 
+                            sX = currentWidth - (sX + sW); 
+                            sY = currentHeight - (sY + sH); 
+                        }
+                    }
+
+                    dragSnapTargets.x.push(sX, sX + sW, sX + sW / 2);
+                    dragSnapTargets.y.push(sY, sY + sH, sY + sH / 2);
+                });
+            }
+        }
     }
 
     document.addEventListener('pointerdown', (e) => {
@@ -10474,6 +10836,19 @@ container.style.minWidth = '0px';
                     clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
                     return clone;
                 });
+
+                const bundledAssets = {};
+                clipboardData.forEach(el => {
+                    if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
+                        bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
+                    }
+                });
+                const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+                StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
+                    try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
+                });
+
+
                 activeElements.forEach(el => el.remove());
                 setActiveElement(null);
                 saveState();
@@ -10489,77 +10864,182 @@ container.style.minWidth = '0px';
                     clone.querySelectorAll('.col-resizer, .row-resizer').forEach(c => c.remove());
                     return clone;
                 });
+
+                const bundledAssets = {};
+                clipboardData.forEach(el => {
+                    if (el.dataset.type === 'image' && el.dataset.imageBankKey && imageAssets[el.dataset.imageBankKey]) {
+                        bundledAssets[el.dataset.imageBankKey] = imageAssets[el.dataset.imageBankKey];
+                    }
+                });
+                const clipPayload = JSON.stringify({ elements: clipboardData.map(el => el.outerHTML), assets: bundledAssets });
+                StorageDB.save('qcd_clipboard', clipPayload).catch(() => {
+                    try { localStorage.setItem('qcd_clipboard', clipPayload); } catch(err){}
+                });
+
                 showToast(`Copied ${clipboardData.length} item(s)`);
                 e.preventDefault();
             }
         }
 
-        if (!isInput && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clipboardData && clipboardData.length > 0) {
-            setActiveElement(null);
-            let newGroup = [];
+        if (!isInput && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+            e.preventDefault(); // Stop native browser pasting immediately
             
-            // 1. Calculate cursor position in canvas coordinates
-            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-            const mouseX = lastMouseX - containerRect.left;
-            const mouseY = lastMouseY - containerRect.top;
-            const targetX = (mouseX - panX) / canvasScale;
-            const targetY = (mouseY - panY) / canvasScale;
-
-            // 2. Append elements to the DOM first (needed to measure them properly)
-            clipboardData.forEach((node, idx) => {
-                const newEl = node.cloneNode(true);
-                newEl.style.zIndex = zIndexCounter++;
-                
-                // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
-                const assignNewIds = (el, deepIdx) => {
-                    el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 10000) + '_' + deepIdx;
-                    if (el.dataset.type === 'group') {
-                        el.querySelectorAll(':scope > .element-container').forEach((child, cIdx) => assignNewIds(child, cIdx));
+            (async () => {
+                try {
+                    let storedClip = await StorageDB.load('qcd_clipboard');
+                    if (!storedClip) storedClip = localStorage.getItem('qcd_clipboard');
+                    
+                    if (storedClip) {
+                        const parsed = JSON.parse(storedClip);
+                        if (parsed.assets) {
+                            Object.assign(imageAssets, parsed.assets);
+                            // Refresh Image Bank if open so new assets appear
+                            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                                renderImageBankItems();
+                            }
+                        }
+                        clipboardData = parsed.elements.map(htmlStr => {
+                            const temp = document.createElement('div');
+                            temp.innerHTML = htmlStr;
+                            return temp.firstElementChild;
+                        });
                     }
-                };
-                assignNewIds(newEl, idx);
+                } catch(err) {}
 
-                document.getElementById('card-content').appendChild(newEl);
+                if (clipboardData && clipboardData.length > 0) {
+                    setActiveElement(null);
+                    let newGroup = [];
+                    
+                    // 1. Calculate cursor position in canvas coordinates
+                    const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+                    const mouseX = lastMouseX - containerRect.left;
+                    const mouseY = lastMouseY - containerRect.top;
+                    const targetX = (mouseX - panX) / canvasScale;
+                    const targetY = (mouseY - panY) / canvasScale;
 
-                newEl.querySelectorAll('.card-table').forEach(t => setupTableResizers(t));
-                if (newEl.dataset.type === 'table') setupTableResizers(newEl.querySelector('.card-table'));
-                if (newEl.dataset.type === 'shape') drawShape(newEl);
+                    // 2. Append elements to the DOM first (needed to measure them properly)
+                    clipboardData.forEach((node, idx) => {
+                        const newEl = node.cloneNode(true);
+                        newEl.style.zIndex = zIndexCounter++;
+                        
+                        // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
+                        const assignNewIds = (el, deepIdx) => {
+                            el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 10000) + '_' + deepIdx;
+                            if (el.dataset.type === 'group') {
+                                el.querySelectorAll(':scope > .element-container').forEach((child, cIdx) => assignNewIds(child, cIdx));
+                            }
+                        };
+                        assignNewIds(newEl, idx);
 
-                newGroup.push(newEl);
-            });
+                        document.getElementById('card-content').appendChild(newEl);
 
-            // 3. Find the visual bounding box of the newly pasted group
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            newGroup.forEach(el => {
-                const b = getAbsoluteBounds(el, 'bbox');
-                if (b.x < minX) minX = b.x;
-                if (b.y < minY) minY = b.y;
-                if (b.x + b.w > maxX) maxX = b.x + b.w;
-                if (b.y + b.h > maxY) maxY = b.y + b.h;
-            });
+                        newEl.querySelectorAll('.card-table').forEach(t => setupTableResizers(t));
+                        if (newEl.dataset.type === 'table') setupTableResizers(newEl.querySelector('.card-table'));
+                        if (newEl.dataset.type === 'shape') drawShape(newEl);
 
-            // 4. Calculate offset to center the group on the cursor and apply it
-            if (minX !== Infinity) {
-                const groupCenterX = minX + (maxX - minX) / 2;
-                const groupCenterY = minY + (maxY - minY) / 2;
-                const offsetX = targetX - groupCenterX;
-                const offsetY = targetY - groupCenterY;
+                        newGroup.push(newEl);
+                    });
 
-                newGroup.forEach(el => {
-                    let currentLeft = parseFloat(el.style.left) || 0;
-                    let currentTop = parseFloat(el.style.top) || 0;
-                    el.style.left = (currentLeft + offsetX) + 'px';
-                    el.style.top = (currentTop + offsetY) + 'px';
-                });
-            }
+                    // 3. Find the visual bounding box of the newly pasted group
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    newGroup.forEach(el => {
+                        const b = getAbsoluteBounds(el, 'bbox');
+                        if (b.x < minX) minX = b.x;
+                        if (b.y < minY) minY = b.y;
+                        if (b.x + b.w > maxX) maxX = b.x + b.w;
+                        if (b.y + b.h > maxY) maxY = b.y + b.h;
+                    });
 
-            newGroup.forEach((el, index) => setActiveElement(el, index !== 0));
-            applyMergePreview();
-            updateAllCanvasImages();
-            saveState();
-            showToast(`Pasted ${newGroup.length} item(s)`);
-            e.preventDefault();
+                    // 4. Calculate offset to center the group on the cursor and apply it
+                    if (minX !== Infinity) {
+                        const groupCenterX = minX + (maxX - minX) / 2;
+                        const groupCenterY = minY + (maxY - minY) / 2;
+                        const offsetX = targetX - groupCenterX;
+                        const offsetY = targetY - groupCenterY;
+
+                        newGroup.forEach(el => {
+                            let currentLeft = parseFloat(el.style.left) || 0;
+                            let currentTop = parseFloat(el.style.top) || 0;
+                            el.style.left = (currentLeft + offsetX) + 'px';
+                            el.style.top = (currentTop + offsetY) + 'px';
+                        });
+                    }
+
+                    newGroup.forEach((el, index) => setActiveElement(el, index !== 0));
+                    applyMergePreview();
+                    updateAllCanvasImages();
+                    saveState();
+                    showToast(`Pasted ${newGroup.length} item(s)`);
+                }
+            })();
         }
+
+        // if (!isInput && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clipboardData && clipboardData.length > 0) {
+        //     setActiveElement(null);
+        //     let newGroup = [];
+            
+        //     // 1. Calculate cursor position in canvas coordinates
+        //     const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        //     const mouseX = lastMouseX - containerRect.left;
+        //     const mouseY = lastMouseY - containerRect.top;
+        //     const targetX = (mouseX - panX) / canvasScale;
+        //     const targetY = (mouseY - panY) / canvasScale;
+
+        //     // 2. Append elements to the DOM first (needed to measure them properly)
+        //     clipboardData.forEach((node, idx) => {
+        //         const newEl = node.cloneNode(true);
+        //         newEl.style.zIndex = zIndexCounter++;
+                
+        //         // Recursively assign new unique IDs so ghost syncing and data mapping don't cross wires
+        //         const assignNewIds = (el, deepIdx) => {
+        //             el.id = 'el_' + Date.now() + '_' + Math.floor(Math.random() * 10000) + '_' + deepIdx;
+        //             if (el.dataset.type === 'group') {
+        //                 el.querySelectorAll(':scope > .element-container').forEach((child, cIdx) => assignNewIds(child, cIdx));
+        //             }
+        //         };
+        //         assignNewIds(newEl, idx);
+
+        //         document.getElementById('card-content').appendChild(newEl);
+
+        //         newEl.querySelectorAll('.card-table').forEach(t => setupTableResizers(t));
+        //         if (newEl.dataset.type === 'table') setupTableResizers(newEl.querySelector('.card-table'));
+        //         if (newEl.dataset.type === 'shape') drawShape(newEl);
+
+        //         newGroup.push(newEl);
+        //     });
+
+        //     // 3. Find the visual bounding box of the newly pasted group
+        //     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        //     newGroup.forEach(el => {
+        //         const b = getAbsoluteBounds(el, 'bbox');
+        //         if (b.x < minX) minX = b.x;
+        //         if (b.y < minY) minY = b.y;
+        //         if (b.x + b.w > maxX) maxX = b.x + b.w;
+        //         if (b.y + b.h > maxY) maxY = b.y + b.h;
+        //     });
+
+        //     // 4. Calculate offset to center the group on the cursor and apply it
+        //     if (minX !== Infinity) {
+        //         const groupCenterX = minX + (maxX - minX) / 2;
+        //         const groupCenterY = minY + (maxY - minY) / 2;
+        //         const offsetX = targetX - groupCenterX;
+        //         const offsetY = targetY - groupCenterY;
+
+        //         newGroup.forEach(el => {
+        //             let currentLeft = parseFloat(el.style.left) || 0;
+        //             let currentTop = parseFloat(el.style.top) || 0;
+        //             el.style.left = (currentLeft + offsetX) + 'px';
+        //             el.style.top = (currentTop + offsetY) + 'px';
+        //         });
+        //     }
+
+        //     newGroup.forEach((el, index) => setActiveElement(el, index !== 0));
+        //     applyMergePreview();
+        //     updateAllCanvasImages();
+        //     saveState();
+        //     showToast(`Pasted ${newGroup.length} item(s)`);
+        //     e.preventDefault();
+        // }
     });
 
 
