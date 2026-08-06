@@ -2699,6 +2699,15 @@ function updateBgSettings(side) {
                     type: finalNarrow.startsWith('data:image/jpeg') ? "image/jpeg" : "image/png",
                     form_factor: "narrow"
                 }
+            ],
+            file_handlers: [
+                {
+                    action: location.pathname,
+                    accept: {
+                        "application/xml": [".qcd"],
+                        "text/plain": [".qcd"]
+                    }
+                }
             ]
         };
 
@@ -4147,6 +4156,24 @@ function updateUILayer() {
     window.onload = async () => {
         await loadPWAAssets();
         setupPWA();
+
+        if ('launchQueue' in window) {
+            window.launchQueue.setConsumer(async (launchParams) => {
+                if (launchParams.files && launchParams.files.length > 0) {
+                    // Grab the file handed to us by the Operating System
+                    const fileHandle = launchParams.files[0];
+                    const file = await fileHandle.getFile();
+                    const text = await file.text();
+                    const baseName = file.name.replace(/\.[^/.]+$/, "");
+                    
+                    // Wait for the app to finish its initial boot sequences, then load the file!
+                    setTimeout(() => {
+                        processCardXML(text, baseName);
+                        showToast(`Loaded ${file.name}!`);
+                    }, 200);
+                }
+            });
+        }
         
         // Dynamically auto-home the view if the browser pushes the app into a standalone PWA window
         window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
