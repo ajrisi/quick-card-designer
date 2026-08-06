@@ -6903,7 +6903,7 @@ function applyShapeStyle(prop, value) {
                 el.dataset[prop] = parseFloat(value) * (PX_PER_IN / 100);
             } else if (prop === 'shape' && (value === 'line' || value === 'curve')) {
                 const res = el.querySelector('.resizable');
-                if (res) {
+                if (res && el.dataset.shape !== 'line' && el.dataset.shape !== 'curve') {
                     res.style.height = '20px';
                     el.dataset.flip = 'false';
                     el.dataset.invert = 'false';
@@ -7004,9 +7004,8 @@ function drawShape(el) {
     const hw = sw / 2;
     const iw = Math.max(0.1, w - sw);
     const ih = Math.max(0.1, h - sw);
-    const lineCap = (markerStart !== 'none' || markerEnd !== 'none') ? 'butt' : 'round';
-    let pad = (markerStart !== 'none' || markerEnd !== 'none') ? sw * 4 : sw / 2;
-
+    const lineCap = (markerStart !== 'none' || markerEnd !== 'none') ? 'butt' : 'round';    
+    let pad = sw / 2;
     const cacheKey = `${type}-${markerStart}-${markerEnd}-${stroke}`;
 
     // True structural endpoints
@@ -7282,6 +7281,21 @@ function drawShape(el) {
             el.dataset.visW = maxX - minX;
             el.dataset.visH = maxY - minY;
 
+            let hitbox = el.querySelector('.shape-hitbox');
+            if (!hitbox) {
+                hitbox = document.createElement('div');
+                // The 'ui-control' class ensures it is safely ignored during print/export
+                hitbox.className = 'shape-hitbox ui-control absolute z-[-1] pointer-events-auto';
+                el.insertBefore(hitbox, el.firstChild);
+            }
+
+            // Expand the hitbox by an extra 10px in all directions so thin lines are easy to hover!
+            const hitPad = 10;
+            hitbox.style.left = (offsetL - hitPad) + 'px';
+            hitbox.style.top = (offsetT - hitPad) + 'px';
+            hitbox.style.right = (offsetR - hitPad) + 'px';
+            hitbox.style.bottom = (offsetB - hitPad) + 'px';
+
             const setPos = (selector, props) => {
                 const r = el.querySelector(selector);
                 if (r) {
@@ -7320,6 +7334,18 @@ function drawShape(el) {
         delete el.dataset.visY;
         delete el.dataset.visW;
         delete el.dataset.visH;
+
+        let hitbox = el.querySelector('.shape-hitbox');
+            if (!hitbox) {
+                hitbox = document.createElement('div');
+                hitbox.className = 'shape-hitbox ui-control absolute z-[-1] pointer-events-auto';
+                el.insertBefore(hitbox, el.firstChild);
+            }
+            const hitPad = 10;
+            hitbox.style.left = -hitPad + 'px';
+            hitbox.style.top = -hitPad + 'px';
+            hitbox.style.right = -hitPad + 'px';
+            hitbox.style.bottom = -hitPad + 'px';
     }
 }
         
@@ -8805,7 +8831,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
                 const swVal = parseFloat(el.dataset.strokeWidth || '2');
                 const mStart = el.dataset.markerStart || 'none';
                 const mEnd = el.dataset.markerEnd || 'none';
-                const pad = (mStart !== 'none' || mEnd !== 'none') ? swVal * 4 : swVal / 2;
+                const pad = swVal / 2;
                 const flip = el.dataset.flip === 'true';
                 const invert = el.dataset.invert === 'true';
                 
@@ -8889,7 +8915,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             const swVal = parseFloat(el.dataset.strokeWidth || '2');
             const mStart = el.dataset.markerStart || 'none';
             const mEnd = el.dataset.markerEnd || 'none';
-            const pad = (mStart !== 'none' || mEnd !== 'none') ? swVal * 4 : swVal / 2;
+            const pad = swVal / 2;
 
             let minX = Math.min(curStart.x, curEnd.x);
             let minY = Math.min(curStart.y, curEnd.y);
@@ -9118,7 +9144,7 @@ document.getElementById('line-height').value = isNaN(leading) ? 1.5 : leading;
             el.dataset.flipY = (startFlipY === -1) !== isFlippedY ? 'true' : 'false';
 
             // 3. Enforce minimum size boundaries cleanly
-            let minDimBase = 10;
+            let minDimBase = 5;
             if (el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve')) {
                 const swVal = parseFloat(el.dataset.strokeWidth || '2');
                 const mStart = el.dataset.markerStart || 'none';
