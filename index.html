@@ -7200,12 +7200,53 @@ function drawShape(el) {
                         const vw = vb[2], vh = vb[3];
                         const scaleX = (mw / vw) * sw;
                         const scaleY = (mh / vh) * sw;
+                        let corners = [];
+                        const graphic = markerEl.firstElementChild;
                         
-                        // Map the 4 extreme corners of the viewBox
-                        const corners = [
-                            {x: 0, y: 0}, {x: vw, y: 0},
-                            {x: vw, y: vh}, {x: 0, y: vh}
-                        ];
+                        if (graphic) {
+                            const tagName = graphic.tagName.toLowerCase();
+                            
+                            if (tagName === 'path') {
+                                // Extract every X,Y number pair directly from the 'd' attribute string!
+                                const d = graphic.getAttribute('d') || '';
+                                const coords = d.match(/-?[\d.]+/g);
+                                if (coords) {
+                                    for (let i = 0; i < coords.length; i += 2) {
+                                        corners.push({
+                                            x: parseFloat(coords[i]), 
+                                            y: parseFloat(coords[i+1] || 0)
+                                        });
+                                    }
+                                }
+                            } else if (tagName === 'circle') {
+                                // Map the 4 absolute edge points of a circle
+                                const cx = parseFloat(graphic.getAttribute('cx') || 0);
+                                const cy = parseFloat(graphic.getAttribute('cy') || 0);
+                                const r = parseFloat(graphic.getAttribute('r') || 0);
+                                corners = [
+                                    {x: cx - r, y: cy}, {x: cx + r, y: cy},
+                                    {x: cx, y: cy - r}, {x: cx, y: cy + r}
+                                ];
+                            } else if (tagName === 'rect') {
+                                // Map the 4 corners of a rectangle
+                                const x = parseFloat(graphic.getAttribute('x') || 0);
+                                const y = parseFloat(graphic.getAttribute('y') || 0);
+                                const w = parseFloat(graphic.getAttribute('width') || 0);
+                                const h = parseFloat(graphic.getAttribute('height') || 0);
+                                corners = [
+                                    {x: x, y: y}, {x: x + w, y: y},
+                                    {x: x + w, y: y + h}, {x: x, y: y + h}
+                                ];
+                            }
+                        }
+                        
+                        // Fallback to the viewBox if parsing fails
+                        if (corners.length === 0) {
+                            corners = [
+                                {x: 0, y: 0}, {x: vw, y: 0},
+                                {x: vw, y: vh}, {x: 0, y: vh}
+                            ];
+                        }
                         
                         corners.forEach(c => {
                             // Translate relative to ref point, apply marker scale
@@ -7220,12 +7261,11 @@ function drawShape(el) {
                             const absX = m.px + rotX;
                             const absY = m.py + rotY;
                             
-                            // Include minor stroke bleed from the marker graphic itself
-                            const pad = sw / 2;
-                            if (absX - pad < minX) minX = absX - pad;
-                            if (absX + pad > maxX) maxX = absX + pad;
-                            if (absY - pad < minY) minY = absY - pad;
-                            if (absY + pad > maxY) maxY = absY + pad;
+                            // No stroke pad needed here because markers use SVG 'fill' only
+                            if (absX < minX) minX = absX;
+                            if (absX > maxX) maxX = absX;
+                            if (absY < minY) minY = absY;
+                            if (absY > maxY) maxY = absY;
                         });
                     }
                 }
