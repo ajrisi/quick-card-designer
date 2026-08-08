@@ -9,9 +9,14 @@
 
     <!-- START TAILWIND INECTION -->
     <script id="tailwind" src="libs/js/tailwind.js" inject>
-        
     </script>
     <!-- END TAILWIND INJECTION -->
+
+    <!-- START MARKDOWN INJECTION -->
+    <script id="markdown" src="libs/js/marked.js" inject>
+    </script>
+    <!-- END MARKDOWN INJECTION -->
+
 
     <style>
         /* Base Application Layout */
@@ -275,6 +280,18 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: none; }
         #canvas-container { touch-action: none; overscroll-behavior: none; } /* Prevents page-pull-to-refresh while dragging */
+
+        /* Markdown Styles */
+        .element-container[data-markdown="true"] h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
+        .element-container[data-markdown="true"] h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
+        .element-container[data-markdown="true"] h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
+        .element-container[data-markdown="true"] ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .element-container[data-markdown="true"] ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .element-container[data-markdown="true"] blockquote { border-left: 4px solid #cbd5e1; padding-left: 1em; color: #6b7280; margin-bottom: 1em; }
+        .element-container[data-markdown="true"] code { background-color: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+        .element-container[data-markdown="true"] pre code { display: block; padding: 1em; overflow-x: auto; background-color: #1f2937; color: #f9fafb; }
+        .element-container[data-markdown="true"] p { margin-bottom: 0.5em; }
+        .element-container[data-markdown="true"] p:last-child { margin-bottom: 0; }
     </style>
 </head>
 
@@ -1202,7 +1219,23 @@
 
             <!-- add text style clear -->
             
+            <div class="flex items-center gap-1.5 ml-1 border-l border-gray-200 pl-3">
+                <details class="relative group">
+                    <summary class="w-6 h-6 border border-gray-300 rounded bg-white flex items-center justify-center text-gray-700 hover:bg-gray-50 shadow-sm transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono font-bold text-[10px]" title="Text Format Options">
+                        &lt;/&gt;
+                    </summary>
+                    <div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl p-3 rounded-lg z-50 w-48 cursor-default">
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer mb-3 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="markdown-toggle" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleTextFormat()"> Enable Markdown
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="raw-html-toggle" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleTextFormat()"> Enable Raw HTML
+                        </label>
+                    </div>
+                </details>
+            </div>
             
+
             
         </div>
 
@@ -2181,6 +2214,35 @@
         styleTag.innerHTML = css;
     }
 
+    function toggleTextFormat() {
+        if (activeElements.length === 0) return;
+        const mdChecked = document.getElementById('markdown-toggle').checked;
+        const htmlChecked = document.getElementById('raw-html-toggle').checked;
+        
+        activeElements.forEach(el => {
+            if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+                el.dataset.markdown = mdChecked;
+                el.dataset.rawHtml = htmlChecked;
+                const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
+                if (target) {
+                    if (mdChecked || htmlChecked) {
+                        if (!target.hasAttribute('data-template-raw') && !target.hasAttribute('data-format-raw')) {
+                            target.setAttribute('data-format-raw', target.innerText);
+                        }
+                    } else {
+                        if (target.hasAttribute('data-format-raw')) {
+                            target.innerHTML = target.getAttribute('data-format-raw');
+                            target.removeAttribute('data-format-raw');
+                            target.removeAttribute('data-markdown-raw');
+                        }
+                    }
+                    parseMarkdownInElement(target);
+                }
+            }
+        });
+        saveState(true);
+    }
+
     const StorageDB = {
         async db() {
             return new Promise((resolve, reject) => {
@@ -2436,13 +2498,27 @@
         if (isInput) {
             e.target.dataset.originalValue = e.target.isContentEditable ? e.target.innerHTML : e.target.value;
             
-            // Swap rendered template back to raw for editing
-            if (e.target.isContentEditable && e.target.hasAttribute('data-template-raw')) {
-                e.target.innerHTML = e.target.getAttribute('data-template-raw');
+            if (e.target.isContentEditable) {
+                const container = e.target.closest('.element-container');
+                const isMd = container && container.dataset.markdown === 'true';
+                const isHtml = container && container.dataset.rawHtml === 'true';
+                
+                if (isMd || isHtml) {
+                    if (e.target.hasAttribute('data-template-raw')) {
+                        e.target.innerText = e.target.getAttribute('data-template-raw');
+                    } else if (e.target.hasAttribute('data-format-raw')) {
+                        e.target.innerText = e.target.getAttribute('data-format-raw');
+                    } else if (e.target.hasAttribute('data-markdown-raw')) {
+                        e.target.innerText = e.target.getAttribute('data-markdown-raw');
+                    }
+                } else {
+                    if (e.target.hasAttribute('data-template-raw')) {
+                        e.target.innerHTML = e.target.getAttribute('data-template-raw');
+                    }
+                }
             }
         }
     });
-
     document.addEventListener('change', (e) => {
         if (e.target.dataset.isMath === "true") {
             const val = e.target.value.trim();
@@ -2860,7 +2936,6 @@ function updateBgSettings(side) {
                         if (target && !target.hasAttribute('data-template-raw')) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
-                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                         }
                     }
                 } catch (e) {}
@@ -3747,8 +3822,19 @@ function updateUILayer() {
     }
 
     window.onload = async () => {
+        // Force the canvas and window to NEVER natively scroll, to prevent coordinate desync
+        document.getElementById('canvas-container').addEventListener('scroll', function() {
+            this.scrollTop = 0;
+            this.scrollLeft = 0;
+        });
+        window.addEventListener('scroll', function() {
+            window.scrollTo(0, 0);
+        });
+
         await loadPWAAssets();
         setupPWA();
+
+
 
         if ('launchQueue' in window) {
             window.launchQueue.setConsumer(async (launchParams) => {
@@ -4543,16 +4629,25 @@ function updateUILayer() {
 
         document.getElementById('card-content').addEventListener('focusout', (e) => {
             if (e.target.isContentEditable) {
-                let html = e.target.innerHTML;
+                const container = e.target.closest('.element-container');
+                const isMd = container && container.dataset.markdown === 'true';
+                const isHtml = container && container.dataset.rawHtml === 'true';
+                
+                let rawData = (isMd || isHtml) ? e.target.innerText : e.target.innerHTML;
                 
                 // If it contains template bindings, parse them before generating markdown
-                if (html.includes('{{') && html.includes('}}')) {
-                    e.target.setAttribute('data-template-raw', html);
-                    e.target.innerHTML = renderTemplateString(html, globalMergeIndex);
+                if (rawData.includes('{{') && rawData.includes('}}')) {
+                    e.target.setAttribute('data-template-raw', rawData);
+                    e.target.innerHTML = renderTemplateString(rawData, globalMergeIndex);
                 } else {
                     e.target.removeAttribute('data-template-raw');
+                    if (isMd || isHtml) {
+                        e.target.setAttribute('data-format-raw', rawData);
+                    } else {
+                        e.target.removeAttribute('data-format-raw');
+                        e.target.removeAttribute('data-markdown-raw');
+                    }
                     // Also clear dropdown binding if they wiped the template manually
-                    const container = e.target.closest('.element-container');
                     if (container && container.dataset.mergeSourceId && container.dataset.mergeSourceId.startsWith('plugin:')) {
                         container.removeAttribute('data-merge-source-id');
                         container.removeAttribute('data-merge-col');
@@ -5813,7 +5908,6 @@ function restoreState(state) {
                                     ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${dataOpacity}; pointer-events: none; word-break: break-word;`;
                                     ghostDiv.textContent = val;
                                     parseMarkdownInElement(ghostDiv);
-                                    ghostDiv.innerHTML = ghostDiv.innerHTML.replace(/\n/g, '<br>');
                                     target.appendChild(ghostDiv);
                                 }
                             }
@@ -6050,31 +6144,76 @@ function restoreState(state) {
     }
 
     function parseMarkdownInElement(el) {
-        const walk = (node) => {
-            if (node.nodeType === 3) {
-                let text = node.nodeValue;
-                if (/\*\*|__|[\*_]/.test(text)) {
-                    let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                        .replace(/\*\*([^\*]+)\*\*/g, '<b>$1</b>')
-                        .replace(/__([^_]+)__/g, '<b>$1</b>')
-                        .replace(/\*([^\*]+)\*/g, '<i>$1</i>')
-                        .replace(/\b_([^_]+)_\b/g, '<i>$1</i>');
+        const container = el.closest('.element-container');
+        const isMarkdownEnabled = container && container.dataset.markdown === 'true';
+        const isHtmlEnabled = container && container.dataset.rawHtml === 'true';
 
-                    if (html !== text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
-                        let temp = document.createElement('span');
-                        temp.innerHTML = html;
-                        while (temp.firstChild) {
-                            node.parentNode.insertBefore(temp.firstChild, node);
+        let rawText = el.hasAttribute('data-template-raw') ? 
+            el.getAttribute('data-template-raw') : 
+            (el.hasAttribute('data-format-raw') ? el.getAttribute('data-format-raw') : (el.hasAttribute('data-markdown-raw') ? el.getAttribute('data-markdown-raw') : (el.innerText || el.textContent)));
+
+        if (isMarkdownEnabled && typeof marked !== 'undefined') {
+            el.innerHTML = marked.parse(rawText, { breaks: true });
+        } else if (isHtmlEnabled) {
+            el.innerHTML = rawText;
+        } else {
+            // Legacy Regex Fallback & Standard Text Formatting
+            const walk = (node) => {
+                if (node.nodeType === 3) {
+                    let text = node.nodeValue;
+                    if (/\*\*|__|[\*_]/.test(text)) {
+                        let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            //.replace(/\*\*([^\*]+)\*\*/g, '<b>$1</b>')
+                            //.replace(/__([^_]+)__/g, '<b>$1</b>')
+                            //.replace(/\*([^\*]+)\*/g, '<i>$1</i>')
+                            //.replace(/\b_([^_]+)_\b/g, '<i>$1</i>');
+
+                        if (html !== text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
+                            let temp = document.createElement('span');
+                            temp.innerHTML = html;
+                            while (temp.firstChild) {
+                                node.parentNode.insertBefore(temp.firstChild, node);
+                            }
+                            node.parentNode.removeChild(node);
                         }
-                        node.parentNode.removeChild(node);
                     }
+                } else if (node.nodeType === 1) {
+                    Array.from(node.childNodes).forEach(walk);
                 }
-            } else if (node.nodeType === 1) {
-                Array.from(node.childNodes).forEach(walk);
-            }
-        };
-        Array.from(el.childNodes).forEach(walk);
+            };
+            Array.from(el.childNodes).forEach(walk);
+            
+            // Apply standard linebreaks for legacy mode
+            el.innerHTML = el.innerHTML.replace(/\n/g, '<br>');
+        }
     }
+
+    // function parseMarkdownInElement(el) {
+    //     const walk = (node) => {
+    //         if (node.nodeType === 3) {
+    //             let text = node.nodeValue;
+    //             if (/\*\*|__|[\*_]/.test(text)) {
+    //                 let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    //                     .replace(/\*\*([^\*]+)\*\*/g, '<b>$1</b>')
+    //                     .replace(/__([^_]+)__/g, '<b>$1</b>')
+    //                     .replace(/\*([^\*]+)\*/g, '<i>$1</i>')
+    //                     .replace(/\b_([^_]+)_\b/g, '<i>$1</i>');
+
+    //                 if (html !== text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
+    //                     let temp = document.createElement('span');
+    //                     temp.innerHTML = html;
+    //                     while (temp.firstChild) {
+    //                         node.parentNode.insertBefore(temp.firstChild, node);
+    //                     }
+    //                     node.parentNode.removeChild(node);
+    //                 }
+    //             }
+    //         } else if (node.nodeType === 1) {
+    //             Array.from(node.childNodes).forEach(walk);
+    //         }
+    //     };
+    //     Array.from(el.childNodes).forEach(walk);
+    // }
 
 
 function getAbsoluteBounds(el, mode = 'bbox') {
@@ -6970,33 +7109,39 @@ function getControlsHTML(isGroup) {
     function applyStyle(property, value) {
         if (activeElements.length === 0) return;
 
+        // Helper to apply style to a container and scrub conflicting inline styles from children
+        const enforceStyle = (container) => {
+            if (!container) return;
+            container.style[property] = value;
+            container.querySelectorAll('*').forEach(child => {
+                child.style[property] = '';
+            });
+        };
+
         activeElements.forEach(el => {
             if (el.dataset.type === 'table') {
                 const scope = document.getElementById('align-scope').value;
                 if (!activeTableCell || !el.contains(activeTableCell) || scope === 'table') {
-                    el.querySelectorAll('.cell-text').forEach(c => c.style[property] = value);
+                    el.querySelectorAll('.cell-text').forEach(enforceStyle);
                     return;
                 }
                 if (scope === 'cell') {
-                    const inner = activeTableCell.querySelector('.cell-text');
-                    if (inner) inner.style[property] = value;
+                    enforceStyle(activeTableCell.querySelector('.cell-text'));
                 } else if (scope === 'row') {
                     const row = activeTableCell.parentElement;
-                    row.querySelectorAll('.cell-text').forEach(c => c.style[property] = value);
+                    row.querySelectorAll('.cell-text').forEach(enforceStyle);
                 } else if (scope === 'col') {
                     const table = activeTableCell.closest('table');
                     const row = activeTableCell.parentElement;
                     const colIndex = Array.from(row.children).indexOf(activeTableCell);
                     table.querySelectorAll('tr').forEach(r => {
                         if (r.children[colIndex]) {
-                            const inner = r.children[colIndex].querySelector('.cell-text');
-                            if (inner) inner.style[property] = value;
+                            enforceStyle(r.children[colIndex].querySelector('.cell-text'));
                         }
                     });
                 }
             } else {
-                const target = el.querySelector('div[contenteditable="true"]') || el;
-                if (target) target.style[property] = value;
+                enforceStyle(el.querySelector('div[contenteditable="true"]') || el);
             }
         });
         saveState();
@@ -8196,6 +8341,9 @@ function setActiveElement(el, multi = false) {
                 const target = activeElement.querySelector('div[contenteditable="true"]') || activeElement;
                 const override = target.style.backgroundColor;
                 syncTextBgSwatch(override);
+
+                document.getElementById('markdown-toggle').checked = activeElement.dataset.markdown === 'true';
+                document.getElementById('raw-html-toggle').checked = activeElement.dataset.rawHtml === 'true';
 
                 updateMergeUI();
             } else if (activeElements.length > 1 || (activeElements.length === 1 && activeElement.dataset.type === 'group')) {
@@ -11989,7 +12137,6 @@ function getPluginContext(activeRow, cardElement = null) {
                         if (target) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
-                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                         }
                     }
                 } catch (e) {}
@@ -13957,7 +14104,6 @@ document.querySelectorAll('style').forEach(s => {
                         if (target && !target.hasAttribute('data-template-raw')) {
                             target.textContent = val;
                             parseMarkdownInElement(target);
-                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                         }
                     }
                 } catch (e) {}
@@ -14418,7 +14564,6 @@ document.querySelectorAll('style').forEach(s => {
                                         if (target && !target.hasAttribute('data-template-raw')) {
                                             target.textContent = val;
                                             parseMarkdownInElement(target);
-                                            target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                                         }
                                     }
                                 } catch (e) {}
@@ -15269,7 +15414,6 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                                             if (target && !target.hasAttribute('data-template-raw')) {
                                                 target.textContent = val;
                                                 parseMarkdownInElement(target);
-                                                target.innerHTML = target.innerHTML.replace(/\n/g, '<br>');
                                             }
                                         }
                                     } catch (e) {}
