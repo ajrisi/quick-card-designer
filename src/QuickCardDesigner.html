@@ -2322,7 +2322,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-2 mt-6">
-                    <button onclick="window.close(); this.innerText = 'Please select your other tab manually.'; this.disabled = true; this.className = 'w-full py-2.5 bg-gray-50 text-gray-400 rounded-lg text-sm font-bold transition-colors cursor-not-allowed';" class="w-full py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-bold transition-colors">Switch to Other Tab</button>
+                    <button onclick="takeOverWorkspace()" class="w-full py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-bold transition-colors">Take Over Here</button>
                     <button onclick="forkWorkspace()" class="w-full py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors shadow-sm">Make a Copy</button>
                     <button onclick="forkWorkspace(true)" class="w-full py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-bold transition-colors border border-red-200">New Card</button>
                 </div>
@@ -2333,6 +2333,14 @@
         } else {
             document.documentElement.appendChild(modal);
         }
+    }
+
+    function takeOverWorkspace() {
+        isLockedOut = false; // Re-arm this tab as the active leader
+        wsChannel.postMessage({ type: 'TAKE_OVER' });
+        const modal = document.getElementById('tab-conflict-modal');
+        if (modal) modal.remove();
+        showToast("Workspace control assumed.");
     }
 
     async function forkWorkspace(startEmpty = false) {
