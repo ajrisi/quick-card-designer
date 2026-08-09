@@ -14975,6 +14975,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
         if (nameInput && baseName) {
             nameInput.value = baseName;
             if (document.getElementById('project-name-sizer')) document.getElementById('project-name-sizer').textContent = baseName;
+            updateWindowTitle();
         }
 
         // Repair old save files that had unescaped single quotes inside the JSON attribute
@@ -15578,6 +15579,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                                         try {
                                             const ctx = getPluginContext(cardIndex);
                                             const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                                            const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                                             let val = pImg || '';
                                             if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
                                             imagePromises.push(updateImageElementDisplay(el, val, true));
