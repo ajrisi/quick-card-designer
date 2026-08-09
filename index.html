@@ -14954,7 +14954,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                     await StorageDB.save(transferId + '_name', file.name);
                     
                     // Explicitly pass the brand new workspace ID in the URL!
-                    window.open(window.location.pathname + '?load_transfer=' + transferId + '&workspace=' + newWsId, '_blank');
+                    window.location.href = window.location.pathname + '?load_transfer=' + transferId + '&workspace=' + newWsId;
                 } catch (err) {
                     console.error(err);
                     showToast("Unexpected error transferring file to new workspace.", true);
@@ -15046,16 +15046,31 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                         document.getElementById('custom-w').value = +(baseW * mult).toFixed(3);
                         document.getElementById('custom-h').value = +(baseH * mult).toFixed(3);
                     }
+                } else if (settings.sizeSelect) {
+                    document.getElementById('size-select').value = settings.sizeSelect;
+                    if (settings.sizeSelect === 'custom') {
+                        document.getElementById('custom-size-inputs').classList.remove('hidden');
+                        document.getElementById('custom-size-inputs').classList.add('grid', 'grid-cols-1');
+                        if (settings.customW) document.getElementById('custom-w').value = settings.customW;
+                        if (settings.customH) document.getElementById('custom-h').value = settings.customH;
+                    } else {
+                        document.getElementById('custom-size-inputs').classList.add('hidden');
+                        document.getElementById('custom-size-inputs').classList.remove('grid', 'grid-cols-1');
+                    }
                 }
 
-                isLandscape = settings.land !== undefined ? !settings.land : false;
+                let targetLandscape = false;
+                if (settings.land !== undefined) targetLandscape = settings.land;
+                else if (settings.isLandscape !== undefined) targetLandscape = settings.isLandscape;
+
+                isLandscape = !targetLandscape;
                 toggleOrientation();
 
-                frontBgClass = settings.frontBg || settings.bg || 'bg-blank';
-                backBgClass = settings.backBg || 'bg-blank';
+                frontBgClass = settings.frontBg || settings.history?.frontBg || settings.bg || 'bg-blank';
+                backBgClass = settings.backBg || settings.history?.backBg || 'bg-blank';
 
-                frontBgConfig = settings.bgConfigFront || { ...defaultBgConfig };
-                backBgConfig = settings.bgConfigBack || { ...defaultBgConfig };
+                frontBgConfig = settings.bgConfigFront || settings.history?.frontBgConfig || { ...defaultBgConfig };
+                backBgConfig = settings.bgConfigBack || settings.history?.backBgConfig || { ...defaultBgConfig };
                 
                 syncBgUI(frontBgConfig, 'front');
                 syncBgUI(backBgConfig, 'back');
@@ -15066,7 +15081,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                 onBgChange(frontBgClass, 'front', true);
                 onBgChange(backBgClass, 'back', true);
 
-                hasCustomBack = settings.hasCustomBack || false;
+                hasCustomBack = settings.hasCustomBack !== undefined ? settings.hasCustomBack : (settings.history?.hasCustomBack || false);
                 mergeSources = settings.mergeSources || {};
                 imageAssets = settings.imageAssets || {};
                 customFonts = settings.customFonts || {};
