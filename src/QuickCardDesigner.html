@@ -215,6 +215,43 @@
             word-break: break-word; outline: none; display: flex; flex-direction: column; 
             box-sizing: border-box; min-height: 0 !important; min-width: 0 !important; overflow: hidden; 
         }
+
+        /* Intersection Dots Table Style */
+        .card-table-wrapper[data-border-style="intersections"] .card-table th,
+        .card-table-wrapper[data-border-style="intersections"] .card-table td {
+            border-style: hidden !important;
+        }
+        .card-table-wrapper[data-border-style="intersections"] .card-table th::after,
+        .card-table-wrapper[data-border-style="intersections"] .card-table td::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10;
+            --dot-tl: radial-gradient(circle at 0% 0%, var(--tbl-bc) calc(var(--tbl-bw) * 1.5), transparent calc(var(--tbl-bw) * 1.5 + 0.5px));
+            --dot-tr: radial-gradient(circle at 100% 0%, var(--tbl-bc) calc(var(--tbl-bw) * 1.5), transparent calc(var(--tbl-bw) * 1.5 + 0.5px));
+            --dot-bl: radial-gradient(circle at 0% 100%, var(--tbl-bc) calc(var(--tbl-bw) * 1.5), transparent calc(var(--tbl-bw) * 1.5 + 0.5px));
+            --dot-br: radial-gradient(circle at 100% 100%, var(--tbl-bc) calc(var(--tbl-bw) * 1.5), transparent calc(var(--tbl-bw) * 1.5 + 0.5px));
+            background-image: var(--dot-tl), var(--dot-tr), var(--dot-bl), var(--dot-br);
+        }
+        .card-table-wrapper[data-border-style="intersections"] .card-table tr:first-child th::after,
+        .card-table-wrapper[data-border-style="intersections"] .card-table tr:first-child td::after {
+            --dot-tl: none; --dot-tr: none;
+        }
+        .card-table-wrapper[data-border-style="intersections"] .card-table tr:last-child th::after,
+        .card-table-wrapper[data-border-style="intersections"] .card-table tr:last-child td::after {
+            --dot-bl: none; --dot-br: none;
+        }
+        .card-table-wrapper[data-border-style="intersections"] .card-table th:first-child::after,
+        .card-table-wrapper[data-border-style="intersections"] .card-table td:first-child::after {
+            --dot-tl: none; --dot-bl: none;
+        }
+        .card-table-wrapper[data-border-style="intersections"] .card-table th:last-child::after,
+        .card-table-wrapper[data-border-style="intersections"] .card-table td:last-child::after {
+            --dot-tr: none; --dot-br: none;
+        }
+
+
         #print-area { display: none; }
 
         /* Custom standard blink caret for title hover */
@@ -1361,7 +1398,9 @@
                                 <option value="solid">Solid</option>
                                 <option value="dashed">Dashed</option>
                                 <option value="dotted">Dotted</option>
+                                <option value="intersections">Intersection Dots</option>
                                 <option value="double">Double</option>
+
                                 <option value="none">None</option>
                             </select>
                         </div>
@@ -7420,7 +7459,7 @@ function getControlsHTML(isGroup) {
             innerContent = `<div contenteditable="true" placeholder="Type text here..." class="resizable" style="width: ${p(250)}px; min-height: ${p(50)}px; text-align: left; font-size: ${ptToPx(14)}px; display: flex; flex-direction: column; justify-content: flex-start;"></div>`;
         } else if (type === 'table') {
             innerContent = `
-                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bs: solid; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
+                    <div class="card-table-wrapper resizable" data-has-header="true" data-checkerboard="false" data-border-style="solid" style="width: ${p(300)}px; height: ${p(100)}px; --tbl-bw: ${p(1)}px; --tbl-bs: solid; --tbl-bc: #9ca3af; --tbl-br: 0px; --tbl-hdr-bg: #f9fafb; --tbl-cb-light: #ffffff; --tbl-cb-dark: #f3f4f6;">
                         <table class="card-table">
                             <tr>
                                 <td style="height: 50%; width: 50%; background-color: #f9fafb;">
@@ -8265,6 +8304,8 @@ function setActiveElement(el, multi = false) {
                     const br = parseFloat(wrapper.style.getPropertyValue('--tbl-br')) / (PX_PER_IN / 100);
                     const bs = wrapper.style.getPropertyValue('--tbl-bs').trim() || 'solid';
                     const bcRaw = wrapper.style.getPropertyValue('--tbl-bc').trim() || '#9ca3af';
+                    
+                    if (!wrapper.hasAttribute('data-border-style')) wrapper.dataset.borderStyle = bs;
 
                     let { hex: bHex, alpha: bAlpha } = parseColorToHexAndAlpha(bcRaw);
                     
@@ -8459,6 +8500,7 @@ function setActiveElement(el, multi = false) {
                 wrapper.style.setProperty('--tbl-bc', value);
             } else if (type === 'borderStyle') {
                 wrapper.style.setProperty('--tbl-bs', value);
+                wrapper.dataset.borderStyle = value;
             } else if (type === 'hasHeader') {
                 wrapper.dataset.hasHeader = value;
                 updateTableAppearance(wrapper);
