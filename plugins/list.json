@@ -18,5 +18,15 @@
     "filename": "AutoFitText.js",
     "name": "AutoFitText",
     "description": "Automatically shrinks text to fit perfectly inside its bounding box."
+  },
+  {
+    "filename": "CardMultiplier.js",
+    "name": "CardMultiplier",
+    "description": "Reads a 'Quantity' column in your CSV and automatically duplicates rows for printing."
+  },
+  {
+    "filename": "InlineIcons.js",
+    "name": "InlineIcons",
+    "description": "Replaces text keywords like [HP] or [GOLD] with inline images that scale with your font."
   }
 ]
