@@ -1,0 +1,22 @@
+[
+  {
+    "filename": "ConditionalStyles.js",
+    "name": "ConditionalStyles",
+    "description": "A rule-based engine to style, hide, or alter elements based on CSV data."
+  },
+  {
+    "filename": "QRCode.js",
+    "name": "QRGenerator",
+    "description": "Dynamically generates QR codes based on static text or CSV data."
+  },
+  {
+    "filename": "RandomTableFiller.js",
+    "name": "RandomTableFiller",
+    "description": "Fills a designated table with random A-Z and 0-9 characters."
+  },
+  {
+    "filename": "AutoFitText.js",
+    "name": "AutoFitText",
+    "description": "Automatically shrinks text to fit perfectly inside its bounding box."
+  }
+]

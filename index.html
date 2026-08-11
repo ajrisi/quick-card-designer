@@ -172,7 +172,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 </script>
     <!-- END MARKDOWN INJECTION -->
 
-
     <style>
         /* Base Application Layout */
         html, body { overscroll-behavior: none; }
@@ -1926,6 +1925,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                             <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Plugin Options</div>
                             <button onpointerup="document.getElementById('plugin-upload-input').click(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload .js File</button>
                             <button onpointerup="createNewPluginStub(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Create New Plugin</button>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <button onpointerup="openPluginRepoModal(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-blue-700 hover:bg-blue-50 rounded transition-colors font-bold">Browse Repository</button>
                         </div>
                     </div>
                     <div class="relative group">
@@ -1943,6 +1944,34 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
                 <input type="file" id="plugin-upload-input" accept=".js" class="hidden" onchange="handleNewPluginFile(event)">
                 <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugin Repository Modal -->
+    <div id="plugin-repo-modal" class="fixed inset-0 z-[200] hidden bg-gray-900/40 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-3xl max-h-[85vh] overflow-hidden border border-gray-200">
+            <!-- Header -->
+            <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <h2 class="text-base font-bold text-gray-800">Official Plugin Repository</h2>
+                </div>
+                <button onclick="closePluginRepoModal()" class="text-gray-400 hover:text-gray-700 transition-colors p-1 bg-white hover:bg-gray-200 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Body Grid -->
+            <div class="p-5 flex-1 overflow-y-auto bg-gray-100">
+                <div id="plugin-repo-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Dynamic Items Inject Here -->
+                    <div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">Loading repository...</div>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+                <span class="text-xs text-gray-500 font-medium">These plugins are community-made and verified by Quick Card Designer.</span>
+                <button onclick="closePluginRepoModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-wider rounded shadow-sm hover:bg-gray-200 transition-colors">Close</button>
             </div>
         </div>
     </div>
@@ -3276,6 +3305,7 @@ function updateBgSettings(side) {
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
         // Remove the OOB block completely! The ghost cluster intentionally renders empty cards 
         // to fill out the visual square layout, so we want users to be able to click on them to
         // navigate to an empty canvas state if they desire.
@@ -3314,6 +3344,7 @@ function updateBgSettings(side) {
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
 
         if (maxMergeRows <= 1) {
             bgGrid.innerHTML = '';
@@ -3547,6 +3578,7 @@ function updateBgSettings(side) {
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
         
         const totalLogicalCards = maxMergeRows > 0 ? maxMergeRows : Math.max(1, cpp);
         const sheetsNeeded = cpp > 0 ? Math.ceil(totalLogicalCards / cpp) : 1;
@@ -4293,6 +4325,7 @@ function updateUILayer() {
                     backBgConfig: backBgConfig,
                 },
                 unit: currentUnit,
+                lastAccessed: Date.now(),
                 dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
                 sizeSelect: document.getElementById('size-select').value,
                 customW: document.getElementById('custom-w').value,
@@ -5400,6 +5433,7 @@ function saveState(debounce = false, skipHistory = false) {
 
         const autoSaveData = {
             history: state,
+            lastAccessed: Date.now(),
             unit: currentUnit,
             dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
             sizeSelect: document.getElementById('size-select').value,
@@ -6546,7 +6580,11 @@ function getAbsoluteBounds(el, mode = 'bbox') {
         } else if (el.dataset.type === 'image') {
             const img = el.querySelector('img');
             if (img) targetRect = img.getBoundingClientRect();
-        } 
+        } else if (el.dataset.type === 'table') {
+            // FIX: Force browser screen-accurate bounding box to sync the blue line with layout drift
+            const wrapper = el.querySelector('.card-table-wrapper');
+            if (wrapper) targetRect = wrapper.getBoundingClientRect();
+        }
         
         if (targetRect && targetRect.width > 0 && targetRect.height > 0) {
             const canvasRect = document.getElementById('canvas-container').getBoundingClientRect();
@@ -9180,6 +9218,9 @@ function setActiveElement(el, multi = false) {
                     cell.appendChild(colResizer);
 
                     colResizer.onpointerdown = function(e) {
+                          if (e.button !== 0) {
+                            return;
+                          }
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) { mergeCells(cell, 'horizontal'); return; }
@@ -9243,6 +9284,10 @@ function setActiveElement(el, multi = false) {
                     cell.appendChild(rowResizer);
 
                     rowResizer.onpointerdown = function(e) {
+                        // Ignore middle (1) and right (2) mouse clicks without blocking browser defaults
+  if (e.button !== 0) {
+    return;
+  }
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.shiftKey) { mergeCells(cell, 'vertical'); return; }
@@ -9411,6 +9456,11 @@ function setActiveElement(el, multi = false) {
     }
 
     document.addEventListener('pointerdown', (e) => {
+        // Ignore middle (1) and right (2) mouse clicks without blocking browser defaults
+  if (e.button !== 0) {
+    return;
+  }
+
         activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY });
 
         if (activePointers.size === 2) {
@@ -11199,6 +11249,8 @@ let pointerMoveRAF = null;
 //             });
 
     document.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
         activePointers.delete(e.pointerId);
         if (longPressTimer) {
             clearTimeout(longPressTimer);
@@ -11639,8 +11691,7 @@ let pointerMoveRAF = null;
         }
     });
 
-    /* --- PLUGIN & TEMPLATE ENGINE --- */
-    function loadPlugin(id, code, filename) {
+function loadPlugin(id, code, filename) {
         try {
             const inst = eval(code);
             if (!inst || typeof inst.register !== 'function') throw new Error("Plugin must return an object with a register() function.");
@@ -11651,7 +11702,10 @@ let pointerMoveRAF = null;
                 code: code,
                 name: reg.name || filename.replace('.js', ''),
                 varnames: reg.varnames || [],
-                images: reg.images || []
+                images: reg.images || [],
+                description: reg.description || '',
+                doc: reg.doc || '',
+                minRecords: reg.minRecords || 0
             };
             pluginInstances[id] = inst;
             updatePluginPlayButtonVisibility();
@@ -11664,12 +11718,11 @@ let pointerMoveRAF = null;
     }
 
 
-
-
 function getPluginContext(activeRow, cardElement = null) {
+        const activeSrcs = window.activeMergeSources || mergeSources;
         const csvData = {};
-        for (let key in mergeSources) {
-            csvData[mergeSources[key].filename] = mergeSources[key].data;
+        for (let key in activeSrcs) {
+            csvData[activeSrcs[key].filename] = activeSrcs[key].data;
         }
 
         class QCDQuery {
@@ -11809,15 +11862,16 @@ function getPluginContext(activeRow, cardElement = null) {
         if (!prefix) return `{{${inner}}}`;
         
         if (prefix.toLowerCase().endsWith('.csv')) {
+            const activeSrcs = window.activeMergeSources || mergeSources;
             let sourceId = null;
-            for (let id in mergeSources) {
-                if (mergeSources[id].filename === prefix) {
+            for (let id in activeSrcs) {
+                if (activeSrcs[id].filename === prefix) {
                     sourceId = id;
                     break;
                 }
             }
             if (sourceId) {
-                const source = mergeSources[sourceId];
+                const source = activeSrcs[sourceId];
                 const colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
                 const rowReq = parts[2] ? parseInt(parts[2]) : null;
                 
@@ -11899,16 +11953,30 @@ function getPluginContext(activeRow, cardElement = null) {
 // This script runs in the browser and provides dynamic variables/images.
 (function() {
     return {
-        // Register the plugin's name and available template variables/images
+        // Register the plugin's name
         register: function() {
             return {
                 name: "${defaultName}",
+                description: "A short description of what this plugin does.",
+                doc: "### Documentation\\n\\nExplain how to use your plugin here. Supports **Markdown**.",
+                minRecords: 0, // Enforce a minimum number of records to generate (e.g. 54)
+                
+                // OPTIONAL: Declare variables and images to expose in the UI
                 varnames: ["example_var"],
                 images: ["example_img"]
             };
         },
         
-        // Return text or HTML for {{${defaultName},varname}}
+        // OPTIONAL: Mutate CSV data sources globally before they are extracted
+        processData: function(dataSources) {
+            /* 
+            const src = Object.values(dataSources)[0];
+            if (src) src.data.push(["New Row", "Injected by Plugin"]);
+            */
+            return dataSources; 
+        },
+        
+        // OPTIONAL: Return text or HTML for {{${defaultName},varname}}
         text: function(varName, context, ...args) {
             if (varName === "example_var") {
                 return "Row " + context.rowIndex + " Output" + (args.length ? " | Args: " + args.join(', ') : '');
@@ -11916,7 +11984,7 @@ function getPluginContext(activeRow, cardElement = null) {
             return "";
         },
         
-        // Return an image URL, path, SVG string, or data URI for images
+        // OPTIONAL: Return an image URL, path, SVG string, or data URI for images
         image: function(imgName, context, ...args) {
             if (imgName === "example_img") {
                 return '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="currentColor"/></svg>';
@@ -12071,6 +12139,132 @@ function getPluginContext(activeRow, cardElement = null) {
         }
     }
 
+    function openPluginRepoModal() {
+        document.getElementById('plugin-repo-modal').classList.remove('hidden');
+        fetchPluginRepoList();
+    }
+
+    function closePluginRepoModal() {
+        document.getElementById('plugin-repo-modal').classList.add('hidden');
+    }
+
+    async function fetchPluginRepoList() {
+        const listEl = document.getElementById('plugin-repo-list');
+        try {
+            // Fetch list, bust cache to ensure fresh catalog
+            const resp = await fetch('./plugins/list.json?_t=' + Date.now());
+            if (!resp.ok) throw new Error("Repository unavailable");
+            
+            const list = await resp.json();
+            renderPluginRepoItems(list);
+        } catch(e) {
+            console.error(e);
+            listEl.innerHTML = '<div class="col-span-full text-center py-12 text-red-400 text-sm font-medium">Failed to load repository. Check your connection or GitHub Pages status.</div>';
+        }
+    }
+
+    function renderPluginRepoItems(list) {
+        const listEl = document.getElementById('plugin-repo-list');
+        listEl.innerHTML = '';
+        
+        if (!list || list.length === 0) {
+            listEl.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 text-sm font-medium">No plugins available in the repository yet!</div>';
+            return;
+        }
+
+        list.forEach(p => {
+            const div = document.createElement('div');
+            div.className = "bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col gap-2 transition-all hover:shadow-md border-l-4 border-l-blue-500";
+            
+            const safeFile = p.filename || (p.name + ".js");
+            const safeName = p.name || "Unnamed Plugin";
+            
+            // Render basic UI blocks
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <div class="overflow-hidden pr-2">
+                        <h3 class="text-sm font-bold text-gray-800 truncate" title="${safeName}">${safeName}</h3>
+                        <div class="text-[9px] font-mono text-gray-400 mt-0.5 truncate">${safeFile}</div>
+                    </div>
+                    <button onclick="installPluginFromRepo('${safeFile}')" class="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded font-bold text-[10px] uppercase tracking-wider transition-colors shrink-0 border border-blue-200 shadow-sm">
+                        Install
+                    </button>
+                </div>
+                ${p.description ? `<p class="text-xs text-gray-600 leading-relaxed mt-1">${p.description}</p>` : ''}
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    async function installPluginFromRepo(filename) {
+        try {
+            showToast(`Downloading ${filename}...`);
+            const resp = await fetch(`./plugins/${filename}?_t=` + Date.now());
+            if (!resp.ok) throw new Error("File not found in repository");
+            const code = await resp.text();
+            
+            const newId = 'plug_' + Date.now();
+            if (loadPlugin(newId, code, filename)) {
+                showToast(`Successfully installed ${filename}!`);
+                renderDataSourcesList();
+                updateImageBankMergeUI();
+                recomputeAllMergeData();
+                saveState();
+                closePluginRepoModal();
+                
+                // Immediately pop open the Data Bank to show them their new plugin!
+                openDataBankModal(); 
+            }
+        } catch(e) {
+            console.error(e);
+            showToast(`Error installing ${filename}`, true);
+        }
+    }
+
+window.showPluginHelp = function(id) {
+        const p = pluginsData[id];
+        if (!p || !p.doc) return;
+        
+        let modal = document.getElementById('plugin-help-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'plugin-help-modal';
+            modal.className = 'fixed inset-0 z-[99999] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center hidden';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl flex flex-col w-11/12 max-w-2xl max-h-[85vh] overflow-hidden border border-gray-200">
+                    <div class="px-5 py-3 border-b flex justify-between items-center bg-gray-50/80 shrink-0">
+                        <h2 id="plugin-help-title" class="text-base font-bold text-gray-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Plugin Documentation
+                        </h2>
+                        <button onclick="document.getElementById('plugin-help-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-700 p-1 bg-white hover:bg-gray-200 rounded transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    <div id="plugin-help-content" class="p-6 flex-1 overflow-y-auto bg-white text-sm text-gray-700 space-y-4">
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Update Title
+        document.getElementById('plugin-help-title').innerHTML = `
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            ${p.name}
+        `;
+        
+        // Render Markdown securely using your included marked.js library
+        const contentDiv = document.getElementById('plugin-help-content');
+        if (typeof marked !== 'undefined') {
+            contentDiv.innerHTML = `<div class="prose prose-sm max-w-none">${marked.parse(p.doc)}</div>`;
+        } else {
+            contentDiv.innerHTML = `<pre class="whitespace-pre-wrap font-sans">${p.doc}</pre>`;
+        }
+        
+        modal.classList.remove('hidden');
+    };
+
     function parseCSV(str) {
         const arr = [];
         let quote = false;
@@ -12170,6 +12364,25 @@ function getPluginContext(activeRow, cardElement = null) {
     }
 
     function recomputeAllMergeData() {
+        // --- PLUGIN DATA MUTATION HOOK ---
+        window.activeMergeSources = JSON.parse(JSON.stringify(mergeSources));
+        Object.values(pluginInstances).forEach(inst => {
+            if (typeof inst.processData === 'function') {
+                try { 
+                    const modified = inst.processData(window.activeMergeSources);
+                    if (modified) window.activeMergeSources = modified;
+                } catch(e) { console.error("Plugin processData error", e); }
+            }
+        });
+
+        // Determine global minimum records requested by any plugin
+        let globalMinRecords = 0;
+        Object.values(pluginsData).forEach(p => {
+            if (p.minRecords && p.minRecords > globalMinRecords) {
+                globalMinRecords = p.minRecords;
+            }
+        });
+
         const processContainer = (container) => {
             container.querySelectorAll('.element-container').forEach(el => {
                 const sourceId = el.dataset.mergeSourceId;
@@ -12189,8 +12402,8 @@ function getPluginContext(activeRow, cardElement = null) {
                                 target.innerText = 'Plugin Cleared';
                             }
                         }
-                    } else if (mergeSources[sourceId]) {
-                        const source = mergeSources[sourceId];
+                    } else if (window.activeMergeSources[sourceId]) {
+                        const source = window.activeMergeSources[sourceId];
                         let colIdx = parseInt(el.dataset.mergeCol || "0", 10);
                         
                         const numCols = source.data.length > 0 ? source.data[0].length : 1;
@@ -12200,8 +12413,8 @@ function getPluginContext(activeRow, cardElement = null) {
                         }
 
                         // --- UPGRADED RELATIONAL EXTRACTION ---
-                        let primaryId = Object.keys(mergeSources).find(k => mergeSources[k].isPrimary);
-                        let primarySrc = primaryId ? mergeSources[primaryId] : null;
+                        let primaryId = Object.keys(window.activeMergeSources).find(k => window.activeMergeSources[k].isPrimary);
+                        let primarySrc = primaryId ? window.activeMergeSources[primaryId] : null;
                         
                         let extracted = [];
                         
@@ -12253,6 +12466,12 @@ function getPluginContext(activeRow, cardElement = null) {
                                 extracted.push(foundMatch);
                             }
                         }
+
+                        // --- APPLY MINIMUM RECORDS RULE ---
+                        while (extracted.length < globalMinRecords) {
+                            extracted.push('');
+                        }
+                        
                         el.dataset.mergeData = JSON.stringify(extracted);
                         // --------------------------------------
 
@@ -12321,6 +12540,7 @@ function getPluginContext(activeRow, cardElement = null) {
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxRows) maxRows = p.minRecords; });
 
         if (maxRows > 0) {
             if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
@@ -12370,6 +12590,10 @@ function getPluginContext(activeRow, cardElement = null) {
                     if (data.length > globalMaxRows) globalMaxRows = data.length;
                 } catch (e) {}
             }
+        });
+
+Object.values(pluginsData).forEach(p => { 
+            if (p.minRecords && p.minRecords > globalMaxRows) globalMaxRows = p.minRecords; 
         });
 
         const globalScrubber = document.querySelector('#multi-select-controls .merge-scrubber');
@@ -12900,9 +13124,26 @@ function getPluginContext(activeRow, cardElement = null) {
                     </div>
                 </div>
 
+${p.description ? `
+                <div class="mt-1 text-[10px] text-gray-600 leading-tight">
+                    ${p.description}
+                </div>
+                ` : ''}
+
                 <div class="mt-auto text-[9px] font-bold text-gray-400 uppercase">
                     ${usageCount > 0 ? `<span class="text-purple-600">Active on Canvas</span>` : 'Inactive'}
                 </div>
+
+                ${p.doc ? `
+                <div class="mt-2 pt-2 border-t border-gray-100">
+                    <button onclick="showPluginHelp('${id}')" class="w-full text-[10px] font-bold text-gray-500 uppercase flex items-center justify-between hover:text-blue-600 transition-colors">
+                        <span>View Documentation</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+                ` : ''}
+
+                
 
                 ${p.varnames.length > 0 ? `
                 <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1.5">
@@ -13902,6 +14143,12 @@ function getLiveBaseStyles() {
         }
 
         const sortedEntries = Array.from(entries.entries()).sort((a, b) => {
+            // Sort by descending time (newest first)
+            const timeA = a[1].lastAccessed || 0;
+            const timeB = b[1].lastAccessed || 0;
+            if (timeB !== timeA) return timeB - timeA;
+            
+            // Fallback to alphabetical if times are identical or missing
             const nameA = (a[1].projectName || a[1].history?.projectName || '').toLowerCase();
             const nameB = (b[1].projectName || b[1].history?.projectName || '').toLowerCase();
             return nameA.localeCompare(nameB);
@@ -13912,6 +14159,13 @@ function getLiveBaseStyles() {
             const projName = data.projectName || data.history?.projectName || 'Untitled Card';
             const isCurrent = wsId === currentWorkspace;
 
+            // Format the timestamp nicely
+            let timeStr = 'Older version';
+            if (data.lastAccessed) {
+                const d = new Date(data.lastAccessed);
+                timeStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            }
+
             const item = document.createElement('div');
             item.className = `bg-white border rounded-lg p-3 flex flex-col gap-2 shadow-sm transition-shadow hover:shadow-md ${isCurrent ? 'border-blue-400 ring-1 ring-blue-400/20' : 'border-gray-200'}`;
             
@@ -13920,6 +14174,10 @@ function getLiveBaseStyles() {
                     <div class="flex-1 overflow-hidden pr-2">
                         <div class="text-sm font-bold text-gray-800 truncate" title="${projName}">${projName}</div>
                         <div class="text-[10px] text-gray-400 font-mono mt-0.5 truncate">ID: ${wsId} ${isCurrent ? '<span class="text-blue-600 font-bold ml-1">(Active)</span>' : ''}</div>
+                        <div class="text-[9px] text-gray-500 mt-1 flex items-center gap-1" title="Last Saved">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ${timeStr}
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 mt-1 border-t border-gray-100 pt-2">
@@ -14623,6 +14881,7 @@ document.querySelectorAll('style').forEach(s => {
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
 
         const isDataMerge = maxMergeRows > 0;
         const totalLogicalCards = isDataMerge ? maxMergeRows : cardsPerPage;
@@ -15509,6 +15768,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                 } catch (e) {}
             }
         });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
 
         const isDataMerge = maxMergeRows > 0;
         const totalLogicalCards = isDataMerge ? maxMergeRows : cardsPerPage;
