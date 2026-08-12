@@ -317,17 +317,21 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: none; }
         #canvas-container { touch-action: none; overscroll-behavior: none; } /* Prevents page-pull-to-refresh while dragging */
 
-        /* Markdown Styles */
-        .element-container[data-markdown="true"] h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
-        .element-container[data-markdown="true"] h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
-        .element-container[data-markdown="true"] h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
-        .element-container[data-markdown="true"] ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
-        .element-container[data-markdown="true"] ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
-        .element-container[data-markdown="true"] blockquote { border-left: 4px solid #cbd5e1; padding-left: 1em; color: #6b7280; margin-bottom: 1em; }
-        .element-container[data-markdown="true"] code { background-color: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
-        .element-container[data-markdown="true"] pre code { display: block; padding: 1em; overflow-x: auto; background-color: #1f2937; color: #f9fafb; }
-        .element-container[data-markdown="true"] p { margin-bottom: 0.5em; }
-        .element-container[data-markdown="true"] p:last-child { margin-bottom: 0; }
+        /* Text Format Styles (Markdown & Raw HTML) */
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; line-height: 1.2; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) blockquote { border-left: 4px solid #cbd5e1; padding-left: 1em; color: #6b7280; margin-bottom: 1em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) code { background-color: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) pre code { display: block; padding: 1em; overflow-x: auto; background-color: #1f2937; color: #f9fafb; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) p { margin-bottom: 0.5em; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) p:last-child { margin-bottom: 0; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) b, 
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) strong { font-weight: bold; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) i, 
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) em { font-style: italic; }
     </style>
 </head>
 
@@ -2284,8 +2288,18 @@
 
     function toggleTextFormat() {
         if (activeElements.length === 0) return;
-        const mdChecked = document.getElementById('markdown-toggle').checked;
-        const htmlChecked = document.getElementById('raw-html-toggle').checked;
+        const mdToggle = document.getElementById('markdown-toggle');
+        const htmlToggle = document.getElementById('raw-html-toggle');
+        
+        // Enforce mutual exclusion seamlessly
+        if (mdToggle.checked && htmlToggle.checked) {
+            const el = activeElements[0];
+            if (el.dataset.markdown === 'true') mdToggle.checked = false;
+            else htmlToggle.checked = false;
+        }
+        
+        const mdChecked = mdToggle.checked;
+        const htmlChecked = htmlToggle.checked;
         
         activeElements.forEach(el => {
             if (el.dataset.type === 'text' || el.dataset.type === 'title') {
@@ -2299,9 +2313,10 @@
                         }
                     } else {
                         if (target.hasAttribute('data-format-raw')) {
-                            target.innerHTML = target.getAttribute('data-format-raw');
+                            let raw = target.getAttribute('data-format-raw');
                             target.removeAttribute('data-format-raw');
                             target.removeAttribute('data-markdown-raw');
+                            target.innerText = raw;
                         }
                     }
                     parseMarkdownInElement(target);
@@ -2310,6 +2325,35 @@
         });
         saveState(true);
     }
+
+    // function toggleTextFormat() {
+    //     if (activeElements.length === 0) return;
+    //     const mdChecked = document.getElementById('markdown-toggle').checked;
+    //     const htmlChecked = document.getElementById('raw-html-toggle').checked;
+        
+    //     activeElements.forEach(el => {
+    //         if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+    //             el.dataset.markdown = mdChecked;
+    //             el.dataset.rawHtml = htmlChecked;
+    //             const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
+    //             if (target) {
+    //                 if (mdChecked || htmlChecked) {
+    //                     if (!target.hasAttribute('data-template-raw') && !target.hasAttribute('data-format-raw')) {
+    //                         target.setAttribute('data-format-raw', target.innerText);
+    //                     }
+    //                 } else {
+    //                     if (target.hasAttribute('data-format-raw')) {
+    //                         target.innerHTML = target.getAttribute('data-format-raw');
+    //                         target.removeAttribute('data-format-raw');
+    //                         target.removeAttribute('data-markdown-raw');
+    //                     }
+    //                 }
+    //                 parseMarkdownInElement(target);
+    //             }
+    //         }
+    //     });
+    //     saveState(true);
+    // }
 
     const StorageDB = {
         async db() {
@@ -2575,22 +2619,12 @@
             e.target.dataset.originalValue = e.target.isContentEditable ? e.target.innerHTML : e.target.value;
             
             if (e.target.isContentEditable) {
-                const container = e.target.closest('.element-container');
-                const isMd = container && container.dataset.markdown === 'true';
-                const isHtml = container && container.dataset.rawHtml === 'true';
-                
-                if (isMd || isHtml) {
-                    if (e.target.hasAttribute('data-template-raw')) {
-                        e.target.innerText = e.target.getAttribute('data-template-raw');
-                    } else if (e.target.hasAttribute('data-format-raw')) {
-                        e.target.innerText = e.target.getAttribute('data-format-raw');
-                    } else if (e.target.hasAttribute('data-markdown-raw')) {
-                        e.target.innerText = e.target.getAttribute('data-markdown-raw');
-                    }
-                } else {
-                    if (e.target.hasAttribute('data-template-raw')) {
-                        e.target.innerHTML = e.target.getAttribute('data-template-raw');
-                    }
+                if (e.target.hasAttribute('data-template-raw')) {
+                    e.target.innerText = e.target.getAttribute('data-template-raw');
+                } else if (e.target.hasAttribute('data-format-raw')) {
+                    e.target.innerText = e.target.getAttribute('data-format-raw');
+                } else if (e.target.hasAttribute('data-markdown-raw')) {
+                    e.target.innerText = e.target.getAttribute('data-markdown-raw');
                 }
             }
         }
@@ -3010,8 +3044,7 @@ function updateBgSettings(side) {
                     } else {
                         const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                         if (target && !target.hasAttribute('data-template-raw')) {
-                            target.textContent = val;
-                            parseMarkdownInElement(target);
+                            parseMarkdownInElement(target, val);
                         }
                     }
                 } catch (e) {}
@@ -3044,8 +3077,8 @@ function updateBgSettings(side) {
         });
         
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
-            el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
-            parseMarkdownInElement(el);
+            const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+            parseMarkdownInElement(el, rendered);
         });
 
         const ctx = getPluginContext(cardIndex, temp);
@@ -4713,12 +4746,12 @@ function updateUILayer() {
                 const isMd = container && container.dataset.markdown === 'true';
                 const isHtml = container && container.dataset.rawHtml === 'true';
                 
-                let rawData = (isMd || isHtml) ? e.target.innerText : e.target.innerHTML;
+                // Universally grab raw text to preserve physical linebreaks and tags from the editor
+                let rawData = e.target.innerText;
                 
-                // If it contains template bindings, parse them before generating markdown
+                // If it contains template bindings, preserve them
                 if (rawData.includes('{{') && rawData.includes('}}')) {
                     e.target.setAttribute('data-template-raw', rawData);
-                    e.target.innerHTML = renderTemplateString(rawData, globalMergeIndex);
                 } else {
                     e.target.removeAttribute('data-template-raw');
                     if (isMd || isHtml) {
@@ -4727,7 +4760,8 @@ function updateUILayer() {
                         e.target.removeAttribute('data-format-raw');
                         e.target.removeAttribute('data-markdown-raw');
                     }
-                    // Also clear dropdown binding if they wiped the template manually
+                    
+                    // Clear dropdown binding if they wiped the template manually
                     if (container && container.dataset.mergeSourceId && container.dataset.mergeSourceId.startsWith('plugin:')) {
                         container.removeAttribute('data-merge-source-id');
                         container.removeAttribute('data-merge-col');
@@ -4981,272 +5015,6 @@ function updateUILayer() {
             .replace(/data-baseline-z="[^"]*"/g, '');
     }
 
-//     function saveState(debounce = false, skipHistory = false) {
-    
-//     // 2. Allow it to bypass the isRestoring block if skipHistory is true
-//     if (isRestoring && !skipHistory) return;
-//     clearTimeout(saveStateTimeout);
-
-//     const doSave = () => {
-//         saveCurrentSideState();
-//         if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
-
-//         const state = {
-//             side: editingSide,
-//             hasCustomBack: hasCustomBack,
-//             frontHTML: frontContentHTML,
-//             frontBg: frontBgClass,
-//             backHTML: backContentHTML,
-//             backBg: backBgClass,
-//             frontBgConfig: frontBgConfig,
-//             backBgConfig: backBgConfig,
-//         };
-
-//         const autoSaveData = {
-//             history: state,
-//             unit: currentUnit,
-//             dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
-//             sizeSelect: document.getElementById('size-select').value,
-//             customW: document.getElementById('custom-w').value,
-//             customH: document.getElementById('custom-h').value,
-//             isLandscape: isLandscape,
-//             projectName: document.getElementById('project-name').value,
-//             imageAssets: imageAssets,
-//             customFonts: customFonts,
-//             mergeSources: mergeSources,
-//             pluginsData: pluginsData,
-//             globalMergeIndex: globalMergeIndex,
-//             crossSnapping: document.getElementById('enable-cross-snap')?.checked ?? false,
-//             dataCluster: document.getElementById('enable-data-cluster')?.checked !== false,
-//             snapping: document.getElementById('enable-snapping')?.checked !== false,
-//             resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
-//             snapLines: document.getElementById('show-snap-lines')?.checked !== false,
-//             panX: panX,
-//             panY: panY,
-//             canvasScale: canvasScale,
-//             margin: {
-//                 t: document.getElementById('margin-top')?.value || 0,
-//                 r: document.getElementById('margin-right')?.value || 0,
-//                 b: document.getElementById('margin-bottom')?.value || 0,
-//                 l: document.getElementById('margin-left')?.value || 0
-//             },
-//             safeMargin: {
-//                 t: document.getElementById('safe-margin-top')?.value || 0,
-//                 r: document.getElementById('safe-margin-right')?.value || 0,
-//                 b: document.getElementById('safe-margin-bottom')?.value || 0,
-//                 l: document.getElementById('safe-margin-left')?.value || 0
-//             },
-//             guide: document.getElementById('show-margin-guide')?.checked ?? true,
-//             cutLineW: document.getElementById('cut-line-width')?.value || 1,
-//             cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
-//             cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
-//             printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
-//             bindingLineW: document.getElementById('binding-line-width')?.value || 1,
-//             bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
-//             bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
-//             printer: {
-//                 paper: document.getElementById('paper-size')?.value || 'letter',
-//                 orient: document.getElementById('paper-orientation')?.value || 'portrait',
-//                 alignX: document.getElementById('grid-align-x')?.value || 'center',
-//                 alignY: document.getElementById('grid-align-y')?.value || 'center',
-//                 duplex: document.getElementById('print-duplex')?.checked ?? false,
-//                 gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
-//                 gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
-//                 mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
-//                 mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
-//                 rotate180: document.getElementById('rotate-180')?.checked ?? false,
-//                 driftX: document.getElementById('print-offset-x')?.value || 0,
-//                 driftY: document.getElementById('print-offset-y')?.value || 0,
-//                 targetDpi: document.getElementById('target-dpi')?.value || 300,
-//                 bleed: document.getElementById('print-bleed')?.value || 0,
-//                 showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
-//                 cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
-//                 internalMarks: document.getElementById('print-internal-marks')?.checked ?? false,
-//                 markColor: document.getElementById('mark-color')?.value || '#000000',
-//                 vernier: document.getElementById('print-vernier')?.checked ?? false
-//             }
-//         };
-
-//         const serializedData = JSON.stringify(autoSaveData);
-//         StorageDB.save(SAVE_KEY, serializedData).catch(err => {
-//             console.warn("IndexedDB Autosave failed", err);
-//             try { localStorage.setItem(SAVE_KEY, serializedData); } catch (e) {
-//                 console.warn("LocalStorage Autosave failed, quota exceeded", e);
-//             }
-//         });
-
-//         if (skipHistory) return;
-
-//         if (historyIndex >= 0) {
-//             const top = historyStack[historyIndex];
-//             if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
-//                 getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
-//                 top.frontBg === state.frontBg && top.backBg === state.backBg &&
-//                 top.hasCustomBack === state.hasCustomBack && top.side === state.side) {
-//                 return;
-//             }
-//         }
-
-//         historyStack = historyStack.slice(0, historyIndex + 1);
-//         historyStack.push(state);
-//         if (historyStack.length > 50) historyStack.shift();
-//         else historyIndex++;
-
-//         updateUndoRedoUI();
-//     };
-
-//     if (debounce) {
-//         saveStateTimeout = setTimeout(doSave, 500);
-//     } else {
-//         doSave();
-//     }
-// }
-
-
-
-//     function saveState(debounce = false, skipHistory = false) {
-    
-//     // 2. Allow it to bypass the isRestoring block if skipHistory is true
-//     if (isRestoring && !skipHistory) return;
-//     clearTimeout(saveStateTimeout);
-
-//     const doSave = () => {
-//         saveCurrentSideState();
-//         if (document.getElementById('enable-data-ghost')?.checked) updateGhostLayer();
-
-//         // --- UPGRADED: Deep copy configs, track layout, track data banks ---
-//         const state = {
-//             side: editingSide,
-//             hasCustomBack: hasCustomBack,
-//             frontHTML: frontContentHTML,
-//             frontBg: frontBgClass,
-//             backHTML: backContentHTML,
-//             backBg: backBgClass,
-//             frontBgConfig: JSON.parse(JSON.stringify(frontBgConfig)), 
-//             backBgConfig: JSON.parse(JSON.stringify(backBgConfig)),
-//             isLandscape: isLandscape,
-//             sizeSelect: document.getElementById('size-select').value,
-//             customW: document.getElementById('custom-w').value,
-//             customH: document.getElementById('custom-h').value,
-//             currentWidth: currentWidth,
-//             currentHeight: currentHeight,
-//             currentUnit: currentUnit,
-//             dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
-//             globalMergeIndex: globalMergeIndex,
-//             mergeSources: JSON.parse(JSON.stringify(mergeSources)),
-//             pluginsData: JSON.parse(JSON.stringify(pluginsData)),
-//             customFonts: JSON.parse(JSON.stringify(customFonts))
-//         };
-//         // -------------------------------------------------------------------
-
-//         const autoSaveData = {
-//             history: state,
-//             unit: currentUnit,
-//             dpi: parseInt(document.getElementById('document-dpi')?.value) || 300,
-//             sizeSelect: document.getElementById('size-select').value,
-//             customW: document.getElementById('custom-w').value,
-//             customH: document.getElementById('custom-h').value,
-//             isLandscape: isLandscape,
-//             projectName: document.getElementById('project-name').value,
-//             imageAssets: imageAssets,
-//             customFonts: customFonts,
-//             mergeSources: mergeSources,
-//             pluginsData: pluginsData,
-//             globalMergeIndex: globalMergeIndex,
-//             dataCluster: document.getElementById('enable-data-cluster')?.checked !== false,
-//             snapping: document.getElementById('enable-snapping')?.checked !== false,
-//             resizeSnapping: document.getElementById('enable-resize-snapping')?.checked !== false,
-//             crossSnapping: document.getElementById('enable-cross-snap')?.checked ?? false,
-//             snapLines: document.getElementById('show-snap-lines')?.checked !== false,
-//             panX: panX,
-//             panY: panY,
-//             canvasScale: canvasScale,
-//             margin: {
-//                 t: document.getElementById('margin-top')?.value || 0,
-//                 r: document.getElementById('margin-right')?.value || 0,
-//                 b: document.getElementById('margin-bottom')?.value || 0,
-//                 l: document.getElementById('margin-left')?.value || 0
-//             },
-//             safeMargin: {
-//                 t: document.getElementById('safe-margin-top')?.value || 0,
-//                 r: document.getElementById('safe-margin-right')?.value || 0,
-//                 b: document.getElementById('safe-margin-bottom')?.value || 0,
-//                 l: document.getElementById('safe-margin-left')?.value || 0
-//             },
-//             guide: document.getElementById('show-margin-guide')?.checked ?? true,
-//             cutLineW: document.getElementById('cut-line-width')?.value || 1,
-//             cutLineStyle: document.getElementById('cut-line-style')?.value || 'dashed',
-//             cutLineColor: document.getElementById('cut-line-color')?.value || '#d1d5db',
-//             printCutLine: document.getElementById('print-cut-line')?.checked ?? true,
-//             bindingLineW: document.getElementById('binding-line-width')?.value || 1,
-//             bindingLineStyle: document.getElementById('binding-line-style')?.value || 'dashed',
-//             bindingLineColor: document.getElementById('binding-line-color')?.value || '#9ca3af',
-//             printer: {
-//                 paper: document.getElementById('paper-size')?.value || 'letter',
-//                 orient: document.getElementById('paper-orientation')?.value || 'portrait',
-//                 alignX: document.getElementById('grid-align-x')?.value || 'center',
-//                 alignY: document.getElementById('grid-align-y')?.value || 'center',
-//                 duplex: document.getElementById('print-duplex')?.checked ?? false,
-//                 gridRevCol: document.getElementById('grid-reverse-col')?.checked ?? true,
-//                 gridRevRow: document.getElementById('grid-reverse-row')?.checked ?? false,
-//                 mirrorH: document.getElementById('mirror-horizontal')?.checked ?? false,
-//                 mirrorV: document.getElementById('mirror-vertical')?.checked ?? false,
-//                 rotate180: document.getElementById('rotate-180')?.checked ?? false,
-//                 driftX: document.getElementById('print-offset-x')?.value || 0,
-//                 driftY: document.getElementById('print-offset-y')?.value || 0,
-//                 targetDpi: document.getElementById('target-dpi')?.value || 300,
-//                 bleed: document.getElementById('print-bleed')?.value || 0,
-//                 showBleed: document.getElementById('show-bleed-editor')?.checked ?? false,
-//                 cropMarks: document.getElementById('print-crop-marks')?.checked ?? false,
-//                 internalMarks: document.getElementById('print-internal-marks')?.checked ?? false,
-//                 markColor: document.getElementById('mark-color')?.value || '#000000',
-//                 vernier: document.getElementById('print-vernier')?.checked ?? false
-//             }
-//         };
-
-//         const serializedData = JSON.stringify(autoSaveData);
-//         StorageDB.save(SAVE_KEY, serializedData).catch(err => {
-//             console.warn("IndexedDB Autosave failed", err);
-//             try { localStorage.setItem(SAVE_KEY, serializedData); } catch (e) {
-//                 console.warn("LocalStorage Autosave failed, quota exceeded", e);
-//             }
-//         });
-
-//         if (skipHistory) return;
-
-//         // --- UPGRADED: Expanded deduplication checks ---
-//         if (historyIndex >= 0) {
-//             const top = historyStack[historyIndex];
-//             if (getCleanStateStr(top.frontHTML) === getCleanStateStr(state.frontHTML) &&
-//                 getCleanStateStr(top.backHTML) === getCleanStateStr(state.backHTML) &&
-//                 top.frontBg === state.frontBg && top.backBg === state.backBg &&
-//                 top.hasCustomBack === state.hasCustomBack && top.side === state.side &&
-//                 top.isLandscape === state.isLandscape && top.currentWidth === state.currentWidth &&
-//                 top.currentHeight === state.currentHeight && top.dpi === state.dpi &&
-//                 top.globalMergeIndex === state.globalMergeIndex &&
-//                 JSON.stringify(top.frontBgConfig) === JSON.stringify(state.frontBgConfig) &&
-//                 JSON.stringify(top.backBgConfig) === JSON.stringify(state.backBgConfig) &&
-//                 JSON.stringify(top.mergeSources) === JSON.stringify(state.mergeSources) &&
-//                 JSON.stringify(top.pluginsData) === JSON.stringify(state.pluginsData)) {
-//                 return;
-//             }
-//         }
-//         // -----------------------------------------------
-
-//         historyStack = historyStack.slice(0, historyIndex + 1);
-//         historyStack.push(state);
-//         if (historyStack.length > 50) historyStack.shift();
-//         else historyIndex++;
-
-//         updateUndoRedoUI();
-//     };
-
-//     if (debounce) {
-//         saveStateTimeout = setTimeout(doSave, 500);
-//     } else {
-//         doSave();
-//     }
-// }
 
 function saveState(debounce = false, skipHistory = false) {
     
@@ -5405,255 +5173,6 @@ function redo() {
     }
 }
 
-    // function restoreState(state) {
-    //     isRestoring = true;
-    //     setActiveElement(null);
-
-    //     editingSide = state.side;
-    //     hasCustomBack = state.hasCustomBack;
-
-    //     frontContentHTML = state.frontHTML;
-    //     frontBgClass = state.frontBg;
-    //     backContentHTML = state.backHTML;
-    //     backBgClass = state.backBg;
-
-    //     frontBgConfig = state.frontBgConfig || { ...defaultBgConfig };
-    //     backBgConfig = state.backBgConfig || { ...defaultBgConfig };
-        
-    //     syncBgUI(frontBgConfig, 'front');
-    //     syncBgUI(backBgConfig, 'back');
-        
-    //     document.getElementById('bg-select-front').value = frontBgClass;
-    //     document.getElementById('bg-select-back').value = backBgClass;
-        
-    //     onBgChange(frontBgClass, 'front', true);
-    //     onBgChange(backBgClass, 'back', true);
-        
-    //     const activeConfig = editingSide === 'front' ? frontBgConfig : backBgConfig;
-    //     applyBgConfig(activeConfig);
-
-    //     document.getElementById('enable-custom-back').checked = hasCustomBack;
-    //     const sideToggles = document.getElementById('side-toggles');
-    //     const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
-    //     const btnPngBack = document.getElementById('btn-png-back');
-    //     const backPatternWrapper = document.getElementById('back-pattern-wrapper');
-
-    //     if (hasCustomBack) {
-    //         sideToggles.classList.remove('opacity-50', 'pointer-events-none');
-    //         if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
-    //         if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
-    //         if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
-    //     } else {
-    //         sideToggles.classList.add('opacity-50', 'pointer-events-none');
-    //         if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
-    //         if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
-    //         if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
-    //     }
-
-    //     const btnFront = document.getElementById('btn-edit-front');
-    //     const btnBack = document.getElementById('btn-edit-back');
-    //     if (editingSide === 'front') {
-    //         btnFront.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors";
-    //         btnBack.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors";
-    //     } else {
-    //         btnFront.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 rounded-l text-xs font-medium hover:bg-gray-50 transition-colors";
-    //         btnBack.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 border-l-0 rounded-r text-xs font-medium transition-colors";
-    //     }
-
-    //     document.getElementById('card-content').innerHTML = (editingSide === 'front') ? frontContentHTML : backContentHTML;
-    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(e => {
-    //         e.classList.remove('active', 'rotation-active');
-    //         if (e.dataset.baselineZ !== undefined) {
-    //             e.style.zIndex = e.dataset.baselineZ;
-    //             delete e.dataset.baselineZ;
-    //         }
-    //     });
-        
-    //     const frontSelect = document.getElementById('bg-select-front');
-    //     const backSelect = document.getElementById('bg-select-back');
-    //     if (frontSelect) frontSelect.value = frontBgClass;
-    //     if (backSelect) backSelect.value = backBgClass;
-        
-    //     updateCanvasSettings(true);
-
-    //     document.querySelectorAll('.card-table').forEach(setupTableResizers);
-    //     migrateTableCells();
-    //     updateGhostLayer();
-    //     updateAllCanvasImages();
-
-    //     let maxZ = 100;
-    //     document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-    //         let z = parseInt(el.style.zIndex) || 100;
-    //         if (z > maxZ && z < 99999) maxZ = z;
-    //     });
-    //     zIndexCounter = maxZ + 1;
-
-    //     updateUndoRedoUI();
-    //     isRestoring = false;
-    // }
-
-// function restoreState(state) {
-//         isRestoring = true;
-//         setActiveElement(null);
-
-//         editingSide = state.side;
-//         hasCustomBack = state.hasCustomBack;
-
-//         frontContentHTML = state.frontHTML;
-//         frontBgClass = state.frontBg;
-//         backContentHTML = state.backHTML;
-//         backBgClass = state.backBg;
-
-//         frontBgConfig = state.frontBgConfig ? JSON.parse(JSON.stringify(state.frontBgConfig)) : { ...defaultBgConfig };
-//         backBgConfig = state.backBgConfig ? JSON.parse(JSON.stringify(state.backBgConfig)) : { ...defaultBgConfig };
-        
-//         syncBgUI(frontBgConfig, 'front');
-//         syncBgUI(backBgConfig, 'back');
-        
-//         // --- UPGRADED: Restore Physical Size, Units, and Data Banks ---
-//         if (state.isLandscape !== undefined) isLandscape = state.isLandscape;
-//         if (state.currentWidth !== undefined) currentWidth = state.currentWidth;
-//         if (state.currentHeight !== undefined) currentHeight = state.currentHeight;
-//         if (state.globalMergeIndex !== undefined) globalMergeIndex = state.globalMergeIndex;
-
-//         if (state.sizeSelect !== undefined) {
-//             const ss = document.getElementById('size-select');
-//             if (ss) ss.value = state.sizeSelect;
-//         }
-//         if (state.customW !== undefined) {
-//             const cw = document.getElementById('custom-w');
-//             if (cw) cw.value = state.customW;
-//         }
-//         if (state.customH !== undefined) {
-//             const ch = document.getElementById('custom-h');
-//             if (ch) ch.value = state.customH;
-//         }
-//         if (state.dpi !== undefined) {
-//             PX_PER_IN = state.dpi;
-//             PX_PER_MM = PX_PER_IN / 25.4;
-//             const dpiSelect = document.getElementById('document-dpi');
-//             if (dpiSelect) dpiSelect.value = state.dpi;
-//         }
-//         if (state.currentUnit !== undefined && state.currentUnit !== currentUnit) {
-//             currentUnit = state.currentUnit;
-//             const gu = document.getElementById('global-unit');
-//             if(gu) gu.value = currentUnit;
-//             document.querySelectorAll('.unit-lbl').forEach(el => el.innerText = currentUnit === 'mm' ? '(mm)' : '(in)');
-//             document.querySelectorAll('.input-unit-lbl').forEach(el => el.innerText = currentUnit);
-//         }
-
-//         // Visually update the Orientation Toggle
-//         const knob = document.getElementById('orientation-knob');
-//         const lblPort = document.getElementById('lbl-port');
-//         const lblLand = document.getElementById('lbl-land');
-//         if (knob && lblPort && lblLand) {
-//             if (isLandscape) {
-//                 knob.style.left = '24px';
-//                 knob.parentElement.classList.replace('bg-gray-400', 'bg-blue-600');
-//                 lblLand.classList.replace('text-gray-500', 'text-blue-600');
-//                 lblPort.classList.replace('text-blue-600', 'text-gray-500');
-//             } else {
-//                 knob.style.left = '2px';
-//                 knob.parentElement.classList.replace('bg-blue-600', 'bg-gray-400');
-//                 lblPort.classList.replace('text-gray-500', 'text-blue-600');
-//                 lblLand.classList.replace('text-blue-600', 'text-gray-500');
-//             }
-//         }
-        
-//         const sizeSelect = document.getElementById('size-select');
-//         const customInputs = document.getElementById('custom-size-inputs');
-//         if (sizeSelect && sizeSelect.value === 'custom') {
-//             customInputs.classList.remove('hidden');
-//             customInputs.classList.add('grid', 'grid-cols-1');
-//         } else if (customInputs) {
-//             customInputs.classList.add('hidden');
-//             customInputs.classList.remove('grid', 'grid-cols-1');
-//         }
-
-//         if (state.mergeSources) mergeSources = JSON.parse(JSON.stringify(state.mergeSources));
-//         if (state.pluginsData) {
-//             pluginsData = JSON.parse(JSON.stringify(state.pluginsData));
-//             pluginInstances = {};
-//             for(let id in pluginsData) {
-//                 try { pluginInstances[id] = eval(pluginsData[id].code); } catch(e) {}
-//             }
-//         }
-//         if (state.customFonts) {
-//             customFonts = JSON.parse(JSON.stringify(state.customFonts));
-//             injectCustomFonts();
-//         }
-//         renderDataSourcesList(); 
-//         // --------------------------------------------------------------
-
-//         document.getElementById('bg-select-front').value = frontBgClass;
-//         document.getElementById('bg-select-back').value = backBgClass;
-        
-//         onBgChange(frontBgClass, 'front', true);
-//         onBgChange(backBgClass, 'back', true);
-        
-//         const activeConfig = editingSide === 'front' ? frontBgConfig : backBgConfig;
-//         applyBgConfig(activeConfig);
-
-//         document.getElementById('enable-custom-back').checked = hasCustomBack;
-//         const sideToggles = document.getElementById('side-toggles');
-//         const lblReverseGhost = document.getElementById('lbl-reverse-ghost');
-//         const btnPngBack = document.getElementById('btn-png-back');
-//         const backPatternWrapper = document.getElementById('back-pattern-wrapper');
-
-//         if (hasCustomBack) {
-//             sideToggles.classList.remove('opacity-50', 'pointer-events-none');
-//             if (lblReverseGhost) lblReverseGhost.classList.remove('opacity-50', 'pointer-events-none');
-//             if (btnPngBack) btnPngBack.classList.remove('opacity-50', 'pointer-events-none');
-//             if (backPatternWrapper) backPatternWrapper.classList.remove('opacity-50', 'pointer-events-none');
-//         } else {
-//             sideToggles.classList.add('opacity-50', 'pointer-events-none');
-//             if (lblReverseGhost) lblReverseGhost.classList.add('opacity-50', 'pointer-events-none');
-//             if (btnPngBack) btnPngBack.classList.add('opacity-50', 'pointer-events-none');
-//             if (backPatternWrapper) backPatternWrapper.classList.add('opacity-50', 'pointer-events-none');
-//         }
-
-//         const btnFront = document.getElementById('btn-edit-front');
-//         const btnBack = document.getElementById('btn-edit-back');
-//         if (editingSide === 'front') {
-//             btnFront.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-l text-xs font-medium transition-colors";
-//             btnBack.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 border-l-0 rounded-r text-xs font-medium hover:bg-gray-50 transition-colors";
-//         } else {
-//             btnFront.className = "px-2.5 py-1 bg-white text-gray-600 border border-gray-300 rounded-l text-xs font-medium hover:bg-gray-50 transition-colors";
-//             btnBack.className = "px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 border-l-0 rounded-r text-xs font-medium transition-colors";
-//         }
-
-//         document.getElementById('card-content').innerHTML = (editingSide === 'front') ? frontContentHTML : backContentHTML;
-//         document.getElementById('card-content').querySelectorAll('.element-container').forEach(e => {
-//             e.classList.remove('active', 'rotation-active', 'hide-controls', 'multi-select');
-//             e.removeAttribute('data-lasers');
-//             if (e.dataset.baselineZ !== undefined) {
-//                 e.style.zIndex = e.dataset.baselineZ;
-//                 delete e.dataset.baselineZ;
-//             }
-//         });
-        
-//         const frontSelect = document.getElementById('bg-select-front');
-//         const backSelect = document.getElementById('bg-select-back');
-//         if (frontSelect) frontSelect.value = frontBgClass;
-//         if (backSelect) backSelect.value = backBgClass;
-        
-//         updateCanvasSettings(true);
-
-//         document.querySelectorAll('.card-table').forEach(setupTableResizers);
-//         migrateTableCells();
-//         updateGhostLayer();
-//         updateAllCanvasImages();
-
-//         let maxZ = 100;
-//         document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
-//             let z = parseInt(el.style.zIndex) || 100;
-//             if (z > maxZ && z < 99999) maxZ = z;
-//         });
-//         zIndexCounter = maxZ + 1;
-
-//         updateUndoRedoUI();
-//         isRestoring = false;
-//     }
 
 function restoreState(state) {
         isRestoring = true;
@@ -5948,7 +5467,7 @@ function restoreState(state) {
                 if (el.dataset.mergeData) {
                     try {
                         const data = JSON.parse(el.dataset.mergeData);
-                        const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target) {
                             target.innerHTML = '';
                             target.style.position = 'relative';
@@ -6226,50 +5745,82 @@ function restoreState(state) {
         syncUISettingsWithActiveElement();
     }
 
-    function parseMarkdownInElement(el) {
+function parseMarkdownInElement(el, forcedText = null) {
         const container = el.closest('.element-container');
         const isMarkdownEnabled = container && container.dataset.markdown === 'true';
         const isHtmlEnabled = container && container.dataset.rawHtml === 'true';
 
-        let rawText = el.hasAttribute('data-template-raw') ? 
-            el.getAttribute('data-template-raw') : 
-            (el.hasAttribute('data-format-raw') ? el.getAttribute('data-format-raw') : (el.hasAttribute('data-markdown-raw') ? el.getAttribute('data-markdown-raw') : (el.innerText || el.textContent)));
+        let rawText = forcedText;
+
+        // Extract raw data if not explicitly fed from a loop
+        if (rawText === null) {
+            if (el.hasAttribute('data-template-raw')) {
+                rawText = renderTemplateString(el.getAttribute('data-template-raw'), typeof globalMergeIndex !== 'undefined' ? globalMergeIndex : 0);
+            } else if (el.hasAttribute('data-format-raw')) {
+                rawText = el.getAttribute('data-format-raw');
+            } else if (el.hasAttribute('data-markdown-raw')) {
+                rawText = el.getAttribute('data-markdown-raw');
+            } else {
+                // innerText reliably extracts raw newlines the user typed
+                rawText = el.innerText || el.textContent;
+            }
+        }
 
         if (isMarkdownEnabled && typeof marked !== 'undefined') {
             el.innerHTML = marked.parse(rawText, { breaks: true });
         } else if (isHtmlEnabled) {
             el.innerHTML = rawText;
         } else {
-            // Legacy Regex Fallback & Standard Text Formatting
-            const walk = (node) => {
-                if (node.nodeType === 3) {
-                    let text = node.nodeValue;
-                    if (/\*\*|__|[\*_]/.test(text)) {
-                        let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            //.replace(/\*\*([^\*]+)\*\*/g, '<b>$1</b>')
-                            //.replace(/__([^_]+)__/g, '<b>$1</b>')
-                            //.replace(/\*([^\*]+)\*/g, '<i>$1</i>')
-                            //.replace(/\b_([^_]+)_\b/g, '<i>$1</i>');
-
-                        if (html !== text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
-                            let temp = document.createElement('span');
-                            temp.innerHTML = html;
-                            while (temp.firstChild) {
-                                node.parentNode.insertBefore(temp.firstChild, node);
-                            }
-                            node.parentNode.removeChild(node);
-                        }
-                    }
-                } else if (node.nodeType === 1) {
-                    Array.from(node.childNodes).forEach(walk);
-                }
-            };
-            Array.from(el.childNodes).forEach(walk);
-            
-            // Apply standard linebreaks for legacy mode
+            // Strict Text Mode: Safely encode HTML tags as literal text, but preserve visual line breaks
+            el.textContent = rawText;
             el.innerHTML = el.innerHTML.replace(/\n/g, '<br>');
         }
     }
+
+    // function parseMarkdownInElement(el) {
+    //     const container = el.closest('.element-container');
+    //     const isMarkdownEnabled = container && container.dataset.markdown === 'true';
+    //     const isHtmlEnabled = container && container.dataset.rawHtml === 'true';
+
+    //     let rawText = el.hasAttribute('data-template-raw') ? 
+    //         el.getAttribute('data-template-raw') : 
+    //         (el.hasAttribute('data-format-raw') ? el.getAttribute('data-format-raw') : (el.hasAttribute('data-markdown-raw') ? el.getAttribute('data-markdown-raw') : (el.innerText || el.textContent)));
+
+    //     if (isMarkdownEnabled && typeof marked !== 'undefined') {
+    //         el.innerHTML = marked.parse(rawText, { breaks: true });
+    //     } else if (isHtmlEnabled) {
+    //         el.innerHTML = rawText;
+    //     } else {
+    //         // Legacy Regex Fallback & Standard Text Formatting
+    //         const walk = (node) => {
+    //             if (node.nodeType === 3) {
+    //                 let text = node.nodeValue;
+    //                 if (/\*\*|__|[\*_]/.test(text)) {
+    //                     let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    //                         //.replace(/\*\*([^\*]+)\*\*/g, '<b>$1</b>')
+    //                         //.replace(/__([^_]+)__/g, '<b>$1</b>')
+    //                         //.replace(/\*([^\*]+)\*/g, '<i>$1</i>')
+    //                         //.replace(/\b_([^_]+)_\b/g, '<i>$1</i>');
+
+    //                     if (html !== text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
+    //                         let temp = document.createElement('span');
+    //                         temp.innerHTML = html;
+    //                         while (temp.firstChild) {
+    //                             node.parentNode.insertBefore(temp.firstChild, node);
+    //                         }
+    //                         node.parentNode.removeChild(node);
+    //                     }
+    //                 }
+    //             } else if (node.nodeType === 1) {
+    //                 Array.from(node.childNodes).forEach(walk);
+    //             }
+    //         };
+    //         Array.from(el.childNodes).forEach(walk);
+            
+    //         // Apply standard linebreaks for legacy mode
+    //         el.innerHTML = el.innerHTML.replace(/\n/g, '<br>');
+    //     }
+    // }
 
     // function parseMarkdownInElement(el) {
     //     const walk = (node) => {
@@ -10355,746 +9906,6 @@ let pointerMoveRAF = null;
         });
     });
 
-//     document.addEventListener('pointermove', (e) => {
-//         if (activePointers.has(e.pointerId)) {
-//             //activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-//             const ptr = activePointers.get(e.pointerId);
-//             ptr.x = e.clientX;
-//             ptr.y = e.clientY;
-            
-//             // Cancel long-press if they dragged too far
-//             if (longPressTimer && (Math.abs(e.clientX - ptr.startX) > 5 || Math.abs(e.clientY - ptr.startY) > 5)) {
-//                 clearTimeout(longPressTimer);
-//                 longPressTimer = null;
-//             }
-//         }
-
-//         if (isPinching && activePointers.size === 2) {
-//             const pts = Array.from(activePointers.values());
-//             const newDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-//             const newCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-
-//             let newScale = initialPinchScale * (newDist / initialPinchDist);
-//             newScale = Math.max(0.1, Math.min(newScale, 10));
-
-//             const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-            
-//             const targetX = (initialPinchCenter.x - containerRect.left - initialPinchPan.x) / initialPinchScale;
-//             const targetY = (initialPinchCenter.y - containerRect.top - initialPinchPan.y) / initialPinchScale;
-
-//             panX = (newCenter.x - containerRect.left) - (targetX * newScale);
-//             panY = (newCenter.y - containerRect.top) - (targetY * newScale);
-//             canvasScale = newScale;
-
-//             applyCanvasTransform();
-//             e.preventDefault();
-//             return;
-//         }
-
-//         lastMouseX = e.clientX;
-//         lastMouseY = e.clientY;
-
-//         if (isPanning) {
-//             const dx = e.clientX - panStartX;
-//             const dy = e.clientY - panStartY;
-//             panX = initialPanX + dx;
-//             panY = initialPanY + dy;
-//             applyCanvasTransform();
-//             return;
-//         }
-
-//         if (isMarquee) {
-//             const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-//             const currentX = e.clientX - containerRect.left;
-//             const currentY = e.clientY - containerRect.top;
-
-//             const minX = Math.min(marqueeStartX, currentX);
-//             const minY = Math.min(marqueeStartY, currentY);
-//             const w = Math.abs(currentX - marqueeStartX);
-//             const h = Math.abs(currentY - marqueeStartY);
-
-//             const uiMarquee = document.getElementById('ui-marquee');
-//             uiMarquee.style.left = minX + 'px';
-//             uiMarquee.style.top = minY + 'px';
-//             uiMarquee.style.width = w + 'px';
-//             uiMarquee.style.height = h + 'px';
-//             return;
-//         }
-
-//         if (isDraggingLineHandle && resizeTargetResizer) {
-//             const el = resizeTargetResizer;
-//             const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-//             let targetX = (e.clientX - containerRect.left - panX) / canvasScale;
-//             let targetY = (e.clientY - containerRect.top - panY) / canvasScale;
-
-//             if (draggedLineHandle === 'b-start' || draggedLineHandle === 'b-end') {
-//                 const b = getAbsoluteBounds(el, 'bbox');
-//                 const rot = getRotation(el) * (Math.PI / 180);
-//                 const cx = b.x + b.w / 2;
-//                 const cy = b.y + b.h / 2;
-                
-//                 const dx_c = targetX - cx;
-//                 const dy_c = targetY - cy;
-                
-//                 const localDx = dx_c * Math.cos(-rot) - dy_c * Math.sin(-rot);
-//                 const localDy = dx_c * Math.sin(-rot) + dy_c * Math.cos(-rot);
-                
-//                 const scaleX = el.dataset.flipX === 'true' ? -1 : 1;
-//                 const scaleY = el.dataset.flipY === 'true' ? -1 : 1;
-                
-//                 const localX = b.w / 2 + (localDx * scaleX);
-//                 const localY = b.h / 2 + (localDy * scaleY);
-                
-//                 const swVal = parseFloat(el.dataset.strokeWidth || '2');
-//                 const mStart = el.dataset.markerStart || 'none';
-//                 const mEnd = el.dataset.markerEnd || 'none';
-//                 const pad = swVal / 2;
-//                 const flip = el.dataset.flip === 'true';
-//                 const invert = el.dataset.invert === 'true';
-                
-//                 let x1, y1, x2, y2;
-//                 if (!flip) {
-//                     x1 = pad; y1 = pad;
-//                     x2 = Math.max(pad, b.w - pad); y2 = Math.max(pad, b.h - pad);
-//                 } else {
-//                     x1 = pad; y1 = Math.max(pad, b.h - pad);
-//                     x2 = Math.max(pad, b.w - pad); y2 = pad;
-//                 }
-//                 if (invert) {
-//                     let tx = x1; x1 = x2; x2 = tx;
-//                     let ty = y1; y1 = y2; y2 = ty;
-//                 }
-                
-//                 if (draggedLineHandle === 'b-start') {
-//                     el.dataset.cp1dx = localX - x1;
-//                     el.dataset.cp1dy = localY - y1;
-//                 } else {
-//                     el.dataset.cp2dx = localX - x2;
-//                     el.dataset.cp2dy = localY - y2;
-//                 }
-                
-//                 drawShape(el);
-//                 if (typeof updateUILayer === 'function') updateUILayer();
-//                 e.preventDefault();
-//                 e.stopPropagation();
-//                 return;
-//             }
-
-//             const snappingEnabled = document.getElementById('enable-snapping')?.checked !== false;
-//             activeSnapLines = { x: null, y: null };
-            
-//             if (snappingEnabled && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-//                 let snapRadius = 6 / canvasScale;
-//                 let minDiffX = snapRadius;
-//                 let minDiffY = snapRadius;
-                
-//                 dragSnapTargets.x.forEach(tx => {
-//                     let diff = Math.abs(tx - targetX);
-//                     if (diff < minDiffX) {
-//                         minDiffX = diff;
-//                         targetX = tx;
-//                         activeSnapLines.x = tx;
-//                     }
-//                 });
-                
-//                 dragSnapTargets.y.forEach(ty => {
-//                     let diff = Math.abs(ty - targetY);
-//                     if (diff < minDiffY) {
-//                         minDiffY = diff;
-//                         targetY = ty;
-//                         activeSnapLines.y = ty;
-//                     }
-//                 });
-//             }
-
-//             if (e.shiftKey) {
-//                 const otherAnchor = draggedLineHandle === 'start' ? lineAnchorEnd : lineAnchorStart;
-//                 const dx = targetX - otherAnchor.x;
-//                 const dy = targetY - otherAnchor.y;
-//                 const angle = Math.atan2(dy, dx);
-//                 const dist = Math.sqrt(dx * dx + dy * dy);
-//                 const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-//                 targetX = otherAnchor.x + dist * Math.cos(snapAngle);
-//                 targetY = otherAnchor.y + dist * Math.sin(snapAngle);
-//             }
-
-//             let curStart = { ...lineAnchorStart };
-//             let curEnd = { ...lineAnchorEnd };
-            
-//             if (draggedLineHandle === 'start') {
-//                 curStart = { x: targetX, y: targetY };
-//                 lineAnchorStart = curStart;
-//             } else {
-//                 curEnd = { x: targetX, y: targetY };
-//                 lineAnchorEnd = curEnd;
-//             }
-
-//             const swVal = parseFloat(el.dataset.strokeWidth || '2');
-//             const mStart = el.dataset.markerStart || 'none';
-//             const mEnd = el.dataset.markerEnd || 'none';
-//             const pad = swVal / 2;
-
-//             let minX = Math.min(curStart.x, curEnd.x);
-//             let minY = Math.min(curStart.y, curEnd.y);
-//             let newW = Math.abs(curEnd.x - curStart.x) + pad * 2;
-//             let newH = Math.abs(curEnd.y - curStart.y) + pad * 2;
-
-//             if (newW < pad * 2) newW = pad * 2;
-//             if (newH < pad * 2) newH = pad * 2;
-
-//             const dx = curEnd.x - curStart.x;
-//             const dy = curEnd.y - curStart.y;
-            
-//             const eps = 0.001;
-//             let isFlip = false, isInvert = false;
-//             if (dx >= -eps && dy >= -eps) { isFlip = false; isInvert = false; }
-//             else if (dx <= eps && dy <= eps) { isFlip = false; isInvert = true; }
-//             else if (dx >= -eps && dy <= eps) { isFlip = true; isInvert = false; }
-//             else { isFlip = true; isInvert = true; }
-
-//             setAbsolutePosition(el, minX - pad, minY - pad);
-//             el.dataset.flip = isFlip ? 'true' : 'false';
-//             el.dataset.invert = isInvert ? 'true' : 'false';
-
-//             const res = el.querySelector('.resizable');
-//             if (res) {
-//                 res.style.width = newW + 'px';
-//                 res.style.height = newH + 'px';
-//             }
-//             drawShape(el);
-            
-//             if (typeof updateUILayer === 'function') updateUILayer();
-//             e.preventDefault();
-//             e.stopPropagation();
-//             return;
-//         }
-
-//         // Resizing Event Logic
-//         if (isResizingContainer && resizeTargetResizer) {
-//             let dx = (e.clientX - resizeStartX) / canvasScale;
-//             let dy = (e.clientY - resizeStartY) / canvasScale;
-
-//             if (resizeTargetResizer === 'multi') {
-//                 let newW = resizeStartW;
-//                 let newH = resizeStartH;
-//                 if (resizeDir.includes('e')) newW += dx;
-//                 if (resizeDir.includes('w')) newW -= dx;
-//                 if (resizeDir.includes('s')) newH += dy;
-//                 if (resizeDir.includes('n')) newH -= dy;
-
-//                 if (e.shiftKey && resizeAspect) {
-//                     if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * resizeAspect) {
-//                         newH = (newH < 0 ? -1 : 1) * Math.abs(newW / resizeAspect);
-//                     } else {
-//                         newW = (newW < 0 ? -1 : 1) * Math.abs(newH * resizeAspect);
-//                     }
-//                 }
-
-//                 let isFlippedX = newW < 0;
-//                 let isFlippedY = newH < 0;
-                
-//                 newW = Math.abs(newW);
-//                 newH = Math.abs(newH);
-
-//                 if (newW < 1) { 
-//                     newW = 1; 
-//                     if (e.shiftKey && resizeAspect) newH = newW / resizeAspect; 
-//                 }
-//                 if (newH < 1) { 
-//                     newH = 1; 
-//                     if (e.shiftKey && resizeAspect) newW = newH * resizeAspect; 
-//                 }
-
-//                 let signX = isFlippedX ? -1 : 1;
-//                 let signY = isFlippedY ? -1 : 1;
-
-//                 let deltaCx_local = 0;
-//                 let deltaCy_local = 0;
-                
-//                 if (resizeDir.includes('e')) deltaCx_local = (newW * signX - resizeStartW) / 2;
-//                 if (resizeDir.includes('w')) deltaCx_local = -(newW * signX - resizeStartW) / 2;
-//                 if (resizeDir.includes('s')) deltaCy_local = (newH * signY - resizeStartH) / 2;
-//                 if (resizeDir.includes('n')) deltaCy_local = -(newH * signY - resizeStartH) / 2;
-
-//                 const Cx0 = window.multiResizeInitBox.x + resizeStartW / 2;
-//                 const Cy0 = window.multiResizeInitBox.y + resizeStartH / 2;
-                
-//                 let newX = (Cx0 + deltaCx_local) - newW / 2;
-//                 let newY = (Cy0 + deltaCy_local) - newH / 2;
-
-//                 let pxPerUnit = getPxPerUnit();
-//                 document.getElementById('layout-w').value = newW / pxPerUnit;
-//                 document.getElementById('layout-h').value = newH / pxPerUnit;
-//                 document.getElementById('layout-x').value = newX / pxPerUnit;
-//                 document.getElementById('layout-y').value = newY / pxPerUnit;
-
-//                 applyLayoutFromInputs(undefined, true, isFlippedX, isFlippedY);
-//                 return;
-//             }
-
-//             const el = resizeTargetResizer;
-//             const rot = getRotation(el) * (Math.PI / 180);
-            
-//             const startFlipX = el.dataset.startFlipX === 'true' ? -1 : 1;
-//             const startFlipY = el.dataset.startFlipY === 'true' ? -1 : 1;
-
-//             let localDx = (dx * Math.cos(-rot) - dy * Math.sin(-rot)) * startFlipX;
-//             let localDy = (dx * Math.sin(-rot) + dy * Math.cos(-rot)) * startFlipY;
-
-// // Scale mouse drag delta for lines/curves so structural box scales properly
-//             let unionL = 0, unionR = resizeStartW, unionT = 0, unionB = resizeStartH;
-//             let isVisualShape = el.dataset.type === 'shape';
-
-//             if (isVisualShape) {
-//                 const visX = parseFloat(el.dataset.initVisX) || 0;
-//                 const visY = parseFloat(el.dataset.initVisY) || 0;
-//                 const visW = parseFloat(el.dataset.initVisW) || resizeStartW;
-//                 const visH = parseFloat(el.dataset.initVisH) || resizeStartH;
-                
-//                 unionL = Math.min(0, visX);
-//                 unionR = Math.max(resizeStartW, visX + visW);
-//                 unionT = Math.min(0, visY);
-//                 unionB = Math.max(resizeStartH, visY + visH);
-                
-//                 const unionW = unionR - unionL;
-//                 const unionH = unionB - unionT;
-                
-//                 let scaleX = unionW !== 0 ? resizeStartW / unionW : 1;
-//                 let scaleY = unionH !== 0 ? resizeStartH / unionH : 1;
-                
-//                 localDx *= Math.max(0.01, Math.min(scaleX, 100));
-//                 localDy *= Math.max(0.01, Math.min(scaleY, 100));
-//             }
-//             let newW = resizeStartW;
-//             let newH = resizeStartH;
-
-//             // 1. Calculate raw dimensions based on mouse pull
-//             if (resizeDir.includes('e')) newW += localDx;
-//             if (resizeDir.includes('w')) newW -= localDx;
-//             if (resizeDir.includes('s')) newH += localDy;
-//             if (resizeDir.includes('n')) newH -= localDy;
-
-//             activeSnapLines = { x: null, y: null };
-//             const snappingEnabled = document.getElementById('enable-resize-snapping')?.checked !== false;
-
-//             // Only apply boundary snapping if there is NO rotation
-//             if (rot === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-//                 let snapRadius = 6 / canvasScale;
-//                 const initLeft = parseFloat(el.dataset.initLeft);
-//                 const initTop = parseFloat(el.dataset.initTop);
-
-//                 // X-axis snapping
-//                 if (resizeDir.includes('e') || resizeDir.includes('w')) {
-//                     let movingEdgeX = resizeDir.includes('e') ? initLeft + newW : initLeft + resizeStartW - newW;
-//                     let minDiffX = snapRadius;
-//                     let snappedEdgeX = movingEdgeX;
-
-//                     dragSnapTargets.x.forEach(tx => {
-//                         let diff = Math.abs(tx - movingEdgeX);
-//                         if (diff < minDiffX) {
-//                             minDiffX = diff;
-//                             snappedEdgeX = tx;
-//                             activeSnapLines.x = tx; 
-//                         }
-//                     });
-
-//                     if (snappingEnabled && minDiffX < snapRadius) {
-//                         if (resizeDir.includes('e')) newW = snappedEdgeX - initLeft;
-//                         if (resizeDir.includes('w')) newW = initLeft + resizeStartW - snappedEdgeX;
-//                     }
-//                 }
-
-//                 // Y-axis snapping
-//                 if (resizeDir.includes('s') || resizeDir.includes('n')) {
-//                     let movingEdgeY = resizeDir.includes('s') ? initTop + newH : initTop + resizeStartH - newH;
-//                     let minDiffY = snapRadius;
-//                     let snappedEdgeY = movingEdgeY;
-
-//                     dragSnapTargets.y.forEach(ty => {
-//                         let diff = Math.abs(ty - movingEdgeY);
-//                         if (diff < minDiffY) {
-//                             minDiffY = diff;
-//                             snappedEdgeY = ty;
-//                             activeSnapLines.y = ty; 
-//                         }
-//                     });
-
-//                     if (snappingEnabled && minDiffY < snapRadius) {
-//                         if (resizeDir.includes('s')) newH = snappedEdgeY - initTop;
-//                         if (resizeDir.includes('n')) newH = initTop + resizeStartH - snappedEdgeY;
-//                     }
-//                 }
-//             }
-
-//             // 2. Force proportional aspect ratio
-//             let forceAspect = e.shiftKey;
-//             let currentAspect = resizeAspect; 
-            
-//             if (el.dataset.type === 'image') {
-//                 const fit = el.dataset.objectFit || 'contain';
-//                 if ((fit === 'contain' || fit === 'none') && resizeDir.length === 2) {
-//                     forceAspect = true;
-//                     const img = el.querySelector('img');
-//                     if (img && img.naturalWidth && img.naturalHeight) {
-//                         currentAspect = img.naturalWidth / img.naturalHeight;
-//                     }
-//                 }
-//             } else if (el.dataset.type === 'shape') {
-//                 if (e.shiftKey) currentAspect = 1; 
-//             }
-
-//             if (forceAspect && currentAspect) {
-//                 if (Math.abs(newW - resizeStartW) > Math.abs(newH - resizeStartH) * currentAspect) {
-//                     newH = (newH < 0 ? -1 : 1) * Math.abs(newW / currentAspect);
-//                 } else {
-//                     newW = (newW < 0 ? -1 : 1) * Math.abs(newH * currentAspect);
-//                 }
-//             }
-
-//             let isFlippedX = newW < 0;
-//             let isFlippedY = newH < 0;
-            
-//             newW = Math.abs(newW);
-//             newH = Math.abs(newH);
-
-//             el.dataset.flipX = (startFlipX === -1) !== isFlippedX ? 'true' : 'false';
-//             el.dataset.flipY = (startFlipY === -1) !== isFlippedY ? 'true' : 'false';
-
-//             // 3. Enforce minimum size boundaries cleanly
-//             let minDimBase = 5;
-//             if (el.dataset.type === 'shape' && (el.dataset.shape === 'line' || el.dataset.shape === 'curve')) {
-//                 const swVal = parseFloat(el.dataset.strokeWidth || '2');
-//                 minDimBase = swVal;
-//                 const mStart = el.dataset.markerStart || 'none';
-//                 const mEnd = el.dataset.markerEnd || 'none';
-//                 minDimBase = (mStart !== 'none' || mEnd !== 'none') ? swVal * 8 : swVal;
-//             }
-
-//             if (newW < minDimBase) { 
-//                 newW = minDimBase; 
-//                 if (forceAspect && currentAspect) newH = newW / currentAspect; 
-//             }
-//             if (newH < minDimBase) { 
-//                 newH = minDimBase; 
-//                 if (forceAspect && currentAspect) newW = newH * currentAspect; 
-//             }
-
-//             // 4. Pivot Math: Calculate exact new left/top based on center shift
-//             let deltaCx_local = 0;
-//             let deltaCy_local = 0;
-            
-//             let signX = isFlippedX ? -1 : 1;
-//             let signY = isFlippedY ? -1 : 1;
-            
-//             if (resizeDir.includes('e')) deltaCx_local = (newW * signX - resizeStartW) / 2;
-//             if (resizeDir.includes('w')) deltaCx_local = -(newW * signX - resizeStartW) / 2;
-//             if (resizeDir.includes('s')) deltaCy_local = (newH * signY - resizeStartH) / 2;
-//             if (resizeDir.includes('n')) deltaCy_local = -(newH * signY - resizeStartH) / 2;
-
-//             if (isVisualShape) {
-//                 const sX = newW / resizeStartW;
-//                 const sY = newH / resizeStartH;
-                
-//                 // Push the element backwards to neutralize visual overflow scaling
-//                 if (resizeDir.includes('e')) deltaCx_local += -unionL * (sX - 1);
-//                 if (resizeDir.includes('w')) deltaCx_local += -(unionR - resizeStartW) * (sX - 1);
-//                 if (resizeDir.includes('s')) deltaCy_local += -unionT * (sY - 1);
-//                 if (resizeDir.includes('n')) deltaCy_local += -(unionB - resizeStartH) * (sY - 1);
-//             }
- 
-
-//             deltaCx_local *= startFlipX;
-//             deltaCy_local *= startFlipY;
-
-//             const deltaCx_parent = deltaCx_local * Math.cos(rot) - deltaCy_local * Math.sin(rot);
-//             const deltaCy_parent = deltaCx_local * Math.sin(rot) + deltaCy_local * Math.cos(rot);
-
-//             const initLeft = parseFloat(el.dataset.initLeft);
-//             const initTop = parseFloat(el.dataset.initTop);
-            
-//             const Cx0 = initLeft + resizeStartW / 2;
-//             const Cy0 = initTop + resizeStartH / 2;
-            
-//             const newX = (Cx0 + deltaCx_parent) - newW / 2;
-//             const newY = (Cy0 + deltaCy_parent) - newH / 2;
-
-//             // 5. Apply directly to DOM
-//             el.style.left = newX + 'px';
-//             el.style.top = newY + 'px';
-            
-//             let tStr = `rotate(${rot * (180/Math.PI)}deg)`;
-//             if (el.dataset.flipX === 'true') tStr += ` scaleX(-1)`;
-//             if (el.dataset.flipY === 'true') tStr += ` scaleY(-1)`;
-//             el.style.transform = tStr;
-            
-//             const resizable = el.dataset.type === 'group' ? null : el.querySelector('.resizable');
-//             if (resizable) {
-//                 if (el.dataset.shape === 'curve') {
-//                     const sX = newW / resizeStartW;
-//                     const sY = newH / resizeStartH;
-//                     el.dataset.cp1dx = parseFloat(el.dataset.initCp1dx || 0) * sX;
-//                     el.dataset.cp1dy = parseFloat(el.dataset.initCp1dy || 0) * sY;
-//                     el.dataset.cp2dx = parseFloat(el.dataset.initCp2dx || 0) * sX;
-//                     el.dataset.cp2dy = parseFloat(el.dataset.initCp2dy || 0) * sY;
-//                 }
-//                 resizable.style.width = newW + 'px';
-//                 resizable.style.height = newH + 'px';
-//             } else {
-//                 el.style.width = newW + 'px';
-//                 el.style.height = newH + 'px';
-                
-//                 // 6. Support recursive sizing for Active Groups
-//                 if (el.dataset.type === 'group') {
-//                     const sX = newW / resizeStartW;
-//                     const sY = newH / resizeStartH;
-                    
-//                     const scaleGroupContents = (group, scaleX, scaleY) => {
-//                         const children = Array.from(group.querySelectorAll(':scope > .element-container'));
-//                         children.forEach(child => {
-//                             child.style.left = ((parseFloat(child.dataset.initGroupLeft) || parseFloat(child.style.left) || 0) * scaleX) + 'px';
-//                             child.style.top = ((parseFloat(child.dataset.initGroupTop) || parseFloat(child.style.top) || 0) * scaleY) + 'px';
-
-//                             if (child.dataset.type === 'group') {
-//                                 child.style.width = ((parseFloat(child.dataset.initGroupW) || parseFloat(child.style.width) || 0) * scaleX) + 'px';
-//                                 child.style.height = ((parseFloat(child.dataset.initGroupH) || parseFloat(child.style.height) || 0) * scaleY) + 'px';
-//                                 scaleGroupContents(child, scaleX, scaleY);
-//                             } else {
-//                                 const res = child.querySelector('.resizable');
-//                                 if (res) {
-//                                     res.style.width = ((parseFloat(child.dataset.initGroupW) || res.offsetWidth) * scaleX) + 'px';
-//                                     res.style.height = ((parseFloat(child.dataset.initGroupH) || res.offsetHeight) * scaleY) + 'px';
-//                                 }
-//                             }
-//                             if (child.dataset.shape === 'curve') {
-//                                 child.dataset.cp1dx = parseFloat(child.dataset.initCp1dx || child.dataset.cp1dx || 0) * sX;
-//                                 child.dataset.cp1dy = parseFloat(child.dataset.initCp1dy || child.dataset.cp1dy || 0) * sY;
-//                                 child.dataset.cp2dx = parseFloat(child.dataset.initCp2dx || child.dataset.cp2dx || 0) * sX;
-//                                 child.dataset.cp2dy = parseFloat(child.dataset.initCp2dy || child.dataset.cp2dy || 0) * sY;
-//                             }
-//                         });
-//                     };
-                    
-//                     // Capture initial sizes of nested elements on the very first drag pixel
-//                     if (!el.dataset.initGroupW) {
-//                         const captureState = (group) => {
-//                             group.querySelectorAll(':scope > .element-container').forEach(child => {
-//                                 child.dataset.initGroupLeft = parseFloat(child.style.left) || 0;
-//                                 child.dataset.initGroupTop = parseFloat(child.style.top) || 0;
-//                                 if (child.dataset.type === 'group') {
-//                                     child.dataset.initGroupW = parseFloat(child.style.width) || 0;
-//                                     child.dataset.initGroupH = parseFloat(child.style.height) || 0;
-//                                     captureState(child);
-//                                 } else if (child.dataset.shape === 'curve') {
-//                                     const res = child.querySelector('.resizable');
-//                                     child.dataset.initCp1dx = child.dataset.cp1dx;
-//                                     child.dataset.initCp1dy = child.dataset.cp1dy;
-//                                     child.dataset.initCp2dx = child.dataset.cp2dx;
-//                                     child.dataset.initCp2dy = child.dataset.cp2dy;
-//                                     if (res) {
-//                                         child.dataset.initGroupW = res.offsetWidth;
-//                                         child.dataset.initGroupH = res.offsetHeight;
-//                                     }
-//                                 } else {
-//                                     const res = child.querySelector('.resizable');
-//                                     if (res) {
-//                                         child.dataset.initGroupW = res.offsetWidth;
-//                                         child.dataset.initGroupH = res.offsetHeight;
-//                                     }
-//                                 }
-//                             });
-//                         };
-//                         captureState(el);
-//                         el.dataset.initGroupW = "true";
-//                     }
-                    
-//                     scaleGroupContents(el, sX, sY);
-//                 }
-//             }
-
-//             // Sync layout inputs and visually update
-//             updateLayoutInputs(e.ctrlKey || e.metaKey ? 4 : 2);
-//             if (el.dataset.type === 'shape') drawShape(el);
-//             if (typeof updateUILayer === 'function') updateUILayer();
-            
-//             return;
-//         }
-
-//         // Rotation Event Logic
-//             if (isRotating && initialRotateStates.length > 0) {
-//                 const currentAngle = Math.atan2(e.clientY - rotateCenter.y, e.clientX - rotateCenter.x);
-//                 let deltaAngle = (currentAngle - rotateStartAngle) * (180 / Math.PI);
-                
-//                 // Snap to 15-degree increments when shift is held
-//                 if (e.shiftKey) {
-//                     deltaAngle = Math.round(deltaAngle / 15) * 15;
-//                 }
-
-//                 // Math for Orbital Revolution
-//                 const deltaAngleRad = deltaAngle * (Math.PI / 180);
-//                 const cosA = Math.cos(deltaAngleRad);
-//                 const sinA = Math.sin(deltaAngleRad);
-
-//                 initialRotateStates.forEach(state => {
-//                     // 1. Rotate the element visually in place while preserving flips
-//                     let newRotation = state.initRot + deltaAngle;
-//                     newRotation = ((newRotation % 360) + 360) % 360;
-                    
-//                     let flipX = state.el.dataset.flipX === 'true';
-//                     let flipY = state.el.dataset.flipY === 'true';
-//                     let tStr = `rotate(${newRotation}deg)`;
-//                     if (flipX) tStr += ` scaleX(-1)`;
-//                     if (flipY) tStr += ` scaleY(-1)`;
-                    
-//                     state.el.style.transform = tStr;
-
-//                     // 2. Orbit multiple items around the central group pivot
-//                     if (initialRotateStates.length > 1) {
-//                         const dx = state.initAbsCx - rotateGroupCenter.x;
-//                         const dy = state.initAbsCy - rotateGroupCenter.y;
-
-//                         const rotatedDx = dx * cosA - dy * sinA;
-//                         const rotatedDy = dx * sinA + dy * cosA;
-
-//                         const newAbsCx = rotateGroupCenter.x + rotatedDx;
-//                         const newAbsCy = rotateGroupCenter.y + rotatedDy;
-
-//                         // Recalculate Top/Left from new center point
-//                         const newAbsX = newAbsCx - state.initW / 2;
-//                         const newAbsY = newAbsCy - state.initH / 2;
-
-//                         setAbsolutePosition(state.el, newAbsX, newAbsY);
-//                     }
-//                 });
-                
-//                 // Update UI Layout Rotation field for visual feedback
-//                 const ir = document.getElementById('layout-rot');
-//                 if (ir && document.activeElement !== ir && initialRotateStates.length > 0) {
-//                     let newRot = initialRotateStates[0].initRot + deltaAngle;
-//                     newRot = ((newRot % 360) + 360) % 360;
-//                     ir.value = +(newRot).toFixed(1);
-//                 }
-                
-//                 if (typeof updateUILayer === 'function') updateUILayer();
-//                 return;
-//             }
-
-//         if (isDraggingPopover && draggedPopover) {
-//             // Absolute screen distance moved
-//             const dx = e.clientX - popoverDragStartX;
-//             const dy = e.clientY - popoverDragStartY;
-
-//             // Start offsets (in raw screen pixels)
-//             const startX = parseFloat(draggedPopover.dataset.startOffsetX) || 0;
-//             const startY = parseFloat(draggedPopover.dataset.startOffsetY) || 0;
-
-//             const newOffsetX = startX + dx;
-//             const newOffsetY = startY + dy;
-
-//             draggedPopover.dataset.offsetX = newOffsetX;
-//             draggedPopover.dataset.offsetY = newOffsetY;
-
-//             window.toolbarOffsets = window.toolbarOffsets || {};
-            
-//             if (draggedPopover.id === 'multi-select-controls') {
-//                 const selectionKey = activeElements.map(el => el.id).sort().join(',');
-//                 window.toolbarOffsets[selectionKey] = { x: newOffsetX, y: newOffsetY };
-//                 if (typeof updateUILayer === 'function') updateUILayer();
-//             } else {
-//                 // Find the parent element ID for the dictionary
-//                 const parentEl = draggedPopover.closest('.element-container');
-//                 if (parentEl) {
-//                     window.toolbarOffsets[parentEl.id] = { x: newOffsetX, y: newOffsetY };
-//                 }
-                
-//                 // Keep the toolbar visually locked in place by scaling the internal offset
-//                 draggedPopover.style.marginLeft = `${newOffsetX / canvasScale}px`;
-//                 draggedPopover.style.marginTop = `${newOffsetY / canvasScale}px`;
-//             }
-//             return;
-//         }
-
-//             // --- DRAG EVENT LOGIC ---
-//         if (!isDragging || initialDragStates.length === 0) return;
-        
-//         let dx = (e.clientX - startX) / canvasScale;
-//         let dy = (e.clientY - startY) / canvasScale;
-//         let precision = 2;
-        
-//         if (e.ctrlKey || e.metaKey) { dx *= 0.1; dy *= 0.1; precision = 4; }
-
-//         activeSnapLines = { x: null, y: null };
-        
-//         const snappingEnabled = document.getElementById('enable-snapping')?.checked !== false;
-        
-//         // Always calculate guides to show lasers, but ignore if holding modifiers
-//         if (!e.ctrlKey && !e.metaKey && !e.shiftKey && initialDragBB) {
-//             let projectedX = initialDragBB.x + dx;
-//             let projectedY = initialDragBB.y + dy;
-//             let projEdgesX = [projectedX, projectedX + initialDragBB.w, projectedX + initialDragBB.w/2];
-//             let projEdgesY = [projectedY, projectedY + initialDragBB.h, projectedY + initialDragBB.h/2];
-            
-//             let snapDx = dx;
-//             let snapDy = dy;
-//             let snapRadius = 6 / canvasScale;
-//             let minDiffX = snapRadius;
-//             let minDiffY = snapRadius;
-            
-//             dragSnapTargets.x.forEach(tx => {
-//                 projEdgesX.forEach((px, i) => {
-//                     let diff = Math.abs(tx - px);
-//                     if (diff < minDiffX) {
-//                         minDiffX = diff;
-//                         activeSnapLines.x = tx; // Always show the laser if close enough
-//                         if (i === 0) snapDx = tx - initialDragBB.x;
-//                         else if (i === 1) snapDx = tx - initialDragBB.w - initialDragBB.x;
-//                         else if (i === 2) snapDx = tx - initialDragBB.w/2 - initialDragBB.x;
-//                     }
-//                 });
-//             });
-            
-//             dragSnapTargets.y.forEach(ty => {
-//                 projEdgesY.forEach((py, i) => {
-//                     let diff = Math.abs(ty - py);
-//                     if (diff < minDiffY) {
-//                         minDiffY = diff;
-//                         activeSnapLines.y = ty; // Always show the laser if close enough
-//                         if (i === 0) snapDy = ty - initialDragBB.y;
-//                         else if (i === 1) snapDy = ty - initialDragBB.h - initialDragBB.y;
-//                         else if (i === 2) snapDy = ty - initialDragBB.h/2 - initialDragBB.y;
-//                     }
-//                 });
-//             });
-            
-//             // Only apply the physical snap offset if enabled
-//             if (snappingEnabled) {
-//                 dx = snapDx;
-//                 dy = snapDy;
-//             }
-//         }
-
-//         if (e.shiftKey) {
-//             const angle = Math.atan2(dy, dx);
-//             const dist = Math.sqrt(dx * dx + dy * dy);
-//             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-//             dx = dist * Math.cos(snapAngle);
-//             dy = dist * Math.sin(snapAngle);
-//         }
-        
-//         initialDragStates.forEach(state => {
-//             let newX = state.absX + dx;
-//             let newY = state.absY + dy;
-//             if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-//                 newX = Math.round(newX * 100) / 100;
-//                 newY = Math.round(newY * 100) / 100;
-//             }
-//             setAbsolutePosition(state.el, newX, newY);
-//         });
-        
-//         updateLayoutInputs(precision);
-//         if (typeof updateUILayer === 'function') updateUILayer();
-//             });
-
     document.addEventListener('pointerup', (e) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
 
@@ -12348,9 +11159,8 @@ window.showPluginHelp = function(id) {
 
         const processTemplates = (container) => {
             container.querySelectorAll('[data-template-raw]').forEach(el => {
-                el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
-                // After templates merge down, re-run simple markdown processing over the DOM nodes securely
-                parseMarkdownInElement(el); 
+                const rendered = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
+                parseMarkdownInElement(el, rendered); 
             });
         };
 
@@ -12375,6 +11185,57 @@ window.showPluginHelp = function(id) {
         updateMergeUI();
         clearVirtualGridCache();
     }
+
+    // function applyMergePreview() {
+    //     let maxRows = 0;
+    //     const elements = document.getElementById('card-content').querySelectorAll('.element-container');
+    //     elements.forEach(el => {
+    //         if (el.dataset.mergeData) {
+    //             try {
+    //                 const data = JSON.parse(el.dataset.mergeData);
+    //                 if (data.length > maxRows) maxRows = data.length;
+    //             } catch (e) {}
+    //         }
+    //     });
+    //     Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxRows) maxRows = p.minRecords; });
+
+    //     if (maxRows > 0) {
+    //         if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
+    //         if (globalMergeIndex < 0) globalMergeIndex = 0;
+    //     } else {
+    //         globalMergeIndex = 0;
+    //     }
+
+    //     elements.forEach(el => {
+    //         if (el.dataset.mergeData) {
+    //             try {
+    //                 const data = JSON.parse(el.dataset.mergeData);
+    //                 const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
+                    
+    //                 if (el.dataset.type === 'image') {
+    //                     updateImageElementDisplay(el, val);
+    //                 } else {
+    //                     const target = el.querySelector('div[contenteditable="true"]');
+    //                     if (target) {
+    //                         parseMarkdownInElement(target, val);
+    //                     }
+    //                 }
+    //             } catch (e) {}
+    //         }
+    //     });
+    //     const cardContent = document.getElementById('card-content');
+    //     const ctx = getPluginContext(globalMergeIndex, cardContent);
+    //     Object.values(pluginInstances).forEach(inst => {
+    //         if (typeof inst.render === 'function') {
+    //             try { inst.render(cardContent, ctx); } catch(e) { console.error("Plugin render error", e); }
+    //         }
+    //     });
+
+    //     updateMergeUI();
+    //     updateAllCanvasImages(); // Forces plugins to recalculate when scrubbing!
+    //     if (typeof updateUILayer === 'function') updateUILayer();
+    //     queueWorkspaceGridUpdate();
+    // }
 
     function applyMergePreview() {
         let maxRows = 0;
@@ -12405,15 +11266,30 @@ window.showPluginHelp = function(id) {
                     if (el.dataset.type === 'image') {
                         updateImageElementDisplay(el, val);
                     } else {
-                        const target = el.querySelector('div[contenteditable="true"]');
-                        if (target) {
-                            target.textContent = val;
-                            parseMarkdownInElement(target);
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                        // Safely skip rendering if the user is actively typing inside this specific box
+                        if (target && document.activeElement !== target) {
+                            parseMarkdownInElement(target, val);
                         }
                     }
                 } catch (e) {}
+            } else {
+                // Ensure non-merged, static text elements also render their MD/HTML formats on load
+                if (el.dataset.type === 'text' || el.dataset.type === 'title') {
+                    const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
+                    if (target && document.activeElement !== target) {
+                        parseMarkdownInElement(target);
+                    }
+                } else if (el.dataset.type === 'table') {
+                    el.querySelectorAll('.cell-text, .qcd-text-format-target').forEach(target => {
+                        if (document.activeElement !== target) {
+                            parseMarkdownInElement(target);
+                        }
+                    });
+                }
             }
         });
+
         const cardContent = document.getElementById('card-content');
         const ctx = getPluginContext(globalMergeIndex, cardContent);
         Object.values(pluginInstances).forEach(inst => {
@@ -14412,8 +13288,7 @@ document.querySelectorAll('style').forEach(s => {
                     } else {
                         const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                         if (target && !target.hasAttribute('data-template-raw')) {
-                            target.textContent = val;
-                            parseMarkdownInElement(target);
+                            parseMarkdownInElement(target, val);
                         }
                     }
                 } catch (e) {}
@@ -14434,8 +13309,8 @@ document.querySelectorAll('style').forEach(s => {
         await Promise.all(imagePromises);
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
-            el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
-            parseMarkdownInElement(el);
+            const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+            parseMarkdownInElement(el, rendered);
         });
 
         const ctx = getPluginContext(globalMergeIndex, temp);
@@ -14498,66 +13373,6 @@ document.querySelectorAll('style').forEach(s => {
         }
     }
 
-    // function generateMarksSVG(cols, rows, printStartX, printStartY, totalCardWin, totalCardHin, gapXIn, gapYIn, paperW, paperH, printCropMarks, printInternalMarks, strokeColor) {
-    //     let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
-    //     const cmLen = 0.25;
-    //     const cmOff = 0.00;
-    //     const strokeWidth = "0.5px";
-    //     const dotRadius = "1px";
-
-    //     // Calculate unique coordinates to prevent overlapping strokes
-    //     let xCoordsMap = new Map();
-    //     for (let c = 0; c < cols; c++) {
-    //         let leftX = printStartX + c * (totalCardWin + gapXIn);
-    //         let rightX = leftX + totalCardWin;
-    //         xCoordsMap.set(leftX.toFixed(4), leftX);
-    //         xCoordsMap.set(rightX.toFixed(4), rightX);
-    //     }
-    //     let uniqueXs = Array.from(xCoordsMap.values());
-
-    //     let yCoordsMap = new Map();
-    //     for (let r = 0; r < rows; r++) {
-    //         let topY = printStartY + r * (totalCardHin + gapYIn);
-    //         let bottomY = topY + totalCardHin;
-    //         yCoordsMap.set(topY.toFixed(4), topY);
-    //         yCoordsMap.set(bottomY.toFixed(4), bottomY);
-    //     }
-    //     let uniqueYs = Array.from(yCoordsMap.values());
-
-    //     let gridTop = Math.min(...uniqueYs);
-    //     let gridBottom = Math.max(...uniqueYs);
-    //     let gridLeft = Math.min(...uniqueXs);
-    //     let gridRight = Math.max(...uniqueXs);
-
-    //     if (printCropMarks) {
-    //         for (let x of uniqueXs) {
-    //             let tSign = (gridTop - cmOff < 0.01) ? 1 : -1;
-    //             let bSign = (gridBottom + cmOff > paperH - 0.01) ? -1 : 1;
-    //             marksSvg += `<line x1="${x}in" y1="${gridTop + tSign * cmOff}in" x2="${x}in" y2="${gridTop + tSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-    //             marksSvg += `<line x1="${x}in" y1="${gridBottom + bSign * cmOff}in" x2="${x}in" y2="${gridBottom + bSign * (cmOff + cmLen)}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-    //         }
-    //         for (let y of uniqueYs) {
-    //             let lSign = (gridLeft - cmOff < 0.01) ? 1 : -1;
-    //             let rSign = (gridRight + cmOff > paperW - 0.01) ? -1 : 1;
-    //             marksSvg += `<line x1="${gridLeft + lSign * cmOff}in" y1="${y}in" x2="${gridLeft + lSign * (cmOff + cmLen)}in" y2="${y}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-    //             marksSvg += `<line x1="${gridRight + rSign * cmOff}in" y1="${y}in" x2="${gridRight + rSign * (cmOff + cmLen)}in" y2="${y}in" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
-    //         }
-    //     }
-
-    //     if (printInternalMarks) {
-    //         const pxIn = 1 / 96;
-    //         const dotX = (val) => val <= 0.01 ? val + pxIn : val >= paperW - 0.01 ? val - pxIn : val;
-    //         const dotY = (val) => val <= 0.01 ? val + pxIn : val >= paperH - 0.01 ? val - pxIn : val;
-
-    //         for (let x of uniqueXs) {
-    //             for (let y of uniqueYs) {
-    //                 marksSvg += `<circle cx="${dotX(x)}in" cy="${dotY(y)}in" r="${dotRadius}" fill="${strokeColor}" />`;
-    //             }
-    //         }
-    //     }
-    //     marksSvg += `</svg>`;
-    //     return marksSvg;
-    // }
 
     function generateMarksSVG(cols, rows, printStartX, printStartY, totalCardWin, totalCardHin, gapXIn, gapYIn, paperW, paperH, printCropMarks, printInternalMarks, strokeColor, cutLineWidth) {
         let marksSvg = `<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001; overflow: visible;" xmlns="http://www.w3.org/2000/svg">`;
@@ -14871,10 +13686,9 @@ document.querySelectorAll('style').forEach(s => {
                                     if (el.dataset.type === 'image') {
                                         imagePromises.push(updateImageElementDisplay(el, val, true));
                                     } else {
-                                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                                         if (target && !target.hasAttribute('data-template-raw')) {
-                                            target.textContent = val;
-                                            parseMarkdownInElement(target);
+                                            parseMarkdownInElement(target, val);
                                         }
                                     }
                                 } catch (e) {}
@@ -14895,8 +13709,8 @@ document.querySelectorAll('style').forEach(s => {
                         await Promise.all(imagePromises);
                         
                         temp.querySelectorAll('[data-template-raw]').forEach(el => {
-                            el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
-                            parseMarkdownInElement(el);
+                            const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+                            parseMarkdownInElement(el, rendered);
                         });
 
                         const ctx = getPluginContext(cardIndex, temp);
@@ -15048,37 +13862,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
         if (typeof updateUILayer === 'function') updateUILayer();
     }
 
-    // function uploadCard(event, newWorkspace = false) {
-    //     const file = event.target.files[0];
-    //     if (!file) return;
-
-    //     if (!newWorkspace) {
-    //         if (!confirm("Are you sure you want to open a different card? All unsaved progress in this workspace will be lost.")) {
-    //             event.target.value = '';
-    //             return;
-    //         }
-    //     }
-
-    //     const reader = new FileReader();
-    //     reader.onload = function(e) {
-    //         if (newWorkspace) {
-    //             const transferId = 'transfer_' + Math.random().toString(36).substring(2, 15);
-    //             try {
-    //                 localStorage.setItem(transferId, e.target.result);
-    //                 localStorage.setItem(transferId + '_name', file.name);
-    //                 window.open(window.location.pathname + '?load_transfer=' + transferId, '_blank');
-    //             } catch (err) {
-    //                 showToast("File is too large to transfer to a new workspace. Try opening it in the current workspace instead.", true);
-    //             }
-    //             event.target.value = '';
-    //             return;
-    //         }
-            
-    //         processCardXML(e.target.result, file.name.replace(/\.[^/.]+$/, ""));
-    //         event.target.value = '';
-    //     };
-    //     reader.readAsText(file);
-    // }
+    
 
     function customConfirm(message, confirmBtnText = "OK") {
         return new Promise((resolve) => {
@@ -15783,9 +14567,8 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                                         if (el.dataset.type === 'image') {
                                             imagePromises.push(updateImageElementDisplay(el, val, true));
                                         } else {
-                                            const target = el.querySelector('.resizable') || el.querySelector('.cell-text');
+                                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
                                             if (target && !target.hasAttribute('data-template-raw')) {
-                                                target.textContent = val;
                                                 parseMarkdownInElement(target);
                                             }
                                         }
