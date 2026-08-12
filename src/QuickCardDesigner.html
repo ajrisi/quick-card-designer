@@ -17,6 +17,11 @@
     </script>
     <!-- END MARKDOWN INJECTION -->
 
+        <!-- START JSZIP INJECTION -->
+    <script id="jszip" src="libs/js/jszip.js" inject>
+    </script>
+    <!-- END JSZIP INJECTION -->
+
     <style>
         /* Base Application Layout */
         html, body { overscroll-behavior: none; }
@@ -329,9 +334,9 @@
         .element-container:is([data-markdown="true"], [data-raw-html="true"]) p { margin-bottom: 0.5em; }
         .element-container:is([data-markdown="true"], [data-raw-html="true"]) p:last-child { margin-bottom: 0; }
         .element-container:is([data-markdown="true"], [data-raw-html="true"]) b, 
-        .element-container:is([data-markdown="true"], [data-raw-html="true"]) strong { font-weight: bold; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) strong { font-weight: bold !important; }
         .element-container:is([data-markdown="true"], [data-raw-html="true"]) i, 
-        .element-container:is([data-markdown="true"], [data-raw-html="true"]) em { font-style: italic; }
+        .element-container:is([data-markdown="true"], [data-raw-html="true"]) em { font-style: italic !important; }
     </style>
 </head>
 
@@ -411,10 +416,10 @@
                     <span class="hidden md:inline">Export</span>
                 </summary>
                 <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-72 p-4 text-gray-800 cursor-default hide-scrollbar">
-                    <h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
+                    <!--<h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
                         <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Raster Resolution & Export
-                    </h3>
+                    </h3>-->
                     <div class="mb-3">
                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
                         <input type="text" inputmode="numeric" pattern="[0-9]*" id="target-dpi" list="export-dpi-options" value="300" class="no-stepper w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" placeholder="Custom DPI..." onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;">
@@ -435,6 +440,9 @@
                             Both Faces
                         </button>
                     </div>
+                    <button onclick="executeExport('cards')" class="w-full py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded hover:bg-indigo-700 font-medium text-xs transition-colors text-center shadow-sm mb-3">
+                        Export All Faces
+                    </button>
 
                     <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1">Full Sheet Export</h4>
                     <div class="flex items-center gap-2 mb-2">
@@ -445,9 +453,21 @@
                             Export Sheet
                         </button>
                     </div>
-                    <button onclick="executeExport('document')" class="w-full py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded hover:bg-indigo-700 font-medium text-xs transition-colors text-center shadow-sm">
+                    <button onclick="executeExport('document')" class="w-full py-1.5 bg-indigo-600 text-white border border-indigo-700 rounded hover:bg-indigo-700 font-medium text-xs transition-colors text-center shadow-sm mb-3">
                         Export All Sheets
                     </button>
+
+                    <!--<h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 border-b border-gray-100 pb-1">Special Export Formats</h4>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button onclick="executeExport('tts')" class="py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-100 font-medium text-xs transition-colors text-center shadow-sm" title="Export as 10x7 spritesheets for TTS">
+                            TTS Spritesheet
+                        </button>
+                    </div>-->
+
+                    <label class="flex items-center gap-2 text-[10px] font-medium text-gray-600 cursor-pointer hover:text-gray-900 transition-colors bg-gray-50 border border-gray-200 rounded p-1.5 shadow-sm">
+                        <input type="checkbox" id="export-as-zip" class="rounded text-emerald-600 focus:ring-emerald-500" checked>
+                        Package output into a .ZIP file
+                    </label>
                 </div>
             </details>
 
@@ -1747,22 +1767,44 @@
                     <!-- Dynamic Items Inject Here -->
                 </div>
             </div>
-            <!-- Footer -->
-            <!-- <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
+            
+
+<!-- Footer -->
+            <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
                 <span class="text-xs text-gray-500 font-medium">Use CSVs via the Toolbar, or Templates via <code class="bg-gray-100 px-1 rounded">{{name,var}}</code>.</span>
                 <div class="flex gap-2">
-                    <button onclick="createNewPluginStub()" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-purple-700 transition-colors">
-                        + Add Plugin
-                    </button>
-                    <button onclick="document.getElementById('global-merge-file-input').click()" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors">
-                        + Upload CSV
-                    </button>
+                    <div class="relative group">
+                        <button id="btn-add-plugin" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-purple-700 transition-colors select-none" title="Upload Plugin (Hold for options)">
+                            + Add Plugin
+                        </button>
+                        <div id="plugin-menu" class="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Plugin Options</div>
+                            <button onpointerup="document.getElementById('plugin-upload-input').click(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload .js File</button>
+                            <button onpointerup="createNewPluginStub(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Create New Plugin</button>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <button onpointerup="openPluginRepoModal(); closePluginMenu();" class="w-full text-left px-2 py-1.5 text-xs text-blue-700 hover:bg-blue-50 rounded transition-colors font-bold">Browse Repository</button>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <button id="btn-add-csv" class="px-4 py-2 bg-green-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-green-700 transition-colors select-none" title="Upload CSV (Hold for options)">
+                            + Add Data
+                        </button>
+                        <div id="csv-menu" class="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Data Options</div>
+                            <button onpointerup="document.getElementById('global-merge-file-input').click(); closeCSVMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload File (.csv, .json)</button>
+                            <button onpointerup="importDataFromURL(); closeCSVMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Import Cloud URL</button>
+                            <button onpointerup="createNewCSVStub(); closeCSVMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Create New CSV</button>
+                        </div>
+                    </div>
                 </div>
-                <input type="file" id="global-merge-file-input" accept=".txt,.csv" class="hidden" onchange="handleNewMergeFile(event)">
-                <input type="file" id="data-replace-input" accept=".txt,.csv" class="hidden" onchange="handleDataReplace(event)">
+                <input type="file" id="global-merge-file-input" accept=".txt,.csv,.json" class="hidden" onchange="handleNewMergeFile(event)">
+                <input type="file" id="data-replace-input" accept=".txt,.csv,.json" class="hidden" onchange="handleDataReplace(event)">
+                <input type="file" id="plugin-upload-input" accept=".js" class="hidden" onchange="handleNewPluginFile(event)">
                 <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
-            </div> -->
-            <!-- Footer -->
+            </div>
+
+            <!--
+
             <div class="px-5 py-3 border-t bg-white flex justify-between items-center">
                 <span class="text-xs text-gray-500 font-medium">Use CSVs via the Toolbar, or Templates via <code class="bg-gray-100 px-1 rounded">{{name,var}}</code>.</span>
                 <div class="flex gap-2">
@@ -1794,6 +1836,7 @@
                 <input type="file" id="plugin-upload-input" accept=".js" class="hidden" onchange="handleNewPluginFile(event)">
                 <input type="file" id="plugin-replace-input" accept=".js" class="hidden" onchange="handlePluginReplace(event)">
             </div>
+        -->
         </div>
     </div>
 
@@ -10748,6 +10791,20 @@ function getPluginContext(activeRow, cardElement = null) {
         }
     }
 
+    function renamePlugin(id, newName) {
+        if (pluginsData[id]) {
+            const trimmed = newName.trim();
+            if (trimmed) {
+                pluginsData[id].filename = trimmed;
+                renderDataSourcesList();
+                saveState(true);
+                showToast("Plugin renamed");
+            } else {
+                renderDataSourcesList(); // Revert if left blank
+            }
+        }
+    }
+
     async function deletePlugin(id) {
         if (await customConfirm("Remove this plugin from the document?", "Remove")) {
             delete pluginsData[id];
@@ -11496,6 +11553,128 @@ Object.values(pluginsData).forEach(p => {
         saveState();
     }
 
+
+    let replaceTargetDataId = null;
+
+    function triggerDataReplace(id) {
+        replaceTargetDataId = id;
+        document.getElementById('data-replace-input').click();
+    }
+
+    function renameMergeSource(id, newName) {
+        if (mergeSources[id]) {
+            const trimmed = newName.trim();
+            if (trimmed) {
+                mergeSources[id].filename = trimmed;
+                renderDataSourcesList();
+                if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                    renderImageBankItems();
+                }
+                updateImageBankMergeUI();
+                updateMergeUI();
+                saveState(true);
+                showToast("Source renamed");
+            } else {
+                renderDataSourcesList(); // Revert if left blank
+            }
+        }
+    }
+
+    function parseDataFileContent(text, filename) {
+        let data = [];
+        const lowerName = filename.toLowerCase();
+        
+        // 1. JSON Detection
+        if (lowerName.endsWith('.json') || text.trim().startsWith('[')) {
+            try {
+                const parsed = JSON.parse(text);
+                const arr = Array.isArray(parsed) ? parsed : [parsed];
+                const keys = new Set();
+                arr.forEach(obj => {
+                    if (typeof obj === 'object' && obj !== null) {
+                        Object.keys(obj).forEach(k => keys.add(k));
+                    }
+                });
+                const headers = Array.from(keys);
+                data.push(headers);
+                arr.forEach(obj => {
+                    if (typeof obj === 'object' && obj !== null) {
+                        data.push(headers.map(h => {
+                            let val = obj[h];
+                            return typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+                        }));
+                    }
+                });
+            } catch(e) {
+                showToast("Invalid JSON format", true);
+                return null;
+            }
+        } 
+        // 2. Explicit TXT Detection (Strictly split by newline)
+        else if (lowerName.endsWith('.txt')) {
+            data = text.split(/\r?\n/).map(line => [line]);
+        } 
+        // 3. Default to CSV (Safely catches .csv AND Google Sheets URLs with /pub?output=csv)
+        else {
+            data = parseCSV(text);
+        }
+        return data;
+    }
+
+    async function importDataFromURL() {
+        const url = prompt("Enter a public CSV or JSON URL (e.g. Google Sheets 'Publish to Web' CSV link):");
+        if (!url) return;
+        try {
+            showToast("Fetching data...");
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error("Network error");
+            const text = await resp.text();
+            const data = parseDataFileContent(text, url);
+            if (!data) return;
+
+            const id = 'src_' + Date.now();
+            mergeSources[id] = {
+                filename: url.split('/').pop().split('?')[0] || 'Cloud_Data',
+                syncUrl: url,
+                data: data,
+                hasHeader: true,
+                isPrimary: Object.keys(mergeSources).length === 0,
+                primaryFilter: "",
+                joinType: 'simple',
+                joinLocal: 0,
+                joinForeign: 0,
+                joinQuery: ""
+            };
+            renderDataSourcesList();
+            recomputeAllMergeData();
+            saveState(true);
+            showToast("Cloud data imported!");
+        } catch(e) {
+            showToast("Failed to fetch URL. Make sure it's public and supports CORS.", true);
+        }
+    }
+
+    async function syncCloudData(id) {
+        if (!(await customConfirm("Fetch the latest data from the cloud and overwrite current values?", "Sync Data"))) return;
+        
+        const src = mergeSources[id];
+        if (!src || !src.syncUrl) return;
+        try {
+            showToast("Syncing...");
+            const resp = await fetch(src.syncUrl);
+            if (!resp.ok) throw new Error();
+            const text = await resp.text();
+            const data = parseDataFileContent(text, src.syncUrl);
+            if (data) {
+                src.data = data;
+                recomputeAllMergeData();
+                renderDataSourcesList();
+                saveState(true);
+                showToast("Synced!");
+            }
+        } catch(e) { showToast("Sync failed", true); }
+    }
+
     function handleNewMergeFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -11503,14 +11682,9 @@ Object.values(pluginsData).forEach(p => {
         const reader = new FileReader();
         reader.onload = function(e) {
             const text = e.target.result;
-            let data = [];
-            if (file.name.toLowerCase().endsWith('.csv')) {
-                data = parseCSV(text);
-            } else {
-                data = text.split(/\r?\n/).map(line => [line]);
-            }
+            const data = parseDataFileContent(text, file.name);
+            if (!data) return;
             
-            // Check if a source with this filename already exists to update it seamlessly
             let id = null;
             for (let key in mergeSources) {
                 if (mergeSources[key].filename === file.name) {
@@ -11521,25 +11695,25 @@ Object.values(pluginsData).forEach(p => {
             
             if (id) {
                 mergeSources[id].data = data;
+                mergeSources[id].syncUrl = null; // Clear sync on manual overwrite
             } else {
                 id = 'src_' + Date.now();
                 mergeSources[id] = {
-                    filename: file.name, // (or "New_Data.csv")
-            data: data,
-            hasHeader: true,
-            isPrimary: Object.keys(mergeSources).length === 0,
-            primaryFilter: "",
-            joinType: 'simple',
-            joinLocal: 0,
-            joinForeign: 0,
-            joinQuery: ""
+                    filename: file.name,
+                    data: data,
+                    hasHeader: true,
+                    isPrimary: Object.keys(mergeSources).length === 0,
+                    primaryFilter: "",
+                    joinType: 'simple',
+                    joinLocal: 0,
+                    joinForeign: 0,
+                    joinQuery: ""
                 };
             }
 
             renderDataSourcesList();
             recomputeAllMergeData();
 
-            // Force the Image Bank to render live if it's currently open
             if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
                 renderImageBankItems();
             }
@@ -11550,13 +11724,6 @@ Object.values(pluginsData).forEach(p => {
         event.target.value = '';
     }
 
-    let replaceTargetDataId = null;
-
-    function triggerDataReplace(id) {
-        replaceTargetDataId = id;
-        document.getElementById('data-replace-input').click();
-    }
-
     function handleDataReplace(event) {
         const file = event.target.files[0];
         if (!file || !replaceTargetDataId) return;
@@ -11564,16 +11731,13 @@ Object.values(pluginsData).forEach(p => {
         const reader = new FileReader();
         reader.onload = function(e) {
             const text = e.target.result;
-            let data = [];
-            if (file.name.toLowerCase().endsWith('.csv')) {
-                data = parseCSV(text);
-            } else {
-                data = text.split(/\r?\n/).map(line => [line]);
-            }
+            const data = parseDataFileContent(text, file.name);
+            if (!data) return;
             
             if (mergeSources[replaceTargetDataId]) {
                 mergeSources[replaceTargetDataId].filename = file.name;
                 mergeSources[replaceTargetDataId].data = data;
+                mergeSources[replaceTargetDataId].syncUrl = null; // Clear sync on manual overwrite
             }
 
             renderDataSourcesList();
@@ -11826,10 +11990,11 @@ Object.values(pluginsData).forEach(p => {
             const div = document.createElement('div');
             div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 border-l-purple-500";
             div.innerHTML = `
-                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
-                    <div class="flex items-center gap-2 overflow-hidden">
+                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1 gap-2">
+                    <div class="flex items-center gap-1.5 overflow-hidden flex-1">
                         <svg class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                        <span class="text-xs font-bold text-gray-700 truncate" title="${p.filename}">${p.filename} <span class="text-gray-400 font-normal ml-1">(${p.name})</span></span>
+                        <input type="text" value="${p.filename.replace(/"/g, '&quot;')}" onchange="renamePlugin('${id}', this.value)" class="text-xs font-bold text-gray-700 truncate bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none rounded px-1 py-0.5 w-full transition-all cursor-text" title="Rename Plugin File">
+                        <span class="text-gray-400 font-normal ml-1 text-xs shrink-0" title="Internal Template Key">(${p.name})</span>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                         <button onclick="openPluginEditor('${id}')" class="text-gray-400 hover:text-gray-600 p-1 bg-gray-50 hover:bg-gray-100 rounded transition-colors" title="Edit Script">
@@ -11994,22 +12159,33 @@ ${p.description ? `
                 }
             }
 
+            const isCloud = !!src.syncUrl;
+            const iconSvg = isCloud 
+                ? `<svg class="w-4 h-4 text-sky-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>`
+                : `<svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+
             const div = document.createElement('div');
-            div.className = "bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 border-l-green-500";
+            div.className = `bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3 transition-all hover:shadow-md border-l-4 ${isCloud ? 'border-l-sky-500' : 'border-l-green-500'}`;
             div.innerHTML = `
-                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1">
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span class="text-xs font-bold text-gray-700 truncate" title="${src.filename}">${src.filename}</span>
+                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-1 gap-2">
+                    <div class="flex items-center gap-1.5 overflow-hidden flex-1">
+                        ${iconSvg}
+                        <input type="text" value="${src.filename.replace(/"/g, '&quot;')}" onchange="renameMergeSource('${id}', this.value)" class="text-xs font-bold text-gray-700 truncate bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none rounded px-1 py-0.5 w-full transition-all cursor-text" title="Rename Source">
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="openCSVEditor('${id}')" class="text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100 rounded transition-colors" title="Edit CSV">
+                        ${isCloud ? `
+                        <button onclick="syncCloudData('${id}')" class="text-sky-400 hover:text-sky-600 p-1 bg-sky-50 hover:bg-sky-100 rounded transition-colors" title="Refresh Cloud Data">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                        ` : `
+                        <button onclick="openCSVEditor('${id}')" class="text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100 rounded transition-colors" title="Edit Data">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
+                        `}
                         <button onclick="exportDataSource('${id}')" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Export CSV">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         </button>
-                        <button onclick="triggerDataReplace('${id}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace CSV">
+                        <button onclick="triggerDataReplace('${id}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace Data">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         </button>
                         <button onclick="deleteMergeSource('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Delete Source">
@@ -12234,7 +12410,7 @@ ${p.description ? `
                             </button>
                         </div>
                     </div>
-                    <div class="text-[10px] font-mono text-gray-700 truncate w-full text-center px-1 select-all" title="${filename}">${filename}</div>
+                    <input type="text" value="${safeName}" onchange="renameBankImage('${safeName}', this.value)" class="text-[10px] font-mono text-gray-700 truncate w-full text-center px-1 bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none rounded transition-all cursor-text" title="Rename Image">
                     <button onclick="placeBankImage('${safeName}')" class="mt-auto py-1.5 w-full bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[9px] font-bold uppercase transition-colors shadow-sm">Place on Canvas</button>
                 </div>
                 `;
@@ -12347,6 +12523,52 @@ ${p.description ? `
         reader.readAsDataURL(file);
     }
 
+function renameBankImage(oldName, newName) {
+        const trimmed = newName.trim();
+        if (!trimmed || trimmed === oldName) {
+            renderImageBankItems();
+            return;
+        }
+        if (imageAssets[trimmed]) {
+            showToast("An image with that name already exists.", true);
+            renderImageBankItems();
+            return;
+        }
+
+        // 1. Move the data in the dictionary
+        imageAssets[trimmed] = imageAssets[oldName];
+        delete imageAssets[oldName];
+
+        // 2. Safely scan and update background DOM states
+        const updateRefs = (htmlStr) => {
+            if (!htmlStr) return '';
+            const temp = document.createElement('div');
+            temp.innerHTML = htmlStr;
+            let changed = false;
+            temp.querySelectorAll('.element-container[data-type="image"]').forEach(el => {
+                if (el.dataset.imageBankKey === oldName) {
+                    el.dataset.imageBankKey = trimmed;
+                    changed = true;
+                }
+            });
+            return changed ? temp.innerHTML : htmlStr;
+        };
+
+        // 3. Update active elements on the live canvas
+        document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
+            if (el.dataset.imageBankKey === oldName) {
+                el.dataset.imageBankKey = trimmed;
+            }
+        });
+
+        frontContentHTML = updateRefs(frontContentHTML);
+        backContentHTML = updateRefs(backContentHTML);
+
+        showToast(`Renamed to "${trimmed}"`);
+        renderImageBankItems();
+        updateAllCanvasImages();
+        saveState(true);
+    }
     
 
     async function deleteBankImage(filename) {
@@ -13446,7 +13668,7 @@ document.querySelectorAll('style').forEach(s => {
         return marksSvg;
     }
 
-    async function renderPagesToImages(mode, dpi) {
+    async function renderPagesToImages(mode, dpi, asZip = false) {
         const liveBaseStyles = getLiveBaseStyles();
         saveCurrentSideState();
 
@@ -13825,21 +14047,214 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
 
                 try {
                     const dataUri = await renderSvgToDataUri(svgWrap, canvasW, canvasH);
-                    const a = document.createElement('a');
-                    a.download = `${projName}-Sheet${sheet + 1}-${sideLabel}-${dpi}dpi.png`;
-                    a.href = dataUri;
-                    a.click();
+                    const filename = `${projName}-Sheet${sheet + 1}-${sideLabel}-${dpi}dpi.png`;
+                    
+                    if (asZip && window.JSZip) {
+                        window.qcdActiveZip = window.qcdActiveZip || new JSZip();
+                        window.qcdActiveZip.file(filename, dataUri.split(',')[1], {base64: true});
+                    } else {
+                        const a = document.createElement('a');
+                        a.download = filename;
+                        a.href = dataUri;
+                        a.click();
+                    }
                 } catch (e) {
                     console.error(e);
                     showToast(`Failed to export Sheet ${sheet + 1} (${sideLabel}).`, true);
                 }
             }
         }
+        
+        if (asZip && window.JSZip && window.qcdActiveZip) {
+            showToast("Zipping print sheets...");
+            const content = await window.qcdActiveZip.generateAsync({type: "blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `${projName}_PrintSheets.zip`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            window.qcdActiveZip = null;
+        }
+    }
+
+    async function generateBulkCardImages(dpi, mode, asZip) {
+        showToast("Generating deck... Please wait.");
+        const scale = dpi / (currentUnit === 'mm' ? PX_PER_MM : PX_PER_IN);
+        const cw = Math.round(currentWidth * scale);
+        const ch = Math.round(currentHeight * scale);
+        
+        let maxMergeRows = 0;
+        document.querySelectorAll('#card-content .element-container').forEach(el => {
+            if (el.dataset.mergeData) { try { maxMergeRows = Math.max(maxMergeRows, JSON.parse(el.dataset.mergeData).length); } catch(e){} }
+        });
+        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        
+        const totalCards = Math.max(1, maxMergeRows);
+        let zip = (asZip && window.JSZip) ? new JSZip() : null;
+        
+        async function renderCardFace(side, index) {
+            const rawHtml = side === 'front' ? frontContentHTML : backContentHTML;
+            const activeBgClass = side === 'front' ? frontBgClass : backBgClass;
+            const activeBgConfig = side === 'front' ? frontBgConfig : backBgConfig;
+            const pxPerUnit = getPxPerUnit();
+            const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
+
+            let activeContent = getCleanPrintHTML(rawHtml);
+            const temp = document.createElement('div');
+            temp.innerHTML = activeContent;
+            
+            const imagePromises = [];
+            temp.querySelectorAll('.element-container').forEach(el => {
+                if (el.dataset.mergeData) {
+                    try {
+                        const data = JSON.parse(el.dataset.mergeData);
+                        const val = data[index] !== undefined ? data[index] : ''; 
+                        if (el.dataset.type === 'image') imagePromises.push(updateImageElementDisplay(el, val, true));
+                        else {
+                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                            if (target && !target.hasAttribute('data-template-raw')) { parseMarkdownInElement(target, val); }
+                        }
+                    } catch(e){}
+                } else if (el.dataset.type === 'image' && el.dataset.pluginImageId) {
+                    const inst = pluginInstances[el.dataset.pluginImageId];
+                    if (inst && typeof inst.image === 'function') {
+                        try {
+                            const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                            const pImg = inst.image(el.dataset.pluginImageName, getPluginContext(index), ...pArgs);
+                            let val = pImg || '';
+                            if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
+                            imagePromises.push(updateImageElementDisplay(el, val, true));
+                        } catch(e){}
+                    }
+                }
+            });
+            await Promise.all(imagePromises);
+            
+            temp.querySelectorAll('[data-template-raw]').forEach(el => {
+                const rendered = renderTemplateString(el.getAttribute('data-template-raw'), index);
+                parseMarkdownInElement(el, rendered);
+            });
+            const ctx = getPluginContext(index, temp);
+            Object.values(pluginInstances).forEach(inst => {
+                const hook = inst.render || inst.onRenderCard;
+                if (typeof hook === 'function') { try { hook(temp, ctx); } catch(e){} }
+            });
+            
+            temp.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+            activeContent = new XMLSerializer().serializeToString(temp);
+            
+            const viewW = Math.round(currentWidth * (96 / PX_PER_IN));
+            const viewH = Math.round(currentHeight * (96 / PX_PER_IN));
+            let customStyleTag = '';
+            document.querySelectorAll('style').forEach(s => { if (s.id !== 'custom-fonts-style') customStyleTag += s.innerHTML + '\n'; });
+            const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
+            const liveStyles = getLiveBaseStyles();
+            
+            const svgContent = `
+                <svg xmlns="http://www.w3.org/2000/svg" style="display: block;" width="${cw}" height="${ch}" viewBox="0 0 ${viewW} ${viewH}">
+                    <foreignObject x="0" y="0" width="${viewW}" height="${viewH}">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${viewW}px; height: ${viewH}px; margin: 0; padding: 0; ${liveStyles}">
+                            <style><![CDATA[${customStyleTag} ${fontStyleTag} .bg-blank { background-color: white; } .element-container { outline: none !important; }]]></style>
+                            <div class="${activeBgClass}" style="${bgStyleVars} width: ${currentWidth}px; height: ${currentHeight}px; position: relative; overflow: hidden; background-color: white; transform: scale(${96 / PX_PER_IN}); transform-origin: top left;">
+                                ${activeContent}
+                            </div>
+                        </div>
+                    </foreignObject>
+                </svg>`;
+            
+            return await renderSvgToDataUri(svgContent, cw, ch);
+        }
+
+        const projName = document.getElementById('project-name').value.trim() || 'Game';
+
+        if (mode === 'tts') {
+            const TTS_COLS = 10;
+            const TTS_ROWS = 7;
+            const cardsPerSheet = 69; 
+            const sheetsCount = Math.ceil(totalCards / cardsPerSheet);
+            
+            for (let s = 0; s < sheetsCount; s++) {
+                for (let side = 0; side < (hasCustomBack ? 2 : 1); side++) {
+                    const isBack = side === 1;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cw * TTS_COLS;
+                    canvas.height = ch * TTS_ROWS;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#000000'; 
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    const startIdx = s * cardsPerSheet;
+                    for (let i = 0; i < cardsPerSheet; i++) {
+                        const cardIdx = startIdx + i;
+                        if (cardIdx >= totalCards) break;
+                        
+                        const col = i % TTS_COLS;
+                        const row = Math.floor(i / TTS_COLS);
+                        
+                        const dataUri = await renderCardFace(isBack ? 'back' : 'front', cardIdx);
+                        const img = new Image();
+                        await new Promise(res => { img.onload = res; img.src = dataUri; });
+                        ctx.drawImage(img, col * cw, row * ch, cw, ch);
+                    }
+                    
+                    // For TTS, explicitly fill the 70th slot (bottom right) with the hidden card back if doing a unified sheet
+                    if (!isBack && !hasCustomBack) {
+                        const dataUri = await renderCardFace('front', startIdx);
+                        const img = new Image();
+                        await new Promise(res => { img.onload = res; img.src = dataUri; });
+                        ctx.drawImage(img, 9 * cw, 6 * ch, cw, ch);
+                    }
+                    
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                    const filename = `${projName}_TTS_Sheet${s+1}_${isBack ? 'Back' : 'Front'}.jpg`;
+                    
+                    if (zip) {
+                        zip.file(filename, blob);
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = filename;
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    }
+                }
+            }
+        } else if (mode === 'cards') {
+            for (let i = 0; i < totalCards; i++) {
+                const frontData = await renderCardFace('front', i);
+                let backData = hasCustomBack ? await renderCardFace('back', i) : null;
+                
+                const idxStr = String(i+1).padStart(3, '0');
+                if (zip) {
+                    zip.file(`${projName}_${idxStr}_Front.png`, frontData.split(',')[1], {base64: true});
+                    if (backData) zip.file(`${projName}_${idxStr}_Back.png`, backData.split(',')[1], {base64: true});
+                } else {
+                    const download = (data, name) => {
+                        const a = document.createElement('a');
+                        a.href = data; a.download = name; a.click();
+                    };
+                    download(frontData, `${projName}_${idxStr}_Front.png`);
+                    if (backData) download(backData, `${projName}_${idxStr}_Back.png`);
+                }
+            }
+        }
+        
+        if (zip) {
+            showToast("Zipping files...");
+            const content = await zip.generateAsync({type: "blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `${projName}_Export.zip`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+        showToast("Bulk export complete!");
     }
 
     async function executeExport(mode) {
         setActiveElement(null);
         const dpi = parseInt(document.getElementById('target-dpi').value) || 300;
+        const asZip = document.getElementById('export-as-zip')?.checked;
         try {
             if (mode === 'current') {
                 await downloadSingleCardPNG(editingSide, dpi);
@@ -13849,8 +14264,10 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                 if (hasCustomBack) await downloadSingleCardPNG('back', dpi);
                 showToast(`Downloaded ${dpi} DPI PNGs!`);
             } else if (mode === 'sheet' || mode === 'document') {
-                await renderPagesToImages(mode, dpi);
+                await renderPagesToImages(mode, dpi, asZip);
                 showToast(`Exported Page Sheets successfully.`);
+            } else if (mode === 'tts' || mode === 'cards') {
+                await generateBulkCardImages(dpi, mode, asZip);
             }
         } catch (err) {
             console.error(err);
@@ -13861,8 +14278,6 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
     function updateSafeZone() {
         if (typeof updateUILayer === 'function') updateUILayer();
     }
-
-    
 
     function customConfirm(message, confirmBtnText = "OK") {
         return new Promise((resolve) => {
@@ -14135,6 +14550,37 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                     if (src.hasHeader === undefined) src.hasHeader = true;
                 });
                 renderDataSourcesList();
+
+                // Auto-sync cloud sources on load with user prompt
+                // const cloudIds = Object.keys(mergeSources).filter(id => mergeSources[id].syncUrl);
+                // if (cloudIds.length > 0) {
+                //     setTimeout(async () => {
+                //         if (await customConfirm("This document contains live Cloud Data sources. Do you want to fetch the latest data now?", "Sync Now")) {
+                //             showToast("Syncing cloud data...");
+                //             let updated = false;
+                //             for (let id of cloudIds) {
+                //                 const src = mergeSources[id];
+                //                 try {
+                //                     const resp = await fetch(src.syncUrl);
+                //                     if(resp.ok) {
+                //                         const text = await resp.text();
+                //                         const data = parseDataFileContent(text, src.syncUrl);
+                //                         if (data) {
+                //                             src.data = data;
+                //                             updated = true;
+                //                         }
+                //                     }
+                //                 } catch(e) { console.warn("Failed to auto-sync", src.syncUrl); }
+                //             }
+                //             if (updated) {
+                //                 recomputeAllMergeData();
+                //                 renderDataSourcesList();
+                //                 saveState(true);
+                //                 showToast("Cloud data synced!");
+                //             }
+                //         }
+                //     }, 800);
+                // }
 
                 document.getElementById('enable-custom-back').checked = hasCustomBack;
                 const sideToggles = document.getElementById('side-toggles');
