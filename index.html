@@ -13774,7 +13774,7 @@ document.querySelectorAll('style').forEach(s => {
         await Promise.all(imagePromises);
 
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
-            const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+            const rendered = renderTemplateString(el.getAttribute('data-template-raw'), globalMergeIndex);
             parseMarkdownInElement(el, rendered);
         });
 
@@ -13793,25 +13793,25 @@ document.querySelectorAll('style').forEach(s => {
         const viewW = Math.round(currentWidth * (96 / PX_PER_IN));
         const viewH = Math.round(currentHeight * (96 / PX_PER_IN));
         let customStyleTag = '';
-document.querySelectorAll('style').forEach(s => {
-    if (s.id !== 'custom-fonts-style') {
-        // Check if the stylesheet has rules loaded into the CSSOM
-        if (s.sheet && s.sheet.cssRules) {
-            try {
-                for (let i = 0; i < s.sheet.cssRules.length; i++) {
-                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+        document.querySelectorAll('style').forEach(s => {
+            if (s.id !== 'custom-fonts-style') {
+                // Check if the stylesheet has rules loaded into the CSSOM
+                if (s.sheet && s.sheet.cssRules) {
+                    try {
+                        for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                            customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                        }
+                    } catch (e) {
+                        // Fallback for CORS-blocked external stylesheets
+                        console.warn("Could not read cssRules from stylesheet", e);
+                        customStyleTag += s.innerHTML + '\n'; 
+                    }
+                } else {
+                    // Fallback for standard text-based style blocks
+                    customStyleTag += s.innerHTML + '\n';
                 }
-            } catch (e) {
-                // Fallback for CORS-blocked external stylesheets
-                console.warn("Could not read cssRules from stylesheet", e);
-                customStyleTag += s.innerHTML + '\n'; 
             }
-        } else {
-            // Fallback for standard text-based style blocks
-            customStyleTag += s.innerHTML + '\n';
-        }
-    }
-});
+        });
         const fontStyleTag = document.getElementById('custom-fonts-style') ? document.getElementById('custom-fonts-style').innerHTML : '';
         const svgContent = `
             <svg xmlns="http://www.w3.org/2000/svg" style="display: block;" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${viewW} ${viewH}">
@@ -15279,8 +15279,8 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                             await Promise.all(imagePromises);
                             
                             temp.querySelectorAll('[data-template-raw]').forEach(el => {
-                                el.innerHTML = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
-                                parseMarkdownInElement(el);
+                                const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
+                                parseMarkdownInElement(el, rendered);
                             });
                             
                             const ctx = getPluginContext(cardIndex, temp);
