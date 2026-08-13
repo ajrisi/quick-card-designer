@@ -1771,6 +1771,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                         <span class="text-[9px] font-bold text-gray-400 uppercase" title="Comma separated arguments">Args</span>
                         <input type="text" id="plugin-args-input" placeholder="arg1, arg2" spellcheck="false" autocorrect="off" autocapitalize="off" class="w-64 border border-gray-300 rounded p-1 text-[10px] outline-none shadow-sm bg-white" oninput="applyMergeOptions()">
                     </div>
+                    <div id="custom-path-group" class="hidden items-center gap-1.5 border-l border-gray-200 pl-2 ml-1">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase">Path Tpl</span>
+                        <input type="text" id="custom-path-input" placeholder="http://...{{var}}.png" class="w-48 border border-gray-300 rounded p-1 text-[10px] outline-none shadow-sm bg-white font-mono" oninput="applyCustomPath(this.value)">
+                    </div>
                 </div>
                 <div id="merge-status-container" class="hidden items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 shadow-sm h-full">
                     <span id="merge-status" class="text-[9px] font-bold text-gray-600">0 rows</span>
@@ -1913,6 +1917,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     <select id="bank-merge-col-select" class="w-40 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap disabled:opacity-50" disabled>
                         <option value="">Select Variable...</option>
                     </select>
+                    <input type="text" id="bank-custom-path-input" placeholder="http://...{{var}}.png" class="hidden w-48 text-xs border border-gray-300 rounded p-1.5 bg-white outline-none shadow-sm font-mono placeholder-gray-400">
                     <button onclick="createCustomPlaceholders()" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded shadow-sm hover:bg-gray-50 transition-colors">Add Placeholder</button>
                 </div>
                 <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors ml-auto">
@@ -3234,7 +3239,30 @@ function updateBgSettings(side) {
         temp.querySelectorAll('.ui-control, .controls, .rot-handle, .resizer, .col-resizer, .row-resizer').forEach(el => el.remove());
         
         temp.querySelectorAll('.element-container').forEach(el => {
-            if (el.dataset.mergeData) {
+            if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                const val = renderTemplateString(el.dataset.customImageTemplate, cardIndex);
+                const img = el.querySelector('img');
+                const placeholder = el.querySelector('.image-placeholder');
+                
+                let displayVal = val;
+                if (!displayVal && el.dataset.imageBankKey) {
+                    displayVal = el.dataset.imageBankKey;
+                }
+
+                if (!displayVal) {
+                    if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                    if (placeholder) placeholder.style.display = 'flex';
+                } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
+                    if (img) {
+                        img.src = imageAssets[displayVal] || displayVal;
+                        img.style.display = 'block';
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                } else {
+                    if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                    if (placeholder) placeholder.style.display = 'flex';
+                }
+            } else if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
                     const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
@@ -11485,56 +11513,6 @@ window.showPluginHelp = function(id) {
         clearVirtualGridCache();
     }
 
-    // function applyMergePreview() {
-    //     let maxRows = 0;
-    //     const elements = document.getElementById('card-content').querySelectorAll('.element-container');
-    //     elements.forEach(el => {
-    //         if (el.dataset.mergeData) {
-    //             try {
-    //                 const data = JSON.parse(el.dataset.mergeData);
-    //                 if (data.length > maxRows) maxRows = data.length;
-    //             } catch (e) {}
-    //         }
-    //     });
-    //     Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxRows) maxRows = p.minRecords; });
-
-    //     if (maxRows > 0) {
-    //         if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
-    //         if (globalMergeIndex < 0) globalMergeIndex = 0;
-    //     } else {
-    //         globalMergeIndex = 0;
-    //     }
-
-    //     elements.forEach(el => {
-    //         if (el.dataset.mergeData) {
-    //             try {
-    //                 const data = JSON.parse(el.dataset.mergeData);
-    //                 const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-                    
-    //                 if (el.dataset.type === 'image') {
-    //                     updateImageElementDisplay(el, val);
-    //                 } else {
-    //                     const target = el.querySelector('div[contenteditable="true"]');
-    //                     if (target) {
-    //                         parseMarkdownInElement(target, val);
-    //                     }
-    //                 }
-    //             } catch (e) {}
-    //         }
-    //     });
-    //     const cardContent = document.getElementById('card-content');
-    //     const ctx = getPluginContext(globalMergeIndex, cardContent);
-    //     Object.values(pluginInstances).forEach(inst => {
-    //         if (typeof inst.render === 'function') {
-    //             try { inst.render(cardContent, ctx); } catch(e) { console.error("Plugin render error", e); }
-    //         }
-    //     });
-
-    //     updateMergeUI();
-    //     updateAllCanvasImages(); // Forces plugins to recalculate when scrubbing!
-    //     if (typeof updateUILayer === 'function') updateUILayer();
-    //     queueWorkspaceGridUpdate();
-    // }
 
     function applyMergePreview() {
         let maxRows = 0;
@@ -11557,7 +11535,10 @@ window.showPluginHelp = function(id) {
         }
 
         elements.forEach(el => {
-            if (el.dataset.mergeData) {
+            if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                const val = renderTemplateString(el.dataset.customImageTemplate, globalMergeIndex);
+                updateImageElementDisplay(el, val);
+            } else if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
@@ -11640,6 +11621,9 @@ Object.values(pluginsData).forEach(p => {
         const statusText = document.getElementById('merge-status');
 
         select.innerHTML = '<option value="">None</option>';
+        if (activeElement.dataset.type === 'image') {
+            select.innerHTML += '<option value="custom_template">Custom Path...</option>';
+        }
         for (let id in mergeSources) {
             let opt = document.createElement('option');
             opt.value = id;
@@ -11653,14 +11637,35 @@ Object.values(pluginsData).forEach(p => {
             select.appendChild(opt);
         }
 
-        const activeId = activeElement.dataset.mergeSourceId || (activeElement.dataset.pluginImageId ? 'plugin:' + activeElement.dataset.pluginImageId : null);
+        const activeId = activeElement.dataset.customImageTemplate !== undefined ? 'custom_template' : (activeElement.dataset.mergeSourceId || (activeElement.dataset.pluginImageId ? 'plugin:' + activeElement.dataset.pluginImageId : null));
         const argsGroup = document.getElementById('plugin-args-group');
         const argsInput = document.getElementById('plugin-args-input');
+        const customPathGroup = document.getElementById('custom-path-group');
+        const customPathInput = document.getElementById('custom-path-input');
 
-        if (activeId && (mergeSources[activeId] || (activeId.startsWith("plugin:") && pluginsData[activeId.split(":")[1]]))) {
+        if (activeId === 'custom_template') {
+            select.value = 'custom_template';
+            optionsDiv.classList.add('hidden');
+            if (argsGroup) {
+                argsGroup.classList.add('hidden');
+                argsGroup.classList.remove('flex');
+            }
+            if (customPathGroup && customPathInput) {
+                customPathGroup.classList.remove('hidden');
+                customPathGroup.classList.add('flex');
+                if (document.activeElement !== customPathInput) {
+                    customPathInput.value = activeElement.dataset.customImageTemplate || '';
+                }
+            }
+        } else if (activeId && (mergeSources[activeId] || (activeId.startsWith("plugin:") && pluginsData[activeId.split(":")[1]]))) {
             select.value = activeId;
             optionsDiv.classList.remove('hidden');
             colSelect.innerHTML = '';
+            
+            if (customPathGroup) {
+                customPathGroup.classList.add('hidden');
+                customPathGroup.classList.remove('flex');
+            }
 
             if (activeId.startsWith("plugin:")) {
                 const pId = activeId.split(":")[1];
@@ -11748,6 +11753,7 @@ Object.values(pluginsData).forEach(p => {
             activeElement.removeAttribute('data-plugin-image-id');
             activeElement.removeAttribute('data-plugin-image-name');
             activeElement.removeAttribute('data-plugin-image-args');
+            activeElement.removeAttribute('data-custom-image-template');
             
             if (activeElement.dataset.type === 'image') {
                 updateImageElementDisplay(activeElement, ''); 
@@ -11758,6 +11764,14 @@ Object.values(pluginsData).forEach(p => {
                     target.innerText = ''; //'Merge Data Cleared';
                 }
             }
+        } else if (val === 'custom_template') {
+            activeElement.removeAttribute('data-merge-source-id');
+            activeElement.removeAttribute('data-merge-col');
+            activeElement.removeAttribute('data-merge-data');
+            activeElement.removeAttribute('data-plugin-image-id');
+            activeElement.removeAttribute('data-plugin-image-name');
+            activeElement.removeAttribute('data-plugin-image-args');
+            activeElement.dataset.customImageTemplate = "";
         } else if (val.startsWith("plugin:")) {
             const pId = val.split(":")[1];
             const p = pluginsData[pId];
@@ -11767,6 +11781,7 @@ Object.values(pluginsData).forEach(p => {
                 activeElement.removeAttribute('data-plugin-image-args');
                 activeElement.removeAttribute('data-merge-source-id');
                 activeElement.removeAttribute('data-merge-data');
+                activeElement.removeAttribute('data-custom-image-template');
             } else {
                 activeElement.dataset.mergeSourceId = val;
                 activeElement.dataset.mergeCol = p.varnames[0] || "";
@@ -11774,6 +11789,7 @@ Object.values(pluginsData).forEach(p => {
                 activeElement.removeAttribute('data-plugin-image-id');
                 activeElement.removeAttribute('data-plugin-image-name');
                 activeElement.removeAttribute('data-plugin-image-args');
+                activeElement.removeAttribute('data-custom-image-template');
                 
                 const target = activeElement.querySelector('div[contenteditable="true"]');
                 if (target) {
@@ -11787,6 +11803,7 @@ Object.values(pluginsData).forEach(p => {
             activeElement.dataset.mergeCol = "0";
             activeElement.removeAttribute('data-plugin-image-id');
             activeElement.removeAttribute('data-plugin-image-name');
+            activeElement.removeAttribute('data-custom-image-template');
         }
         
         recomputeAllMergeData();
@@ -11794,7 +11811,6 @@ Object.values(pluginsData).forEach(p => {
         updateMergeUI();
         saveState();
     }
-
 
     let replaceTargetDataId = null;
 
@@ -11904,7 +11920,11 @@ Object.values(pluginsData).forEach(p => {
         if (!src || !src.syncUrl) return;
         try {
             showToast("Syncing...");
-            const resp = await fetch(src.syncUrl);
+            
+            // Force the browser to bypass its local cache
+            const cacheBuster = src.syncUrl.includes('?') ? '&_t=' : '?_t=';
+            const resp = await fetch(src.syncUrl + cacheBuster + Date.now(), { cache: 'no-store' });
+            
             if (!resp.ok) throw new Error();
             const text = await resp.text();
             const data = parseDataFileContent(text, src.syncUrl);
@@ -11912,6 +11932,13 @@ Object.values(pluginsData).forEach(p => {
                 src.data = data;
                 recomputeAllMergeData();
                 renderDataSourcesList();
+                
+                // Ensure the Image Bank updates instantly
+                if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                    renderImageBankItems();
+                }
+                updateImageBankMergeUI();
+                
                 saveState(true);
                 showToast("Synced!");
             }
@@ -12508,9 +12535,9 @@ ${p.description ? `
         if (!sourceSelect || !colSelect) return;
 
         sourceSelect.innerHTML = '<option value="">Select Source...</option>';
+        sourceSelect.innerHTML += '<option value="custom_template">Custom Path...</option>';
         colSelect.innerHTML = '<option value="">Select Variable...</option>';
         colSelect.disabled = true;
-
         for (let id in mergeSources) {
             const src = mergeSources[id];
             if (src.hasHeader && src.data.length > 0) {
@@ -12536,10 +12563,20 @@ ${p.description ? `
 
     function handleBankMergeSourceChange(sourceId) {
         const colSelect = document.getElementById('bank-merge-col-select');
+        const customInput = document.getElementById('bank-custom-path-input');
         if (!colSelect) return;
 
         colSelect.innerHTML = '<option value="">Select Variable...</option>';
         
+        if (sourceId === 'custom_template') {
+            colSelect.classList.add('hidden');
+            if (customInput) customInput.classList.remove('hidden');
+            return;
+        } else {
+            colSelect.classList.remove('hidden');
+            if (customInput) customInput.classList.add('hidden');
+        }
+
         if (!sourceId) {
             colSelect.disabled = true;
             return;
@@ -12829,7 +12866,9 @@ function renameBankImage(oldName, newName) {
     function updateAllCanvasImages() {
         document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
             let val = '';
-            if (el.dataset.mergeData) {
+            if (el.dataset.customImageTemplate) {
+                val = renderTemplateString(el.dataset.customImageTemplate, globalMergeIndex);
+            } else if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
                     val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
@@ -12949,7 +12988,10 @@ function renameBankImage(oldName, newName) {
         if (placeholder) {
             placeholder.classList.remove('bg-red-50', 'border-red-400', 'text-red-500', 'bg-purple-50', 'border-purple-400', 'text-purple-500', 'bg-gray-100', 'border-gray-300', 'text-gray-400', 'data-empty');
             
-            if (el.dataset.pluginImageId) {
+            if (el.dataset.customImageTemplate) {
+                placeholder.classList.add('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
+                if (pText) pText.innerText = `Template: ${el.dataset.customImageTemplate}`;
+            } else if (el.dataset.pluginImageId) {
                 placeholder.classList.add('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400');
                 if (pText) {
                     const pId = el.dataset.pluginImageId;
@@ -13065,11 +13107,27 @@ function renameBankImage(oldName, newName) {
     function createCustomPlaceholders() {
         const sourceSelect = document.getElementById('bank-merge-source-select');
         const colSelect = document.getElementById('bank-merge-col-select');
+        const customInput = document.getElementById('bank-custom-path-input');
         
-        if (!sourceSelect || !colSelect) return;
+        if (!sourceSelect) return;
         
         const sourceId = sourceSelect.value;
-        const colIdxStr = colSelect.value;
+
+        if (sourceId === 'custom_template') {
+            const pathVal = customInput.value.trim();
+            if (!pathVal) {
+                showToast("Please enter a valid URL template.", true);
+                return;
+            }
+            placeCustomTemplateImage(pathVal);
+            
+            sourceSelect.value = '';
+            handleBankMergeSourceChange('');
+            if (customInput) customInput.value = '';
+            return;
+        }
+
+        const colIdxStr = colSelect ? colSelect.value : '';
 
         if (!sourceId || !colIdxStr) {
             showToast("Please select a data source and an image variable.", true);
@@ -13171,6 +13229,58 @@ function renameBankImage(oldName, newName) {
         };
         tempImg.src = dataUrl;
     }
+
+    function placeCustomTemplateImage(pathVal) {
+        const p = (val) => Math.round(val * (PX_PER_IN / 100));
+        const contentArea = document.getElementById('card-content');
+        if (!contentArea) return;
+
+        const placeholderText = `Path: ${pathVal}`;
+
+        const el = document.createElement('div');
+        el.className = 'element-container bg-transparent';
+        el.style.zIndex = zIndexCounter++;
+        el.dataset.type = 'image';
+        
+        el.dataset.customImageTemplate = pathVal;
+
+        el.dataset.objectFit = 'contain';
+        el.dataset.objectPositionX = 'center';
+        el.dataset.objectPositionY = 'center';
+        el.dataset.imageScale = '1';
+
+        const innerContent = getBaseImageContentHTML(p(150), p(150), '', placeholderText, 'contain', 'center', 'center', '1', 'data-empty bg-gray-100 border-gray-300 text-gray-400');
+        el.innerHTML = getControlsHTML(false) + innerContent;
+        contentArea.appendChild(el);
+
+        const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        const centerX = (containerRect.width / 2 - panX) / canvasScale;
+        const centerY = (containerRect.height / 2 - panY) / canvasScale;
+        const res = el.querySelector('.resizable');
+        const elW = res ? res.offsetWidth : el.offsetWidth;
+        const elH = res ? res.offsetHeight : el.offsetHeight;
+        const cascade = (zIndexCounter % 10) * (PX_PER_IN / 40);
+        el.style.left = (centerX - (elW / 2) + cascade) + 'px';
+        el.style.top = (centerY - (elH / 2) + cascade) + 'px';
+
+        setActiveElement(el);
+        closeImageBankModal();
+        updateMergeUI();
+        updateAllCanvasImages();
+        saveState();
+    }
+
+    function applyCustomPath(val) {
+        if (!activeElement || activeElement.dataset.type !== 'image') return;
+        if (val.trim()) {
+            activeElement.dataset.customImageTemplate = val.trim();
+        } else {
+            delete activeElement.dataset.customImageTemplate;
+        }
+        updateAllCanvasImages();
+        saveState(true);
+    }
+
 
     function applyImageScale(val) {
         if (activeElements.length === 0) return;
@@ -13743,7 +13853,10 @@ document.querySelectorAll('style').forEach(s => {
 
         const imagePromises = [];
         temp.querySelectorAll('.element-container').forEach(el => {
-            if (el.dataset.mergeData) {
+            if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                const val = renderTemplateString(el.dataset.customImageTemplate, globalMergeIndex);
+                imagePromises.push(updateImageElementDisplay(el, val, true));
+            } else if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
                     const val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
@@ -14026,25 +14139,25 @@ document.querySelectorAll('style').forEach(s => {
         }
 
         let customStyleTag = '';
-document.querySelectorAll('style').forEach(s => {
-    if (s.id !== 'custom-fonts-style') {
-        // Check if the stylesheet has rules loaded into the CSSOM
-        if (s.sheet && s.sheet.cssRules) {
-            try {
-                for (let i = 0; i < s.sheet.cssRules.length; i++) {
-                    customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+        document.querySelectorAll('style').forEach(s => {
+            if (s.id !== 'custom-fonts-style') {
+                // Check if the stylesheet has rules loaded into the CSSOM
+                if (s.sheet && s.sheet.cssRules) {
+                    try {
+                        for (let i = 0; i < s.sheet.cssRules.length; i++) {
+                            customStyleTag += s.sheet.cssRules[i].cssText + '\n';
+                        }
+                    } catch (e) {
+                        // Fallback for CORS-blocked external stylesheets
+                        console.warn("Could not read cssRules from stylesheet", e);
+                        customStyleTag += s.innerHTML + '\n'; 
+                    }
+                } else {
+                    // Fallback for standard text-based style blocks
+                    customStyleTag += s.innerHTML + '\n';
                 }
-            } catch (e) {
-                // Fallback for CORS-blocked external stylesheets
-                console.warn("Could not read cssRules from stylesheet", e);
-                customStyleTag += s.innerHTML + '\n'; 
             }
-        } else {
-            // Fallback for standard text-based style blocks
-            customStyleTag += s.innerHTML + '\n';
-        }
-    }
-});
+        });
         const projName = document.getElementById('project-name').value.trim() || 'QuickCardDesigner';
         
         showToast(`Rendering ${targetSheets.length * (isDuplex ? 2 : 1)} images... Please wait.`);
@@ -14142,9 +14255,12 @@ document.querySelectorAll('style').forEach(s => {
                         temp.innerHTML = activeContent;
 
                         const imagePromises = [];
-                        temp.querySelectorAll('.element-container').forEach(el => {
-                            if (el.dataset.mergeData) {
-                                try {
+                            temp.querySelectorAll('.element-container').forEach(el => {
+                                if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                                    const val = renderTemplateString(el.dataset.customImageTemplate, cardIndex);
+                                    imagePromises.push(updateImageElementDisplay(el, val, true));
+                                } else if (el.dataset.mergeData) {
+                                    try {
                                     const data = JSON.parse(el.dataset.mergeData);
                                     const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
                                     
@@ -14348,7 +14464,10 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
             
             const imagePromises = [];
             temp.querySelectorAll('.element-container').forEach(el => {
-                if (el.dataset.mergeData) {
+                if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                    const val = renderTemplateString(el.dataset.customImageTemplate, index);
+                    imagePromises.push(updateImageElementDisplay(el, val, true));
+                } else if (el.dataset.mergeData) {
                     try {
                         const data = JSON.parse(el.dataset.mergeData);
                         const val = data[index] !== undefined ? data[index] : ''; 
