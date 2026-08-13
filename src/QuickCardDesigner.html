@@ -1143,16 +1143,25 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16M8 8h10v8H8z" /></svg></button>
                     <button onclick="alignElements('centerX')" title="Align Center X" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16M8 8h8v8H8z" /></svg></button>
-                    <button onclick="alignElements('right')" title="Align Right" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="alignElements('right')" title="Align Right" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 4v16M6 8h10v8H6z" /></svg></button>
+                    
                 </div>
                 <div class="flex bg-white border border-gray-300 rounded shadow-sm">
                     <button onclick="alignElements('top')" title="Align Top" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M8 8v10h8V8z" /></svg></button>
                     <button onclick="alignElements('centerY')" title="Align Center Y" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M8 8v8h8V8z" /></svg></button>
-                    <button onclick="alignElements('bottom')" title="Align Bottom" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="alignElements('bottom')" title="Align Bottom" class="p-1 hover:bg-gray-50 text-gray-600 border-r border-gray-200 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 6v10h8V6z" /></svg></button>
+                    
+                </div>
+                <div class="flex bg-white border border-gray-300 rounded shadow-sm">
+                   
+                            <button onclick="distributeElements('x')" title="Distribute Horizontally" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16M20 4v16M9 12h6M4 12h2M18 12h2"></path></svg></button>
+                    <button onclick="distributeElements('y')" title="Distribute Vertically" class="p-1 hover:bg-gray-50 text-gray-600 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M4 20h16M12 9v6M12 4v2M12 18v2"></path></svg></button>
                 </div>
             </div>
 
@@ -6546,6 +6555,7 @@ function getControlsHTML(isGroup) {
             if (activeElements.length === 1) {
                 const el = activeElements[0];
                 const b = getAbsoluteBounds(el, alignMode);
+                const structB = getAbsoluteBounds(el, 'bbox'); // Structural Base
 
                 const parent = el.parentElement;
                 const pW = parent.id === 'card-content' ? currentWidth : parent.offsetWidth;
@@ -6555,21 +6565,19 @@ function getControlsHTML(isGroup) {
                 const pX = parent.id === 'card-content' ? 0 : pB.x;
                 const pY = parent.id === 'card-content' ? 0 : pB.y;
 
-                let newX = b.x,
-                    newY = b.y;
+                let dx = 0, dy = 0;
 
-                if (type === 'left') newX = pX;
-                else if (type === 'centerX') newX = pX + ((pW - b.w) / 2);
-                else if (type === 'right') newX = pX + (pW - b.w);
-                else if (type === 'top') newY = pY;
-                else if (type === 'centerY') newY = pY + ((pH - b.h) / 2);
-                else if (type === 'bottom') newY = pY + (pH - b.h);
+                if (type === 'left') dx = pX - b.x;
+                else if (type === 'centerX') dx = (pX + pW / 2) - (b.x + b.w / 2);
+                else if (type === 'right') dx = (pX + pW) - (b.x + b.w);
+                else if (type === 'top') dy = pY - b.y;
+                else if (type === 'centerY') dy = (pY + pH / 2) - (b.y + b.h / 2);
+                else if (type === 'bottom') dy = (pY + pH) - (b.y + b.h);
 
-                setAbsolutePosition(el, newX, newY);
+                setAbsolutePosition(el, structB.x + dx, structB.y + dy);
             } else {
                 const box = getGroupBoundingBox(alignMode);
-                let dx = 0,
-                    dy = 0;
+                let dx = 0, dy = 0;
 
                 if (type === 'left') dx = -box.x;
                 else if (type === 'centerX') dx = (currentWidth - box.w) / 2 - box.x;
@@ -6579,8 +6587,8 @@ function getControlsHTML(isGroup) {
                 else if (type === 'bottom') dy = currentHeight - (box.y + box.h);
 
                 activeElements.forEach(el => {
-                    const b = getAbsoluteBounds(el, alignMode);
-                    setAbsolutePosition(el, b.x + dx, b.y + dy);
+                    const structB = getAbsoluteBounds(el, 'bbox');
+                    setAbsolutePosition(el, structB.x + dx, structB.y + dy);
                 });
             }
         } else {
@@ -6590,19 +6598,81 @@ function getControlsHTML(isGroup) {
             for (let i = 0; i < activeElements.length - 1; i++) {
                 const el = activeElements[i];
                 const b = getAbsoluteBounds(el, alignMode);
+                const structB = getAbsoluteBounds(el, 'bbox'); // Structural Base
 
-                let newX = b.x,
-                    newY = b.y;
-                if (type === 'left') newX = targetB.x;
-                else if (type === 'centerX') newX = targetB.x + (targetB.w / 2) - (b.w / 2);
-                else if (type === 'right') newX = targetB.x + targetB.w - b.w;
-                else if (type === 'top') newY = targetB.y;
-                else if (type === 'centerY') newY = targetB.y + (targetB.h / 2) - (b.h / 2);
-                else if (type === 'bottom') newY = targetB.y + targetB.h - b.h;
+                let dx = 0, dy = 0;
+                if (type === 'left') dx = targetB.x - b.x;
+                else if (type === 'centerX') dx = (targetB.x + targetB.w / 2) - (b.x + b.w / 2);
+                else if (type === 'right') dx = (targetB.x + targetB.w) - (b.x + b.w);
+                else if (type === 'top') dy = targetB.y - b.y;
+                else if (type === 'centerY') dy = (targetB.y + targetB.h / 2) - (b.y + b.h / 2);
+                else if (type === 'bottom') dy = (targetB.y + targetB.h) - (b.y + b.h);
 
-                setAbsolutePosition(el, newX, newY);
+                setAbsolutePosition(el, structB.x + dx, structB.y + dy);
             }
         }
+
+        updateBaseLayout();
+        updateLayoutInputs();
+
+        activeElements.forEach(el => {
+            const parentGroup = el.closest('.group-wrapper');
+            if (parentGroup && parentGroup !== el) recalculateGroupBounds(parentGroup);
+        });
+
+        saveState();
+    }
+
+    function distributeElements(axis) {
+        if (activeElements.length < 2) return;
+
+        const targetMode = document.getElementById('align-target').value;
+        const alignMode = document.getElementById('align-mode').value;
+
+        // Sort elements visually by axis
+        let sorted = [...activeElements].sort((a, b) => {
+            const bA = getAbsoluteBounds(a, alignMode);
+            const bB = getAbsoluteBounds(b, alignMode);
+            return axis === 'x' ? bA.x - bB.x : bA.y - bB.y;
+        });
+
+        let startCoord, endCoord;
+
+        if (targetMode === 'page') {
+            startCoord = 0;
+            endCoord = axis === 'x' ? currentWidth : currentHeight;
+        } else {
+            // Distribute between the outer edges of the selected group
+            const firstB = getAbsoluteBounds(sorted[0], alignMode);
+            const lastB = getAbsoluteBounds(sorted[sorted.length - 1], alignMode);
+            startCoord = axis === 'x' ? firstB.x : firstB.y;
+            endCoord = axis === 'x' ? (lastB.x + lastB.w) : (lastB.y + lastB.h);
+        }
+
+        let totalElementSize = 0;
+        sorted.forEach(el => {
+            const b = getAbsoluteBounds(el, alignMode);
+            totalElementSize += axis === 'x' ? b.w : b.h;
+        });
+
+        const gap = (endCoord - startCoord - totalElementSize) / Math.max(1, sorted.length - 1);
+
+        let currentPos = startCoord;
+        sorted.forEach((el) => {
+            const b = getAbsoluteBounds(el, alignMode);
+            const structB = getAbsoluteBounds(el, 'bbox'); // Structural Base
+
+            let dx = 0, dy = 0;
+            if (axis === 'x') {
+                dx = currentPos - b.x;
+                currentPos += b.w + gap;
+            } else {
+                dy = currentPos - b.y;
+                currentPos += b.h + gap;
+            }
+
+            setAbsolutePosition(el, structB.x + dx, structB.y + dy);
+        });
 
         updateBaseLayout();
         updateLayoutInputs();
@@ -10562,50 +10632,51 @@ function getPluginContext(activeRow, cardElement = null) {
         const prefix = parts[0];
         if (!prefix) return `{{${inner}}}`;
         
-        if (prefix.toLowerCase().endsWith('.csv')) {
-            const activeSrcs = window.activeMergeSources || mergeSources;
-            let sourceId = null;
-            for (let id in activeSrcs) {
-                if (activeSrcs[id].filename === prefix) {
-                    sourceId = id;
-                    break;
-                }
+        // 1. Check if the prefix matches ANY loaded Data Source filename exactly
+        const activeSrcs = window.activeMergeSources || mergeSources;
+        let sourceId = null;
+        for (let id in activeSrcs) {
+            if (activeSrcs[id].filename === prefix) {
+                sourceId = id;
+                break;
             }
-            if (sourceId) {
-                const source = activeSrcs[sourceId];
-                const colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
-                const rowReq = parts[2] ? parseInt(parts[2]) : null;
+        }
+        
+        if (sourceId) {
+            const source = activeSrcs[sourceId];
+            const colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+            const rowReq = parts[2] ? parseInt(parts[2]) : null;
+            
+            let colIdx = -1;
+            if (source.hasHeader && source.data.length > 0) {
+                colIdx = source.data[0].findIndex(h => h && String(h).trim() === colName);
+            }
+            if (colIdx === -1 && !isNaN(parseInt(colName))) {
+                colIdx = parseInt(colName);
+            }
+            
+            if (colIdx !== -1) {
+                let activeCount = 0;
+                let startIndex = source.hasHeader ? 1 : 0;
+                let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
+                let actualRowIndex = -1;
                 
-                let colIdx = -1;
-                if (source.hasHeader && source.data.length > 0) {
-                    colIdx = source.data[0].findIndex(h => h && String(h).trim() === colName);
-                }
-                if (colIdx === -1 && !isNaN(parseInt(colName))) {
-                    colIdx = parseInt(colName);
-                }
-                
-                if (colIdx !== -1) {
-                    let activeCount = 0;
-                    let startIndex = source.hasHeader ? 1 : 0;
-                    let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
-                    let actualRowIndex = -1;
-                    
-                    for (let i = startIndex; i < source.data.length; i++) {
-                        if (source.excludedRows && source.excludedRows[i]) continue;
-                        if (activeCount === targetCount) {
-                            actualRowIndex = i;
-                            break;
-                        }
-                        activeCount++;
+                for (let i = startIndex; i < source.data.length; i++) {
+                    if (source.excludedRows && source.excludedRows[i]) continue;
+                    if (activeCount === targetCount) {
+                        actualRowIndex = i;
+                        break;
                     }
-                    if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
-                        return source.data[actualRowIndex][colIdx] !== undefined ? source.data[actualRowIndex][colIdx] : '';
-                    }
+                    activeCount++;
+                }
+                if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
+                    return source.data[actualRowIndex][colIdx] !== undefined ? source.data[actualRowIndex][colIdx] : '';
                 }
             }
             return `{{${inner}}}`;
         }
         
+        // 2. Check if the prefix matches a Plugin
         let pluginInstance = null;
         for (let id in pluginsData) {
             if (pluginsData[id].name === prefix) {
@@ -10637,7 +10708,10 @@ function getPluginContext(activeRow, cardElement = null) {
         const braceRegex = /\{\{([^{}]+)\}\}/g;
         
         let maxIterations = 50;
-        while (braceRegex.test(result) && maxIterations-- > 0) {
+        let lastResult = "";
+        
+        while (result !== lastResult && maxIterations-- > 0) {
+            lastResult = result;
             result = result.replace(braceRegex, (match, inner) => {
                 return evaluateTemplateExpression(inner.trim(), activeRow);
             });
@@ -11572,6 +11646,7 @@ Object.values(pluginsData).forEach(p => {
                 }
                 updateImageBankMergeUI();
                 updateMergeUI();
+                recomputeAllMergeData();
                 saveState(true);
                 showToast("Source renamed");
             } else {
