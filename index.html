@@ -2306,6 +2306,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     let acOptions = [];
     let acSelectedIndex = -1;
     let acRange = null;
+    let acTrackerFrame = null;
+    let lastAcRect = { top: 0, left: 0, winW: 0, winH: 0 };
 
     function buildAutocompleteOptions() {
         let opts = [];
@@ -2314,7 +2316,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             const fname = src.filename;
             if (src.hasHeader && src.data.length > 0) {
                 src.data[0].forEach((hdr, idx) => {
-                    if (hdr) opts.push(`${fname},${String(hdr).trim().replace(/^Images:\\s*/i, '')}`);
+                    if (hdr) opts.push(`${fname},${String(hdr).trim().replace(/^Images:\s*/i, '')}`);
                 });
             } else {
                 const numCols = src.data.length > 0 ? src.data[0].length : 1;
@@ -2339,7 +2341,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         if (range.startContainer.nodeType !== Node.TEXT_NODE) return closeAutocomplete();
         
         const textBefore = range.startContainer.textContent.substring(0, range.startOffset);
-        // FIXED REGEX: Look for {{ followed by anything that isn't a closing brace
         const match = textBefore.match(/\{\{([^{}]*)$/);
         
         if (match) {
@@ -2353,8 +2354,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     acSelectedIndex = 0;
                 }
                 renderAutocomplete();
-                positionAutocomplete(range);
-                acActive = true;
+                
+                // Fire up the hardware-accelerated tracker
+                if (!acActive) {
+                    acActive = true;
+                    lastAcRect = { top: -1, left: -1, winW: -1, winH: -1 }; 
+                    trackAutocompletePosition();
+                }
             } else {
                 closeAutocomplete();
             }
@@ -2363,12 +2369,89 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         }
     }
 
+    function trackAutocompletePosition() {
+        if (!acActive || !acRange) return;
+        
+        // Close cleanly if the text node was destroyed (e.g. by markdown parser)
+        if (!acRange.startContainer.isConnected) {
+            closeAutocomplete();
+            return;
+        }
+        
+        // Grab the exact character box of the {{ text
+        const rects = acRange.getClientRects();
+        const rect = rects.length > 0 ? rects[rects.length - 1] : acRange.getBoundingClientRect();
+        
+        // Reflow glitch shield: ignore blank coordinate reads
+        if (rect.top === 0 && rect.left === 0 && rect.width === 0) {
+            acTrackerFrame = requestAnimationFrame(trackAutocompletePosition);
+            return;
+        }
+        
+        // Only update the DOM if the cursor physically moved or the window resized
+        if (rect.top !== lastAcRect.top || rect.left !== lastAcRect.left || 
+            window.innerWidth !== lastAcRect.winW || window.innerHeight !== lastAcRect.winH) {
+            
+            lastAcRect = { top: rect.top, left: rect.left, winW: window.innerWidth, winH: window.innerHeight };
+            positionAutocomplete(rect); // Pass the raw rect to bypass extra calculations
+        }
+        
+        acTrackerFrame = requestAnimationFrame(trackAutocompletePosition);
+    }
+
+    function positionAutocomplete(rect) {
+        const dd = document.getElementById('autocomplete-dropdown');
+        if (!dd) return;
+        
+        dd.style.display = 'block';
+        dd.classList.remove('hidden');
+        
+        const margin = 10;
+        const maxW = 300;
+        const absoluteMaxH = 250; // Cap at ~10 items
+        
+        let left = rect.left;
+        if (left + maxW > window.innerWidth) left = window.innerWidth - maxW - margin;
+        dd.style.left = Math.max(margin, left) + 'px';
+        
+        const spaceBelow = window.innerHeight - rect.bottom - margin;
+        const spaceAbove = rect.top - margin;
+        
+        // --- ANTI-JUMP STICKINESS (HYSTERESIS) ---
+        // Aggressively prefer the current placement side to prevent jitter during window resizes.
+        let placeBelow = true;
+        if (dd.dataset.placement === 'above') {
+            // It is currently above. Stay above unless we are getting crushed (<80px) AND below has more space.
+            if (spaceAbove < 80 && spaceBelow > spaceAbove) placeBelow = true;
+            else placeBelow = false;
+        } else {
+            // It is currently below. Stay below unless we are getting crushed (<80px) AND above has more space.
+            if (spaceBelow < 80 && spaceAbove > spaceBelow) placeBelow = false;
+            else placeBelow = true;
+        }
+        
+        dd.dataset.placement = placeBelow ? 'below' : 'above';
+        // ----------------------------------------
+        
+        // Dynamic CSS Bounds: Binds the max height cleanly to the edge of the window!
+        if (placeBelow) {
+            dd.style.top = (rect.bottom + 4) + 'px';
+            dd.style.bottom = 'auto';
+            dd.style.maxHeight = `min(${absoluteMaxH}px, calc(100vh - ${rect.bottom + 4 + margin}px))`;
+        } else {
+            dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+            dd.style.top = 'auto';
+            dd.style.maxHeight = `min(${absoluteMaxH}px, calc(${rect.top - 4 - margin}px))`;
+        }
+    }
+
     function renderAutocomplete() {
         let dd = document.getElementById('autocomplete-dropdown');
         if (!dd) {
             dd = document.createElement('div');
             dd.id = 'autocomplete-dropdown';
-            dd.className = 'absolute bg-white border border-gray-200 shadow-xl rounded-lg z-[99999] py-1 flex-col hidden max-h-64 overflow-y-auto pointer-events-auto';
+            // Fixed positioning tracks perfectly with getBoundingClientRects
+            dd.className = 'fixed bg-white border border-gray-200 shadow-xl rounded-lg z-[99999] py-1 hidden overflow-y-auto pointer-events-auto';
             dd.onwheel = (e) => e.stopPropagation();
             document.body.appendChild(dd);
         }
@@ -2379,14 +2462,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             div.className = `px-3 py-1.5 text-[11px] font-mono cursor-pointer transition-colors whitespace-nowrap truncate ${idx === acSelectedIndex ? 'bg-blue-100 text-blue-800' : 'text-gray-700 hover:bg-gray-50'}`;
             div.innerHTML = `<span class="opacity-50 mr-1">{{</span>${opt}<span class="opacity-50 ml-1">}}</span>`;
             
-            // 1. Intercept pointerdown completely
             div.onpointerdown = (e) => {
-                e.preventDefault();  // Stop native browser focus shift!
-                e.stopPropagation(); // Stop custom canvas blur scripts!
+                e.preventDefault();  
+                e.stopPropagation(); 
                 insertAutocomplete(opt);
             };
             
-            // 2. Catch native clicks just to be absolutely bulletproof against event bubbling
             div.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             div.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
 
@@ -2398,32 +2479,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         });
     }
 
-    function positionAutocomplete(range) {
-        const rect = range.getBoundingClientRect();
-        const dd = document.getElementById('autocomplete-dropdown');
-        dd.style.display = 'flex';
-        dd.classList.remove('hidden');
-        
-        const maxW = 300;
-        const maxH = 200;
-        let left = rect.left;
-        let top = rect.bottom + 4;
-        
-        if (left + maxW > window.innerWidth) left = window.innerWidth - maxW - 10;
-        if (top + maxH > window.innerHeight) top = rect.top - maxH - 4;
-        
-        dd.style.left = Math.max(10, left) + 'px';
-        dd.style.top = Math.max(10, top) + 'px';
-    }
-
     function closeAutocomplete() {
         acActive = false;
         acSelectedIndex = -1;
         acRange = null;
+        if (acTrackerFrame) cancelAnimationFrame(acTrackerFrame);
         const dd = document.getElementById('autocomplete-dropdown');
         if (dd) {
             dd.style.display = 'none';
             dd.classList.add('hidden');
+            delete dd.dataset.placement; // Reset placement memory when closed
         }
     }
 
@@ -2457,6 +2522,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         }
         closeAutocomplete();
     }
+
+    window.addEventListener('resize', () => {
+        if (acActive && acRange) {
+            positionAutocomplete(acRange);
+        }
+    });
 
     // --- WORKSPACE & URL PARAMETER PARSING ---
     const urlParams = new URLSearchParams(window.location.search);
