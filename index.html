@@ -3616,9 +3616,15 @@ function updateBgSettings(side) {
     let currentIdleCallback = null;
 
     function processRenderQueue(deadline) {
-        while ((deadline.timeRemaining() > 5 || deadline.didTimeout) && renderQueue.length > 0) {
+        while (renderQueue.length > 0) {
             const task = renderQueue.shift(); // Tasks are pre-sorted by priority
             if (task) task();
+            
+            // Ensure at least one task runs per tick to prevent starvation!
+            // We check the time limit at the END of the loop, not the beginning.
+            if (deadline.timeRemaining() <= 5 && !deadline.didTimeout) {
+                break;
+            }
         }
         
         if (renderQueue.length > 0) {
@@ -3731,6 +3737,11 @@ function updateBgSettings(side) {
                 cIC(currentIdleCallback);
                 isRenderingIdle = false;
             }
+            // CRITICAL FIX: Reset tracking flags for all existing nodes to force redraw
+            Array.from(bgGrid.children).forEach(n => {
+                n.dataset.queued = "true";
+                n.dataset.taskActive = "false";
+            });
         }
 
         const visibleIndices = new Set();
@@ -3780,16 +3791,13 @@ function updateBgSettings(side) {
             let node = bgGrid.querySelector(`[data-index="${i}"]`);
             const isOOB = maxMergeRows > 0 && i >= maxMergeRows;
             
-            // Create the outer shell instantly so layout behaves smoothly
+           // Create the outer shell instantly so layout behaves smoothly
             if (!node) {
                 node = document.createElement('div');
                 node.dataset.index = i;
-                node.className = "absolute shadow-sm transition-opacity duration-200 pointer-events-auto cursor-pointer hover:opacity-100 opacity-100 hover:shadow-lg hover:ring-4 hover:ring-blue-400 hover:z-10";
-                node.style.willChange = 'transform, opacity';
-                node.style.contain = 'strict';
-                
-                // Add a structural grey box placeholder for cards that haven't rendered yet
-                node.innerHTML = `<div class="w-full h-full bg-gray-200 border border-gray-300 shadow-inner" data-queued="true"></div>`;
+                node.className = "absolute shadow-sm pointer-events-auto cursor-pointer hover:shadow-lg hover:ring-4 hover:ring-blue-400 hover:z-10";
+                node.innerHTML = `<div class="w-full h-full bg-gray-200 border border-gray-300 shadow-inner"></div>`;
+                node.dataset.queued = "true"; // Track queue status cleanly via dataset
                 
                 node.addEventListener('pointerdown', (e) => {
                     if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -3811,7 +3819,9 @@ function updateBgSettings(side) {
             node.style.height = currentHeight + 'px';
 
             // 3. Queue the heavy HTML rendering in the background worker
-            if (templateChanged || node.innerHTML.includes('data-queued="true"')) {
+            if (templateChanged || node.dataset.queued === "true") {
+                if (templateChanged) node.dataset.queued = "true"; // Ensure new templates trigger a full pass
+
                 const renderTask = () => {
                     // Check if it's still visible before doing the heavy work
                     if (!node.isConnected) return;
@@ -3820,16 +3830,25 @@ function updateBgSettings(side) {
                         node.innerHTML = `<div class="bg-white w-full h-full flex items-center justify-center text-gray-300 text-2xl font-bold uppercase tracking-widest border border-dashed border-gray-300" style="background: repeating-linear-gradient(45deg, #f9fafb, #f9fafb 10px, #f3f4f6 10px, #f3f4f6 20px);">Empty</div>`;
                     } else {
                         if (!virtualHtmlCache.has(i)) {
-                            virtualHtmlCache.set(i, renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, i, ghostParams));
+                            try {
+                                virtualHtmlCache.set(i, renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, i, ghostParams));
+                            } catch (e) {
+                                console.error("Render failed for card", i, e);
+                                virtualHtmlCache.set(i, '<div class="text-red-500 font-bold p-4 bg-red-50 w-full h-full flex items-center justify-center border border-red-500">Render Error</div>');
+                            }
                         }
                         node.innerHTML = virtualHtmlCache.get(i);
                     }
+                    node.dataset.queued = "false";
+                    node.dataset.taskActive = "false";
                 };
                 
                 // If it's already in the cache, render it instantly! Only queue new generations.
                 if (!isOOB && virtualHtmlCache.has(i)) {
                     renderTask();
-                } else {
+                } else if (node.dataset.taskActive !== "true") {
+                    // CRITICAL FIX: Deduplicate! Prevent massive queue flooding on rapid zoom out
+                    node.dataset.taskActive = "true";
                     renderQueue.push(renderTask);
                 }
             }
