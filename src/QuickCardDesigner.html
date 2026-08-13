@@ -2630,34 +2630,6 @@
         saveState(true);
     }
 
-    // function toggleTextFormat() {
-    //     if (activeElements.length === 0) return;
-    //     const mdChecked = document.getElementById('markdown-toggle').checked;
-    //     const htmlChecked = document.getElementById('raw-html-toggle').checked;
-        
-    //     activeElements.forEach(el => {
-    //         if (el.dataset.type === 'text' || el.dataset.type === 'title') {
-    //             el.dataset.markdown = mdChecked;
-    //             el.dataset.rawHtml = htmlChecked;
-    //             const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
-    //             if (target) {
-    //                 if (mdChecked || htmlChecked) {
-    //                     if (!target.hasAttribute('data-template-raw') && !target.hasAttribute('data-format-raw')) {
-    //                         target.setAttribute('data-format-raw', target.innerText);
-    //                     }
-    //                 } else {
-    //                     if (target.hasAttribute('data-format-raw')) {
-    //                         target.innerHTML = target.getAttribute('data-format-raw');
-    //                         target.removeAttribute('data-format-raw');
-    //                         target.removeAttribute('data-markdown-raw');
-    //                     }
-    //                 }
-    //                 parseMarkdownInElement(target);
-    //             }
-    //         }
-    //     });
-    //     saveState(true);
-    // }
 
     const StorageDB = {
         async db() {
@@ -3369,7 +3341,7 @@ function updateBgSettings(side) {
                             if (placeholder) placeholder.style.display = 'flex';
                         }
                     } else {
-                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target && !target.hasAttribute('data-template-raw')) {
                             parseMarkdownInElement(target, val);
                         }
@@ -15610,9 +15582,9 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                                         if (el.dataset.type === 'image') {
                                             imagePromises.push(updateImageElementDisplay(el, val, true));
                                         } else {
-                                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                                             if (target && !target.hasAttribute('data-template-raw')) {
-                                                parseMarkdownInElement(target);
+                                                parseMarkdownInElement(target, val);
                                             }
                                         }
                                     } catch (e) {}
