@@ -11079,6 +11079,77 @@ function getPluginContext(activeRow, cardElement = null) {
     }
 
     function evaluateTemplateExpression(inner, activeRow) {
+        let inQuotesCond = false;
+        let quoteCharCond = '';
+        let questionMarkIdx = -1;
+        
+        // Scan for the first unquoted question mark
+        for(let i=0; i<inner.length; i++) {
+            const char = inner[i];
+            if ((char === '"' || char === "'") && (i === 0 || inner[i-1] !== '\\')) {
+                if (inQuotesCond && quoteCharCond === char) inQuotesCond = false;
+                else if (!inQuotesCond) { inQuotesCond = true; quoteCharCond = char; }
+            } else if (char === '?' && !inQuotesCond) {
+                questionMarkIdx = i;
+                break;
+            }
+        }
+        
+        if (questionMarkIdx !== -1) {
+            let conditionExpr = inner.substring(0, questionMarkIdx).trim();
+            let resultsExpr = inner.substring(questionMarkIdx + 1).trim();
+            
+            // Evaluate the condition part
+            let conditionVal = evaluateTemplateExpression(conditionExpr, activeRow);
+            
+            // Strictly determine truthiness
+            let isTrue = false;
+            
+            // If the condition didn't resolve as a variable, treat the raw expression itself as a literal!
+            let valToCheck = (conditionVal === `{{${conditionExpr}}}`) ? conditionExpr : conditionVal;
+            
+            if (valToCheck !== undefined && valToCheck !== null) {
+                let str = String(valToCheck).trim().toLowerCase();
+                // Catch common falsy values
+                if (str !== '' && str !== '0' && str !== 'false' && str !== 'f' && str !== 'null' && str !== 'undefined' && str !== 'nan' && str !== 'no' && str !== 'n') {
+                    isTrue = true;
+                }
+            }
+            
+            // Parse the true, false results separated by comma
+            let commaIdx = -1;
+            let inQuotesRes = false;
+            let quoteCharRes = '';
+            for(let i=0; i<resultsExpr.length; i++) {
+                const char = resultsExpr[i];
+                if ((char === '"' || char === "'") && (i === 0 || resultsExpr[i-1] !== '\\')) {
+                    if (inQuotesRes && quoteCharRes === char) inQuotesRes = false;
+                    else if (!inQuotesRes) { inQuotesRes = true; quoteCharRes = char; }
+                } else if (char === ',' && !inQuotesRes) {
+                    commaIdx = i;
+                    break;
+                }
+            }
+            
+            let trueRes = "";
+            let falseRes = "";
+            if (commaIdx !== -1) {
+                trueRes = resultsExpr.substring(0, commaIdx).trim();
+                falseRes = resultsExpr.substring(commaIdx + 1).trim();
+            } else {
+                trueRes = resultsExpr.trim();
+            }
+            
+            let chosenRes = isTrue ? trueRes : falseRes;
+            
+            // Strip outer quotes if the user explicitly provided them to preserve spaces or empty strings
+            if ((chosenRes.startsWith('"') && chosenRes.endsWith('"')) || (chosenRes.startsWith("'") && chosenRes.endsWith("'"))) {
+                chosenRes = chosenRes.substring(1, chosenRes.length - 1);
+            }
+            
+            return chosenRes;
+        }
+        
         const parts = [];
         let current = '';
         let inQuotes = false;
