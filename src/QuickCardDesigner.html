@@ -5801,55 +5801,93 @@ function restoreState(state) {
             // Get the specific opacity for Data items
             const dataOpacity = document.getElementById('data-ghost-opacity') ? document.getElementById('data-ghost-opacity').value : 0.1;
 
+            // Calculate global max rows for templates that aren't strictly array-bound
+            let maxGhostRows = 0;
+            document.querySelectorAll('#card-content .element-container').forEach(el => {
+                if (el.dataset.mergeData) {
+                    try { maxGhostRows = Math.max(maxGhostRows, JSON.parse(el.dataset.mergeData).length); } catch(e){}
+                }
+            });
+            Object.values(pluginsData).forEach(p => { 
+                if (p.minRecords && p.minRecords > maxGhostRows) maxGhostRows = p.minRecords; 
+            });
+            maxGhostRows = Math.min(Math.max(1, maxGhostRows), 100);
+
             const temp = document.createElement('div');
             temp.innerHTML = dataHTML;
+            
             temp.querySelectorAll('.element-container').forEach(el => {
-                if (el.dataset.mergeData) {
+                const target = el.querySelector('.qcd-text-format-target, .cell-text, .resizable');
+                const origTemplate = target && target.hasAttribute('data-template-raw') ? target.getAttribute('data-template-raw') : null;
+                
+                const hasTemplate = origTemplate !== null || el.dataset.customImageTemplate || el.dataset.pluginImageId;
+                const hasData = el.dataset.mergeData;
+
+                if (hasData || hasTemplate) {
                     try {
-                        const data = JSON.parse(el.dataset.mergeData);
-                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
+                        let data = [];
+                        if (hasData) data = JSON.parse(el.dataset.mergeData);
+                        
+                        const loopMax = hasTemplate ? maxGhostRows : Math.min(data.length, 100);
+
                         if (target) {
                             target.innerHTML = '';
                             target.style.position = 'relative';
-                            const maxRows = Math.min(data.length, 100);
                             
-                            // Fork logic based on element type
                             if (el.dataset.type === 'image') {
                                 const fit = el.dataset.objectFit || 'contain';
                                 const posX = el.dataset.objectPositionX || 'center';
                                 const posY = el.dataset.objectPositionY || 'center';
                                 const scale = el.dataset.imageScale || '1';
 
-                                for (let i = 0; i < maxRows; i++) {
-                                    let displayVal = data[i] !== undefined ? data[i] : '';
-                                    
-                                    // Fallback to base image if data is missing
-                                    if (!displayVal && el.dataset.imageBankKey) {
-                                        displayVal = el.dataset.imageBankKey;
+                                for (let i = 0; i < loopMax; i++) {
+                                    let displayVal = '';
+                                    if (el.dataset.customImageTemplate) {
+                                        displayVal = renderTemplateString(el.dataset.customImageTemplate, i);
+                                    } else if (el.dataset.pluginImageId) {
+                                        const inst = pluginInstances[el.dataset.pluginImageId];
+                                        if (inst && typeof inst.image === 'function') {
+                                            const ctx = getPluginContext(i);
+                                            const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                                            const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
+                                            if (pImg && pImg.trim().startsWith('<')) {
+                                                displayVal = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
+                                            } else {
+                                                displayVal = pImg || '';
+                                            }
+                                        }
+                                    } else if (hasData) {
+                                        displayVal = data[i] !== undefined ? data[i] : '';
                                     }
-
-                                    // If both data and base image are empty, skip rendering a ghost for this row
+                                    
+                                    if (!displayVal && el.dataset.imageBankKey) displayVal = el.dataset.imageBankKey;
                                     if (!displayVal) continue;
 
                                     if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
                                         const imgSrc = imageAssets[displayVal] || displayVal;
                                         const ghostImg = document.createElement('img');
                                         ghostImg.src = imgSrc;
-                                        // Apply the anti-cropping scale math to the ghost images with dynamic slider opacity
                                         ghostImg.style.cssText = `position: absolute; top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; opacity: ${dataOpacity}; pointer-events: none; display: block;`;
                                         target.appendChild(ghostImg);
                                     }
                                 }
                             } else {
                                 // Standard text ghosting logic
-                                for (let i = 0; i < maxRows; i++) {
-                                    const val = data[i] !== undefined ? data[i] : '';
+                                for (let i = 0; i < loopMax; i++) {
+                                    let val = '';
+                                    if (origTemplate !== null) {
+                                        val = renderTemplateString(origTemplate, i);
+                                    } else if (hasData) {
+                                        val = data[i] !== undefined ? data[i] : '';
+                                    }
+
                                     if (!val.trim()) continue;
+                                    
                                     const ghostDiv = document.createElement('div');
-                                    // Use height: auto so the text doesn't artificially stretch bounds, and dynamic slider opacity
                                     ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${dataOpacity}; pointer-events: none; word-break: break-word;`;
-                                    ghostDiv.textContent = val;
-                                    parseMarkdownInElement(ghostDiv);
+                                    
+                                    // Parse Markdown properly!
+                                    parseMarkdownInElement(ghostDiv, val);
                                     target.appendChild(ghostDiv);
                                 }
                             }
