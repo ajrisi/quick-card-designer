@@ -1755,6 +1755,17 @@
                 <button onclick="document.getElementById('bank-upload-input').click()" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors ml-auto">
                     + Upload Images
                 </button>
+                <div class="relative group ml-auto">
+                    <button id="btn-add-image" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded shadow hover:bg-blue-700 transition-colors select-none" title="Upload Image (Hold for options)">
+                        + Add Image
+                    </button>
+                    <!-- Hidden long-press menu -->
+                    <div id="image-menu" class="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-lg z-50 w-48 p-2 hidden cursor-default">
+                        <div class="text-[10px] font-bold text-gray-500 uppercase mb-2 px-1">Image Options</div>
+                        <button onpointerup="document.getElementById('bank-upload-input').click(); closeImageMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Upload File(s)</button>
+                        <button onpointerup="importImageFromURL(); closeImageMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Import Cloud URL</button>
+                    </div>
+                </div>
                 <input type="file" id="bank-upload-input" accept="image/*,.svg" multiple class="hidden" onchange="handleBankUpload(event)">
                 <input type="file" id="bank-replace-input" accept="image/*,.svg" class="hidden" onchange="handleBankReplace(event)">
                 <input type="file" id="bank-fulfill-input" accept="image/*,.svg" class="hidden" onchange="handleBankFulfill(event)">
@@ -2118,7 +2129,166 @@
     let activeEditPluginId = null;
     let isNewPluginBeingCreated = false;
 
+    let imageCloudUrls = {};
+
     const c2aCache = new Map();
+
+    // --- AUTOCOMPLETE ENGINE ---
+    let acActive = false;
+    let acOptions = [];
+    let acSelectedIndex = -1;
+    let acRange = null;
+
+    function buildAutocompleteOptions() {
+        let opts = [];
+        for (let id in mergeSources) {
+            const src = mergeSources[id];
+            const fname = src.filename;
+            if (src.hasHeader && src.data.length > 0) {
+                src.data[0].forEach((hdr, idx) => {
+                    if (hdr) opts.push(`${fname},${String(hdr).trim().replace(/^Images:\\s*/i, '')}`);
+                });
+            } else {
+                const numCols = src.data.length > 0 ? src.data[0].length : 1;
+                for (let i = 0; i < numCols; i++) {
+                    opts.push(`${fname},${i}`);
+                }
+            }
+        }
+        for (let id in pluginsData) {
+            const p = pluginsData[id];
+            p.varnames.forEach(v => opts.push(`${p.name},${v}`));
+            p.images.forEach(img => opts.push(`${p.name},${img}`));
+        }
+        return opts;
+    }
+
+    function checkAutocomplete() {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return closeAutocomplete();
+        
+        const range = sel.getRangeAt(0);
+        if (range.startContainer.nodeType !== Node.TEXT_NODE) return closeAutocomplete();
+        
+        const textBefore = range.startContainer.textContent.substring(0, range.startOffset);
+        // FIXED REGEX: Look for {{ followed by anything that isn't a closing brace
+        const match = textBefore.match(/\{\{([^{}]*)$/);
+        
+        if (match) {
+            const query = match[1].toLowerCase();
+            const allOpts = buildAutocompleteOptions();
+            acOptions = allOpts.filter(o => o.toLowerCase().includes(query));
+            
+            if (acOptions.length > 0) {
+                acRange = range.cloneRange();
+                if (acSelectedIndex >= acOptions.length || acSelectedIndex === -1) {
+                    acSelectedIndex = 0;
+                }
+                renderAutocomplete();
+                positionAutocomplete(range);
+                acActive = true;
+            } else {
+                closeAutocomplete();
+            }
+        } else {
+            closeAutocomplete();
+        }
+    }
+
+    function renderAutocomplete() {
+        let dd = document.getElementById('autocomplete-dropdown');
+        if (!dd) {
+            dd = document.createElement('div');
+            dd.id = 'autocomplete-dropdown';
+            dd.className = 'absolute bg-white border border-gray-200 shadow-xl rounded-lg z-[99999] py-1 flex-col hidden max-h-64 overflow-y-auto pointer-events-auto';
+            dd.onwheel = (e) => e.stopPropagation();
+            document.body.appendChild(dd);
+        }
+
+        dd.innerHTML = '';
+        acOptions.forEach((opt, idx) => {
+            const div = document.createElement('div');
+            div.className = `px-3 py-1.5 text-[11px] font-mono cursor-pointer transition-colors whitespace-nowrap truncate ${idx === acSelectedIndex ? 'bg-blue-100 text-blue-800' : 'text-gray-700 hover:bg-gray-50'}`;
+            div.innerHTML = `<span class="opacity-50 mr-1">{{</span>${opt}<span class="opacity-50 ml-1">}}</span>`;
+            
+            // 1. Intercept pointerdown completely
+            div.onpointerdown = (e) => {
+                e.preventDefault();  // Stop native browser focus shift!
+                e.stopPropagation(); // Stop custom canvas blur scripts!
+                insertAutocomplete(opt);
+            };
+            
+            // 2. Catch native clicks just to be absolutely bulletproof against event bubbling
+            div.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            div.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+            div.onmouseenter = () => {
+                acSelectedIndex = idx;
+                renderAutocomplete();
+            };
+            dd.appendChild(div);
+        });
+    }
+
+    function positionAutocomplete(range) {
+        const rect = range.getBoundingClientRect();
+        const dd = document.getElementById('autocomplete-dropdown');
+        dd.style.display = 'flex';
+        dd.classList.remove('hidden');
+        
+        const maxW = 300;
+        const maxH = 200;
+        let left = rect.left;
+        let top = rect.bottom + 4;
+        
+        if (left + maxW > window.innerWidth) left = window.innerWidth - maxW - 10;
+        if (top + maxH > window.innerHeight) top = rect.top - maxH - 4;
+        
+        dd.style.left = Math.max(10, left) + 'px';
+        dd.style.top = Math.max(10, top) + 'px';
+    }
+
+    function closeAutocomplete() {
+        acActive = false;
+        acSelectedIndex = -1;
+        acRange = null;
+        const dd = document.getElementById('autocomplete-dropdown');
+        if (dd) {
+            dd.style.display = 'none';
+            dd.classList.add('hidden');
+        }
+    }
+
+    function insertAutocomplete(value) {
+        if (!acRange) return;
+        const node = acRange.startContainer;
+        const text = node.textContent;
+        const offset = acRange.startOffset;
+        
+        const before = text.substring(0, offset);
+        const after = text.substring(offset);
+        
+        const matchIndex = before.lastIndexOf('{{');
+        if (matchIndex !== -1) {
+            const newText = before.substring(0, matchIndex) + '{{' + value + '}}' + after;
+            node.textContent = newText;
+            
+            const sel = window.getSelection();
+            const newRange = document.createRange();
+            newRange.setStart(node, matchIndex + value.length + 4); 
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            
+            const container = node.parentElement.closest('[contenteditable="true"]');
+            if (container) {
+                container.setAttribute('data-template-raw', container.innerText);
+                container.dispatchEvent(new Event('input', { bubbles: true }));
+                saveState(true);
+            }
+        }
+        closeAutocomplete();
+    }
 
     // --- WORKSPACE & URL PARAMETER PARSING ---
     const urlParams = new URLSearchParams(window.location.search);
@@ -2169,6 +2339,12 @@
     let csvPressTimer;
     function closeCSVMenu() {
         const menu = document.getElementById('csv-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    let imagePressTimer;
+    function closeImageMenu() {
+        const menu = document.getElementById('image-menu');
         if (menu) menu.classList.add('hidden');
     }
 
@@ -4291,6 +4467,7 @@ function updateUILayer() {
                 isLandscape: isLandscape,
                 projectName: document.getElementById('project-name').value,
                 imageAssets: imageAssets,
+                imageCloudUrls: imageCloudUrls,
                 customFonts: customFonts,
                 mergeSources: mergeSources,
                 pluginsData: pluginsData,
@@ -4452,6 +4629,15 @@ function updateUILayer() {
             if (csvMenu && !csvMenu.classList.contains('hidden') && addCsvBtn && !addCsvBtn.contains(e.target) && !csvMenu.contains(e.target)) {
                 closeCSVMenu();
             }
+            const imgMenu = document.getElementById('image-menu');
+            const imgBtn = document.getElementById('btn-add-image');
+            if (imgMenu && !imgMenu.classList.contains('hidden') && imgBtn && !imgBtn.contains(e.target) && !imgMenu.contains(e.target)) {
+                closeImageMenu();
+            }
+            const acDropdown = document.getElementById('autocomplete-dropdown');
+            if (acActive && acDropdown && !acDropdown.contains(e.target)) {
+                closeAutocomplete();
+            }
         });
 
         let didRemoteLoad = false;
@@ -4562,6 +4748,7 @@ function updateUILayer() {
                 const data = JSON.parse(savedData);
                 
                 if (data.imageAssets) imageAssets = data.imageAssets;
+                if (data.imageCloudUrls) imageCloudUrls = data.imageCloudUrls;
                 if (data.customFonts) {
                     customFonts = data.customFonts;
                     injectCustomFonts();
@@ -4777,6 +4964,7 @@ function updateUILayer() {
             }
 
             if (e.target.isContentEditable) {
+                checkAutocomplete();
                 const container = e.target.closest('.element-container');
                 if (container && container.dataset.mergeSourceId) {
                     const sourceId = container.dataset.mergeSourceId;
@@ -5137,6 +5325,7 @@ function saveState(debounce = false, skipHistory = false) {
             isLandscape: isLandscape,
             projectName: document.getElementById('project-name').value,
             imageAssets: imageAssets,           // Safe in document-level DB
+            imageCloudUrls: imageCloudUrls,
             customFonts: customFonts,           // Safe in document-level DB
             mergeSources: mergeSources,         // Safe in document-level DB
             pluginsData: pluginsData,           // Safe in document-level DB
@@ -10157,6 +10346,39 @@ let pointerMoveRAF = null;
     });
 
     document.addEventListener('keydown', (e) => {
+
+        // --- AUTOCOMPLETE ENGINE INTERCEPTS ---
+        if (acActive) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                acSelectedIndex = (acSelectedIndex + 1) % acOptions.length;
+                renderAutocomplete();
+                const dd = document.getElementById('autocomplete-dropdown');
+                const activeItem = dd.children[acSelectedIndex];
+                if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
+                return;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                acSelectedIndex = (acSelectedIndex - 1 + acOptions.length) % acOptions.length;
+                renderAutocomplete();
+                const dd = document.getElementById('autocomplete-dropdown');
+                const activeItem = dd.children[acSelectedIndex];
+                if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
+                return;
+            } else if (e.key === 'Enter') {
+                if (acSelectedIndex >= 0 && acSelectedIndex < acOptions.length) {
+                    e.preventDefault();
+                    insertAutocomplete(acOptions[acSelectedIndex]);
+                    return;
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeAutocomplete();
+                return;
+            }
+        }
+
+
         const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
 
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
@@ -12506,11 +12728,17 @@ ${p.description ? `
             keys.forEach(filename => {
                 const src = imageAssets[filename];
                 const safeName = filename.replace(/'/g, "\\'");
+                const isCloud = !!imageCloudUrls[filename]; // Check if cloud
                 html += `
-                <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group">
+                <div class="bg-white border border-gray-200 rounded-xl p-2 flex flex-col gap-2 shadow-sm transition-all hover:shadow-md group ${isCloud ? 'border-l-4 border-l-sky-500' : ''}">
                     <div class="h-28 w-full bg-gray-100 border border-gray-200/50 rounded-lg flex items-center justify-center overflow-hidden relative">
                         <img src="${src}" class="max-w-[90%] max-h-[90%] object-contain pointer-events-none drop-shadow-sm" />
                         <div class="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${isCloud ? `
+                            <button onclick="syncCloudImage('${safeName}')" class="text-sky-400 hover:text-sky-600 p-1 bg-sky-50 hover:bg-sky-100 rounded transition-colors" title="Sync Cloud Image">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            </button>
+                            ` : ''}
                             <a href="${src}" download="${filename}" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Download">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             </a>
@@ -12611,6 +12839,67 @@ ${p.description ? `
         reader.readAsDataURL(file);
     }
 
+    async function fetchImageAsBase64(url) {
+        const cacheBuster = url.includes('?') ? '&_t=' : '?_t=';
+        const resp = await fetch(url + cacheBuster + Date.now(), { cache: 'no-store' });
+        if (!resp.ok) throw new Error("Failed to fetch image");
+        const blob = await resp.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function importImageFromURL() {
+        const url = prompt("Enter a direct image URL (e.g. https://.../image.png):");
+        if (!url) return;
+        try {
+            showToast("Fetching image...");
+            const base64 = await fetchImageAsBase64(url);
+            const filename = url.split('/').pop().split('?')[0] || 'Cloud_Image.png';
+            
+            // Ensure unique name
+            let finalName = filename;
+            let counter = 1;
+            while (imageAssets[finalName]) {
+                finalName = filename.replace(/(\.[^.]+)$/, `_${counter}$1`);
+                if (finalName === filename) finalName = `${filename}_${counter}`;
+                counter++;
+            }
+
+            imageAssets[finalName] = base64;
+            imageCloudUrls[finalName] = url; // Tag it as a cloud image
+            
+            showToast("Cloud image imported!");
+            renderImageBankItems();
+            applyMergePreview();
+            updateAllCanvasImages();
+            saveState(true);
+        } catch(e) {
+            showToast("Failed to fetch URL. Make sure it supports CORS.", true);
+        }
+    }
+
+    async function syncCloudImage(filename) {
+        const url = imageCloudUrls[filename];
+        if (!url) return;
+        try {
+            showToast("Syncing image...");
+            const base64 = await fetchImageAsBase64(url);
+            imageAssets[filename] = base64; // Safely overwrite the document state with fresh pixels
+            
+            showToast("Image synced!");
+            renderImageBankItems();
+            applyMergePreview();
+            updateAllCanvasImages();
+            saveState(true);
+        } catch(e) {
+            showToast("Sync failed. Check connection or CORS.", true);
+        }
+    }
+
     let fulfillTargetFilename = null;
     function triggerBankFulfill(filename) {
         fulfillTargetFilename = filename;
@@ -12647,9 +12936,13 @@ function renameBankImage(oldName, newName) {
             return;
         }
 
-        // 1. Move the data in the dictionary
+        /// 1. Move the data in the dictionary
         imageAssets[trimmed] = imageAssets[oldName];
         delete imageAssets[oldName];
+        if (imageCloudUrls[oldName]) {
+            imageCloudUrls[trimmed] = imageCloudUrls[oldName];
+            delete imageCloudUrls[oldName];
+        }
 
         // 2. Safely scan and update background DOM states
         const updateRefs = (htmlStr) => {
@@ -12686,14 +12979,13 @@ function renameBankImage(oldName, newName) {
     async function deleteBankImage(filename) {
         if (await customConfirm(`Delete "${filename}" from the Image Bank? Any canvas items mapping to it will become blank.`, "Delete")) {
             delete imageAssets[filename];
+            delete imageCloudUrls[filename];
             renderImageBankItems();
             applyMergePreview();
             updateAllCanvasImages();
             saveState();
         }
     }
-
-    
 
     function updateAllCanvasImages() {
         document.querySelectorAll('#card-content .element-container[data-type="image"]').forEach(el => {
@@ -13587,6 +13879,7 @@ document.querySelectorAll('style').forEach(s => {
             bgConfigFront: frontBgConfig,
             bgConfigBack: backBgConfig,
             imageAssets: imageAssets,
+            imageCloudUrls: imageCloudUrls,
             customFonts: customFonts
         };
 
@@ -14670,6 +14963,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                 hasCustomBack = settings.hasCustomBack !== undefined ? settings.hasCustomBack : (settings.history?.hasCustomBack || false);
                 mergeSources = settings.mergeSources || {};
                 imageAssets = settings.imageAssets || {};
+                imageCloudUrls = settings.imageCloudUrls || {};
                 customFonts = settings.customFonts || {};
                 injectCustomFonts();
                 globalMergeIndex = settings.globalMergeIndex || 0;
