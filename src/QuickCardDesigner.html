@@ -1929,8 +1929,11 @@
                 </button>
             </div>
             <div class="flex-1 flex overflow-hidden bg-gray-900 relative">
-                <div id="csv-editor-gutter" class="w-12 shrink-0 bg-gray-800 border-r border-gray-700 overflow-hidden flex flex-col items-center select-none" style="padding-top: 16px; padding-bottom: 16px;">
-                    <!-- Checkboxes injected here -->
+                <!-- WRAPPED THE GUTTER IN A RELATIVE TRACK -->
+                <div class="w-12 shrink-0 bg-gray-800 border-r border-gray-700 overflow-hidden relative select-none">
+                    <div id="csv-editor-gutter" class="absolute top-0 left-0 w-full flex flex-col items-center" style="padding-top: 16px; padding-bottom: 100px;">
+                        <!-- Checkboxes injected here -->
+                    </div>
                 </div>
                 <textarea id="csv-code-textarea" class="flex-1 w-full p-4 font-mono text-sm bg-transparent text-gray-100 outline-none resize-none whitespace-pre overflow-auto" spellcheck="false" style="line-height: 24px;"></textarea>
             </div>
@@ -3296,12 +3299,13 @@ function updateBgSettings(side) {
                 const placeholder = el.querySelector('.image-placeholder');
                 
                 let displayVal = val;
-                if (!displayVal && el.dataset.imageBankKey) {
-                    displayVal = el.dataset.imageBankKey;
+                if (typeof displayVal === 'string') {
+                    displayVal = displayVal.trim();
+                    if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
                 }
 
                 if (!displayVal) {
-                    if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                    if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
                     if (placeholder) placeholder.style.display = 'flex';
                 } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
                     if (img) {
@@ -3310,7 +3314,7 @@ function updateBgSettings(side) {
                     }
                     if (placeholder) placeholder.style.display = 'none';
                 } else {
-                    if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                    if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
                     if (placeholder) placeholder.style.display = 'flex';
                 }
             } else if (el.dataset.mergeData) {
@@ -3323,12 +3327,13 @@ function updateBgSettings(side) {
                         const placeholder = el.querySelector('.image-placeholder');
                         
                         let displayVal = val;
-                        if (!displayVal && el.dataset.imageBankKey) {
-                            displayVal = el.dataset.imageBankKey;
+                        if (typeof displayVal === 'string') {
+                            displayVal = displayVal.trim();
+                            if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
                         }
 
                         if (!displayVal) {
-                            if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                            if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
                             if (placeholder) placeholder.style.display = 'flex';
                         } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
                             if (img) {
@@ -3337,7 +3342,7 @@ function updateBgSettings(side) {
                             }
                             if (placeholder) placeholder.style.display = 'none';
                         } else {
-                            if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
+                            if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
                             if (placeholder) placeholder.style.display = 'flex';
                         }
                     } else {
@@ -3474,16 +3479,7 @@ function updateBgSettings(side) {
 
     function jumpToMergeIndex(i, offsetX = 0, offsetY = 0) {
         if (i === globalMergeIndex) return;
-        let maxMergeRows = 0;
-        document.querySelectorAll('#card-content .element-container').forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        let maxMergeRows = getGlobalMaxRows();
         // Remove the OOB block completely! The ghost cluster intentionally renders empty cards 
         // to fill out the visual square layout, so we want users to be able to click on them to
         // navigate to an empty canvas state if they desire.
@@ -3513,16 +3509,7 @@ function updateBgSettings(side) {
             return;
         }
 
-        let maxMergeRows = 0;
-        document.querySelectorAll('#card-content .element-container').forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        let maxMergeRows = getGlobalMaxRows();
 
         if (maxMergeRows <= 1) {
             bgGrid.innerHTML = '';
@@ -3629,7 +3616,7 @@ function updateBgSettings(side) {
             if (!node) {
                 node = document.createElement('div');
                 node.dataset.index = i;
-                node.className = "absolute shadow-sm transition-opacity duration-200 pointer-events-auto cursor-pointer hover:opacity-100 opacity-40 hover:shadow-lg hover:ring-4 hover:ring-blue-400 hover:z-10";
+                node.className = "absolute shadow-sm transition-opacity duration-200 pointer-events-auto cursor-pointer hover:opacity-100 opacity-100 hover:shadow-lg hover:ring-4 hover:ring-blue-400 hover:z-10";
                 node.style.willChange = 'transform, opacity';
                 node.style.contain = 'strict';
                 
@@ -3746,17 +3733,7 @@ function updateBgSettings(side) {
             }
         }
 
-        // Update the Export Sheet Dropdown
-        let maxMergeRows = 0;
-        document.querySelectorAll('#card-content .element-container').forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        let maxMergeRows = getGlobalMaxRows();
         
         const totalLogicalCards = maxMergeRows > 0 ? maxMergeRows : Math.max(1, cpp);
         const sheetsNeeded = cpp > 0 ? Math.ceil(totalLogicalCards / cpp) : 1;
@@ -5090,7 +5067,8 @@ function updateUILayer() {
         if (csvTextarea) {
             csvTextarea.addEventListener('input', updateCSVGutter);
             csvTextarea.addEventListener('scroll', (e) => {
-                document.getElementById('csv-editor-gutter').scrollTop = e.target.scrollTop;
+                const gutter = document.getElementById('csv-editor-gutter');
+                if (gutter) gutter.style.transform = `translateY(-${e.target.scrollTop}px)`;
             });
         }
 
@@ -5775,16 +5753,7 @@ function restoreState(state) {
             const dataOpacity = document.getElementById('data-ghost-opacity') ? document.getElementById('data-ghost-opacity').value : 0.1;
 
             // Calculate global max rows for templates that aren't strictly array-bound
-            let maxGhostRows = 0;
-            document.querySelectorAll('#card-content .element-container').forEach(el => {
-                if (el.dataset.mergeData) {
-                    try { maxGhostRows = Math.max(maxGhostRows, JSON.parse(el.dataset.mergeData).length); } catch(e){}
-                }
-            });
-            Object.values(pluginsData).forEach(p => { 
-                if (p.minRecords && p.minRecords > maxGhostRows) maxGhostRows = p.minRecords; 
-            });
-            maxGhostRows = Math.min(Math.max(1, maxGhostRows), 100);
+            let maxGhostRows = Math.min(Math.max(1, getGlobalMaxRows()), 100);
 
             const temp = document.createElement('div');
             temp.innerHTML = dataHTML;
@@ -5817,23 +5786,14 @@ function restoreState(state) {
                                     let displayVal = '';
                                     if (el.dataset.customImageTemplate) {
                                         displayVal = renderTemplateString(el.dataset.customImageTemplate, i);
-                                    } else if (el.dataset.pluginImageId) {
-                                        const inst = pluginInstances[el.dataset.pluginImageId];
-                                        if (inst && typeof inst.image === 'function') {
-                                            const ctx = getPluginContext(i);
-                                            const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
-                                            const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
-                                            if (pImg && pImg.trim().startsWith('<')) {
-                                                displayVal = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
-                                            } else {
-                                                displayVal = pImg || '';
-                                            }
-                                        }
                                     } else if (hasData) {
                                         displayVal = data[i] !== undefined ? data[i] : '';
                                     }
                                     
-                                    if (!displayVal && el.dataset.imageBankKey) displayVal = el.dataset.imageBankKey;
+                                    if (typeof displayVal === 'string') {
+                                        displayVal = displayVal.trim();
+                                        if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
+                                    }
                                     if (!displayVal) continue;
 
                                     if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
@@ -10931,6 +10891,174 @@ function getPluginContext(activeRow, cardElement = null) {
         showToast("Plugins re-run successfully!");
     }
 
+    // function evaluateTemplateExpression(inner, activeRow) {
+    //     const parts = [];
+    //     let current = '';
+    //     let inQuotes = false;
+    //     let quoteChar = '';
+        
+    //     for(let i=0; i<inner.length; i++) {
+    //         const char = inner[i];
+    //         if ((char === '"' || char === "'") && (i === 0 || inner[i-1] !== '\\')) {
+    //             if (inQuotes && quoteChar === char) {
+    //                 inQuotes = false;
+    //             } else if (!inQuotes) {
+    //                 inQuotes = true;
+    //                 quoteChar = char;
+    //             } else {
+    //                 current += char;
+    //             }
+    //         } else if ((char === ',' || char === ':') && !inQuotes) {
+    //             parts.push(current.trim());
+    //             current = '';
+    //         } else {
+    //             if (char === '\\' && (inner[i+1] === '"' || inner[i+1] === "'")) {
+    //                 // skip adding backslash if it's escaping a quote
+    //             } else {
+    //                 current += char;
+    //             }
+    //         }
+    //     }
+    //     parts.push(current.trim());
+        
+    //     const prefix = parts[0];
+    //     if (!prefix) return `{{${inner}}}`;
+        
+    //     const activeSrcs = window.activeMergeSources || mergeSources;
+    //     let sourceId = null;
+        
+    //     // 1. Check if the prefix matches ANY loaded Data Source filename exactly
+    //     for (let id in activeSrcs) {
+    //         if (activeSrcs[id].filename === prefix) {
+    //             sourceId = id;
+    //             break;
+    //         }
+    //     }
+        
+    //     // 2. Check Shorthand: Does prefix match a column in the Primary Data Source?
+    //     // strip "Images:" prefix so shorthand names match flawlessly
+    //     let isShorthand = false;
+    //     if (!sourceId) {
+    //         let primaryId = Object.keys(activeSrcs).find(k => activeSrcs[k].isPrimary);
+    //         if (primaryId && activeSrcs[primaryId].hasHeader && activeSrcs[primaryId].data.length > 0) {
+    //             const colIdx = activeSrcs[primaryId].data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === prefix.replace(/^Images:\s*/i, ''));
+    //             if (colIdx !== -1) {
+    //                 sourceId = primaryId;
+    //                 isShorthand = true;
+    //             }
+    //         }
+    //     }
+        
+    //     if (sourceId) {
+    //         const source = activeSrcs[sourceId];
+    //         let colName = "";
+    //         let rowReq = null;
+            
+    //         if (isShorthand) {
+    //             colName = prefix;
+    //             rowReq = parts[1] ? parseInt(parts[1]) : null;
+    //         } else {
+    //             colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+    //             rowReq = parts[2] ? parseInt(parts[2]) : null;
+    //         }
+            
+    //         let colIdx = -1;
+    //         if (source.hasHeader && source.data.length > 0) {
+    //             // strip "Images:" prefix here as well
+    //             colIdx = source.data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === colName.replace(/^Images:\s*/i, ''));
+    //         }
+    //         if (colIdx === -1 && !isNaN(parseInt(colName))) {
+    //             colIdx = parseInt(colName);
+    //         }
+            
+    //         if (colIdx !== -1) {
+    //             let activeCount = 0;
+    //             let startIndex = source.hasHeader ? 1 : 0;
+    //             let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
+    //             let actualRowIndex = -1;
+    //             let headers = source.hasHeader ? source.data[0] : null;
+                
+    //             for (let i = startIndex; i < source.data.length; i++) {
+    //                 if (source.excludedRows && source.excludedRows[i]) continue;
+                    
+    //                 if (source.isPrimary && source.primaryFilter && !evaluateQuery(source.primaryFilter, source.data[i], headers)) continue;
+                    
+    //                 if (activeCount === targetCount) {
+    //                     actualRowIndex = i;
+    //                     break;
+    //                 }
+    //                 activeCount++;
+    //             }
+    //             if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
+    //                 // .trim() the returned value to destroy hidden \r carriage returns!
+    //                 let val = source.data[actualRowIndex][colIdx];
+    //                 return val !== undefined && val !== null ? String(val).trim() : '';
+    //             }
+    //         }
+    //         return `{{${inner}}}`;
+    //     }
+        
+    //     // 3. Check if the prefix matches a Plugin
+    //     let pluginInstance = null;
+    //     for (let id in pluginsData) {
+    //         if (pluginsData[id].name === prefix) {
+    //             pluginInstance = pluginInstances[id];
+    //             break;
+    //         }
+    //     }
+        
+    //     if (pluginInstance && typeof pluginInstance.text === 'function') {
+    //         try {
+    //             const varName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+    //             const args = parts.slice(2).map(a => a.replace(/^['"]+|['"]+$/g, ''));
+    //             const context = getPluginContext(activeRow);
+                
+    //             const res = pluginInstance.text(varName, context, ...args);
+    //             return res !== undefined ? res : `{{${inner}}}`;
+    //         } catch(e) {
+    //             console.error("Plugin template error", e);
+    //             return `<span style="color:red;">[Error]</span>`;
+    //         }
+    //     }
+        
+    //     return `{{${inner}}}`;
+    // }
+
+    function getGlobalMaxRows() {
+        let maxRows = 0;
+        const activeSrcs = window.activeMergeSources || mergeSources;
+        let primaryId = Object.keys(activeSrcs).find(k => activeSrcs[k].isPrimary);
+        
+        if (primaryId && activeSrcs[primaryId]) {
+            const src = activeSrcs[primaryId];
+            let count = 0;
+            let startIndex = src.hasHeader ? 1 : 0;
+            let headers = src.hasHeader ? src.data[0] : null;
+            for (let i = startIndex; i < src.data.length; i++) {
+                if (src.excludedRows && src.excludedRows[i]) continue;
+                if (src.primaryFilter && !evaluateQuery(src.primaryFilter, src.data[i], headers)) continue;
+                count++;
+            }
+            maxRows = count;
+        } else {
+            Object.values(activeSrcs).forEach(src => {
+                let count = 0;
+                let startIndex = src.hasHeader ? 1 : 0;
+                for (let i = startIndex; i < src.data.length; i++) {
+                    if (src.excludedRows && src.excludedRows[i]) continue;
+                    count++;
+                }
+                if (count > maxRows) maxRows = count;
+            });
+        }
+
+        Object.values(pluginsData).forEach(p => { 
+            if (p.minRecords && p.minRecords > maxRows) maxRows = p.minRecords; 
+        });
+
+        return maxRows;
+    }
+
     function evaluateTemplateExpression(inner, activeRow) {
         const parts = [];
         let current = '';
@@ -10948,7 +11076,7 @@ function getPluginContext(activeRow, cardElement = null) {
                 } else {
                     current += char;
                 }
-            } else if ((char === ',' || char === ':') && !inQuotes) {
+            } else if (char === ',' && !inQuotes) { // CRITICAL FIX: Removed || char === ':'
                 parts.push(current.trim());
                 current = '';
             } else {
@@ -10964,9 +11092,9 @@ function getPluginContext(activeRow, cardElement = null) {
         const prefix = parts[0];
         if (!prefix) return `{{${inner}}}`;
         
-        // 1. Check if the prefix matches ANY loaded Data Source filename exactly
         const activeSrcs = window.activeMergeSources || mergeSources;
         let sourceId = null;
+        
         for (let id in activeSrcs) {
             if (activeSrcs[id].filename === prefix) {
                 sourceId = id;
@@ -10974,14 +11102,34 @@ function getPluginContext(activeRow, cardElement = null) {
             }
         }
         
+        let isShorthand = false;
+        if (!sourceId) {
+            let primaryId = Object.keys(activeSrcs).find(k => activeSrcs[k].isPrimary);
+            if (primaryId && activeSrcs[primaryId].hasHeader && activeSrcs[primaryId].data.length > 0) {
+                const colIdx = activeSrcs[primaryId].data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === prefix.replace(/^Images:\s*/i, ''));
+                if (colIdx !== -1) {
+                    sourceId = primaryId;
+                    isShorthand = true;
+                }
+            }
+        }
+        
         if (sourceId) {
             const source = activeSrcs[sourceId];
-            const colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
-            const rowReq = parts[2] ? parseInt(parts[2]) : null;
+            let colName = "";
+            let rowReq = null;
+            
+            if (isShorthand) {
+                colName = prefix;
+                rowReq = parts[1] ? parseInt(parts[1]) : null;
+            } else {
+                colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+                rowReq = parts[2] ? parseInt(parts[2]) : null;
+            }
             
             let colIdx = -1;
             if (source.hasHeader && source.data.length > 0) {
-                colIdx = source.data[0].findIndex(h => h && String(h).trim() === colName);
+                colIdx = source.data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === colName.replace(/^Images:\s*/i, ''));
             }
             if (colIdx === -1 && !isNaN(parseInt(colName))) {
                 colIdx = parseInt(colName);
@@ -10992,9 +11140,12 @@ function getPluginContext(activeRow, cardElement = null) {
                 let startIndex = source.hasHeader ? 1 : 0;
                 let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
                 let actualRowIndex = -1;
+                let headers = source.hasHeader ? source.data[0] : null;
                 
                 for (let i = startIndex; i < source.data.length; i++) {
                     if (source.excludedRows && source.excludedRows[i]) continue;
+                    if (source.isPrimary && source.primaryFilter && !evaluateQuery(source.primaryFilter, source.data[i], headers)) continue;
+                    
                     if (activeCount === targetCount) {
                         actualRowIndex = i;
                         break;
@@ -11002,13 +11153,13 @@ function getPluginContext(activeRow, cardElement = null) {
                     activeCount++;
                 }
                 if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
-                    return source.data[actualRowIndex][colIdx] !== undefined ? source.data[actualRowIndex][colIdx] : '';
+                    let val = source.data[actualRowIndex][colIdx];
+                    return val !== undefined && val !== null ? String(val).trim() : '';
                 }
             }
             return `{{${inner}}}`;
         }
         
-        // 2. Check if the prefix matches a Plugin
         let pluginInstance = null;
         for (let id in pluginsData) {
             if (pluginsData[id].name === prefix) {
@@ -11650,17 +11801,9 @@ window.showPluginHelp = function(id) {
 
 
     function applyMergePreview() {
-        let maxRows = 0;
         const elements = document.getElementById('card-content').querySelectorAll('.element-container');
-        elements.forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxRows) maxRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxRows) maxRows = p.minRecords; });
+        let maxRows = getGlobalMaxRows();
+
 
         if (maxRows > 0) {
             if (globalMergeIndex >= maxRows) globalMergeIndex = maxRows - 1;
@@ -11866,6 +12009,10 @@ Object.values(pluginsData).forEach(p => {
             if (argsGroup) {
                 argsGroup.classList.add('hidden');
                 argsGroup.classList.remove('flex');
+            }
+            if (customPathGroup) {
+                customPathGroup.classList.add('hidden');
+                customPathGroup.classList.remove('flex');
             }
         }
 
@@ -12345,6 +12492,9 @@ Object.values(pluginsData).forEach(p => {
         document.getElementById('csv-editor-modal').classList.add('hidden');
     }
 
+    let csvGutterDragState = null;
+    let csvGutterLastIdx = -1;
+
     function updateCSVGutter() {
         const textarea = document.getElementById('csv-code-textarea');
         const lines = textarea.value.split('\n');
@@ -12353,9 +12503,60 @@ Object.values(pluginsData).forEach(p => {
         let html = '';
         for (let i = 0; i < lines.length; i++) {
             const isExcluded = csvLineExclusions[i] || false;
-            html += `<div style="height: 24px; display: flex; align-items: center; justify-content: center; width: 100%;" title="Line ${i+1}"><input type="checkbox" class="rounded text-blue-600 focus:ring-blue-500" ${isExcluded ? '' : 'checked'} onchange="csvLineExclusions[${i}] = !this.checked;"></div>`;
+            
+            // Sleek dynamic styling based on exclusion state
+            const colorClass = isExcluded ? 'text-gray-600 bg-gray-800' : 'text-green-400 bg-gray-700/80 hover:bg-gray-600';
+            const icon = isExcluded ? '<span class="opacity-30">-</span>' : '✓';
+            
+            html += `<div data-idx="${i}" 
+                          onpointerdown="csvGutterStartDrag(${i}, event)" 
+                          onpointerenter="csvGutterEnter(${i}, event)" 
+                          class="w-full flex items-center justify-center cursor-pointer transition-colors ${colorClass}" 
+                          style="height: 24px; font-size: 11px; font-weight: 900; user-select: none;" 
+                          title="Line ${i+1}">
+                          ${icon}
+                     </div>`;
         }
         gutter.innerHTML = html;
+    }
+
+    function csvGutterStartDrag(idx, e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        
+        // Support Shift+Click for massive range toggling
+        if (e.shiftKey && csvGutterLastIdx !== -1) {
+            const targetState = !csvLineExclusions[csvGutterLastIdx];
+            const start = Math.min(csvGutterLastIdx, idx);
+            const end = Math.max(csvGutterLastIdx, idx);
+            for(let i = start; i <= end; i++) {
+                csvLineExclusions[i] = !targetState;
+            }
+            updateCSVGutter();
+            return;
+        }
+
+        // Standard Click & Setup Drag
+        csvLineExclusions[idx] = !csvLineExclusions[idx];
+        csvGutterDragState = !csvLineExclusions[idx]; 
+        csvGutterLastIdx = idx;
+        
+        updateCSVGutter();
+        
+        const upHandler = () => {
+            csvGutterDragState = null;
+            document.removeEventListener('pointerup', upHandler);
+        };
+        document.addEventListener('pointerup', upHandler);
+    }
+
+    function csvGutterEnter(idx, e) {
+        // Support drag-to-select if the mouse is held down
+        if (csvGutterDragState !== null && (e.buttons & 1)) {
+            csvLineExclusions[idx] = !csvGutterDragState;
+            csvGutterLastIdx = idx;
+            updateCSVGutter();
+        }
     }
 
     function toggleAllCSVEditorRows(isIncluded) {
@@ -13276,8 +13477,10 @@ function renameBankImage(oldName, newName) {
         img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0', 'absolute');
 
         let displayVal = val;
-        if (!displayVal && el.dataset.imageBankKey) {
-            displayVal = el.dataset.imageBankKey;
+        // CRITICAL FIX: Trim whitespace and destroy orphaned extensions (like ".jpg")
+        if (typeof displayVal === 'string') {
+            displayVal = displayVal.trim();
+            if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
         }
 
         if (placeholder) {
@@ -13316,10 +13519,32 @@ function renameBankImage(oldName, newName) {
 
         if (!displayVal) {
             img.style.display = 'none';
-            img.removeAttribute('src'); 
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Flush cache
             if (placeholder) placeholder.style.display = 'flex';
         } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
-            const baseSrc = imageAssets[displayVal] || displayVal;
+            let baseSrc = imageAssets[displayVal] || displayVal;
+
+            // --- AUTO-INGEST CLOUD IMAGES ---
+            // If it's a new HTTP URL, instantly download and cache it in the Image Bank!
+            if (baseSrc.startsWith('http') && !imageAssets[displayVal]) {
+                try {
+                    window.pendingImageFetches = window.pendingImageFetches || {};
+                    if (!window.pendingImageFetches[displayVal]) {
+                        window.pendingImageFetches[displayVal] = fetchImageAsBase64(baseSrc).then(b64 => {
+                            imageAssets[displayVal] = b64; 
+                            imageCloudUrls[displayVal] = baseSrc; 
+                            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) renderImageBankItems();
+                            saveState(true);
+                            return b64;
+                        }).catch(() => baseSrc);
+                    }
+                    baseSrc = await window.pendingImageFetches[displayVal];
+                } catch(e) {
+                    console.warn("Failed to auto-ingest cloud image:", displayVal);
+                }
+            }
+            // --------------------------------
+
             if (el.dataset.c2aEnabled === 'true') {
                 const processedSrc = await processColorToAlpha(baseSrc, el.dataset.c2aColor || '#ffffff', el.dataset.c2aTol || '0.1');
                 img.src = processedSrc;
@@ -13329,8 +13554,9 @@ function renameBankImage(oldName, newName) {
             img.style.display = 'block';
             if (placeholder) placeholder.style.display = 'none';
         } else {
+            // STRICT PORTABILITY: Fail and show missing text if not in Image Bank!
             img.style.display = 'none';
-            img.removeAttribute('src'); 
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Flush cache
             if (placeholder) {
                 placeholder.style.display = 'flex';
                 placeholder.classList.remove('data-empty', 'bg-gray-100', 'border-gray-300', 'text-gray-400', 'bg-purple-50', 'border-purple-400', 'text-purple-500');
@@ -14403,21 +14629,11 @@ document.querySelectorAll('style').forEach(s => {
             return;
         }
 
-        let maxMergeRows = 0;
-        const tempFront = document.createElement('div');
+const tempFront = document.createElement('div');
         tempFront.innerHTML = frontContentHTML;
         const tempBack = document.createElement('div');
         tempBack.innerHTML = (hasCustomBack ? backContentHTML : frontContentHTML);
-
-        [...tempFront.querySelectorAll('.element-container'), ...tempBack.querySelectorAll('.element-container')].forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        let maxMergeRows = getGlobalMaxRows();
 
         const isDataMerge = maxMergeRows > 0;
         const totalLogicalCards = isDataMerge ? maxMergeRows : cardsPerPage;
@@ -14432,6 +14648,11 @@ document.querySelectorAll('style').forEach(s => {
             targetSheets.push(sn - 1);
         } else {
             for (let i = 0; i < sheetsNeeded; i++) targetSheets.push(i);
+        }
+
+        // UX Polish: If the export only generates a single image, bypass the ZIP package!
+        if (targetSheets.length === 1 && !isDuplex) {
+            asZip = false;
         }
 
         let customStyleTag = '';
@@ -14738,13 +14959,17 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
         const cw = Math.round(currentWidth * scale);
         const ch = Math.round(currentHeight * scale);
         
-        let maxMergeRows = 0;
-        document.querySelectorAll('#card-content .element-container').forEach(el => {
-            if (el.dataset.mergeData) { try { maxMergeRows = Math.max(maxMergeRows, JSON.parse(el.dataset.mergeData).length); } catch(e){} }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
-        
+        let maxMergeRows = getGlobalMaxRows();
         const totalCards = Math.max(1, maxMergeRows);
+
+        // UX Polish: If the export only generates a single image, bypass the ZIP package!
+        if (mode === 'tts') {
+            const sheetsCount = Math.ceil(totalCards / 69);
+            if (sheetsCount === 1 && !hasCustomBack) asZip = false;
+        } else if (mode === 'cards') {
+            if (totalCards === 1 && !hasCustomBack) asZip = false;
+        }
+        
         let zip = (asZip && window.JSZip) ? new JSZip() : null;
         
         async function renderCardFace(side, index) {
@@ -15535,21 +15760,11 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
             return;
         }
 
-        let maxMergeRows = 0;
-        const tempFront = document.createElement('div');
+const tempFront = document.createElement('div');
         tempFront.innerHTML = frontContentHTML;
         const tempBack = document.createElement('div');
         tempBack.innerHTML = (hasCustomBack ? backContentHTML : frontContentHTML);
-
-        [...tempFront.querySelectorAll('.element-container'), ...tempBack.querySelectorAll('.element-container')].forEach(el => {
-            if (el.dataset.mergeData) {
-                try {
-                    const data = JSON.parse(el.dataset.mergeData);
-                    if (data.length > maxMergeRows) maxMergeRows = data.length;
-                } catch (e) {}
-            }
-        });
-        Object.values(pluginsData).forEach(p => { if (p.minRecords && p.minRecords > maxMergeRows) maxMergeRows = p.minRecords; });
+        let maxMergeRows = getGlobalMaxRows();
 
         const isDataMerge = maxMergeRows > 0;
         const totalLogicalCards = isDataMerge ? maxMergeRows : cardsPerPage;
@@ -15664,7 +15879,10 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                             temp.innerHTML = activeContent;
                             const imagePromises = [];
                             temp.querySelectorAll('.element-container').forEach(el => {
-                                if (el.dataset.mergeData) {
+                                if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
+                                    const val = renderTemplateString(el.dataset.customImageTemplate, cardIndex);
+                                    imagePromises.push(updateImageElementDisplay(el, val, true));
+                                } else if (el.dataset.mergeData) {
                                     try {
                                         const data = JSON.parse(el.dataset.mergeData);
                                         const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
