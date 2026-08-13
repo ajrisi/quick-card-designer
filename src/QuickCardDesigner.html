@@ -2609,7 +2609,7 @@
             if (el.dataset.type === 'text' || el.dataset.type === 'title') {
                 el.dataset.markdown = mdChecked;
                 el.dataset.rawHtml = htmlChecked;
-                const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
+                const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.resizable');
                 if (target) {
                     if (mdChecked || htmlChecked) {
                         if (!target.hasAttribute('data-template-raw') && !target.hasAttribute('data-format-raw')) {
@@ -3382,8 +3382,9 @@ function updateBgSettings(side) {
 
         const ctx = getPluginContext(cardIndex, temp);
         Object.values(pluginInstances).forEach(inst => {
-            if (typeof inst.render === 'function') {
-                try { inst.render(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
+            const hook = inst.render || inst.onRenderCard;
+            if (typeof hook === 'function') {
+                try { hook(temp, ctx); } catch(e) { console.error("Plugin render error", e); }
             }
         });
 
@@ -11233,7 +11234,7 @@ function getPluginContext(activeRow, cardElement = null) {
                     delete el.dataset.mergeSourceId;
                     delete el.dataset.mergeCol;
                     delete el.dataset.mergeData;
-                    const target = el.querySelector('div[contenteditable="true"]');
+                    const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                     if (target) {
                         target.removeAttribute('data-template-raw');
                         target.innerText = '';
@@ -11484,7 +11485,6 @@ window.showPluginHelp = function(id) {
     }
 
     function recomputeAllMergeData() {
-        // --- PLUGIN DATA MUTATION HOOK ---
         window.activeMergeSources = JSON.parse(JSON.stringify(mergeSources));
         Object.values(pluginInstances).forEach(inst => {
             if (typeof inst.processData === 'function') {
@@ -11516,7 +11516,7 @@ window.showPluginHelp = function(id) {
                             delete el.dataset.mergeSourceId;
                             delete el.dataset.mergeCol;
                             delete el.dataset.mergeData;
-                            const target = el.querySelector('div[contenteditable="true"]');
+                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                             if (target) {
                                 target.removeAttribute('data-template-raw');
                                 target.innerText = 'Plugin Cleared';
@@ -11602,7 +11602,7 @@ window.showPluginHelp = function(id) {
                         delete el.dataset.mergeSourceId;
                         delete el.dataset.mergeCol;
                         delete el.dataset.mergeData;
-                        const target = el.querySelector('div[contenteditable="true"]');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target) {
                             target.removeAttribute('data-template-raw');
                             target.innerText = '';
@@ -11681,8 +11681,7 @@ window.showPluginHelp = function(id) {
                     if (el.dataset.type === 'image') {
                         updateImageElementDisplay(el, val);
                     } else {
-                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
-                        // Safely skip rendering if the user is actively typing inside this specific box
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target && document.activeElement !== target) {
                             parseMarkdownInElement(target, val);
                         }
@@ -11691,7 +11690,7 @@ window.showPluginHelp = function(id) {
             } else {
                 // Ensure non-merged, static text elements also render their MD/HTML formats on load
                 if (el.dataset.type === 'text' || el.dataset.type === 'title') {
-                    const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target');
+                    const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.resizable');
                     if (target && document.activeElement !== target) {
                         parseMarkdownInElement(target);
                     }
@@ -11708,8 +11707,9 @@ window.showPluginHelp = function(id) {
         const cardContent = document.getElementById('card-content');
         const ctx = getPluginContext(globalMergeIndex, cardContent);
         Object.values(pluginInstances).forEach(inst => {
-            if (typeof inst.render === 'function') {
-                try { inst.render(cardContent, ctx); } catch(e) { console.error("Plugin render error", e); }
+            const hook = inst.render || inst.onRenderCard;
+            if (typeof hook === 'function') {
+                try { hook(cardContent, ctx); } catch(e) { console.error("Plugin render error", e); }
             }
         });
 
@@ -12217,7 +12217,7 @@ Object.values(pluginsData).forEach(p => {
                     if (el.dataset.type === 'image') {
                         updateImageElementDisplay(el, '');
                     } else {
-                        const target = el.querySelector('div[contenteditable="true"]');
+                        const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target) {
                             target.removeAttribute('data-template-raw');
                             target.innerText = '';
@@ -12251,10 +12251,48 @@ Object.values(pluginsData).forEach(p => {
     let csvLineExclusions = [];
     let isNewCSVBeingCreated = false;
 
+    // function openCSVEditor(id) {
+    //     activeCSVId = id;
+    //     const src = mergeSources[id];
+    //     document.getElementById('csv-editor-filename').innerText = src.filename;
+        
+    //     const text = src.data.map(row => 
+    //         row.map(cell => {
+    //             let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+    //             if (/[",\n\r]/.test(cellStr)) {
+    //                 cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+    //             }
+    //             return cellStr;
+    //         }).join(",")
+    //     ).join("\n");
+        
+    //     const textarea = document.getElementById('csv-code-textarea');
+    //     textarea.value = text;
+        
+    //     csvLineExclusions = [];
+    //     let physicalLine = 0;
+    //     for(let i=0; i<src.data.length; i++) {
+    //         csvLineExclusions[physicalLine] = !!(src.excludedRows && src.excludedRows[i]);
+            
+    //         const rowStr = src.data[i].map(cell => {
+    //             let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+    //             if (/[",\n\r]/.test(cellStr)) cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+    //             return cellStr;
+    //         }).join(",");
+    //         const newlines = (rowStr.match(/\n/g) || []).length;
+    //         physicalLine += newlines + 1;
+    //     }
+        
+    //     updateCSVGutter();
+    //     document.getElementById('csv-editor-modal').classList.remove('hidden');
+    // }
+
     function openCSVEditor(id) {
         activeCSVId = id;
         const src = mergeSources[id];
-        document.getElementById('csv-editor-filename').innerText = src.filename;
+        const isCloud = !!src.syncUrl;
+        
+        document.getElementById('csv-editor-filename').innerText = src.filename + (isCloud ? ' (Read-Only Cloud Data)' : '');
         
         const text = src.data.map(row => 
             row.map(cell => {
@@ -12268,6 +12306,15 @@ Object.values(pluginsData).forEach(p => {
         
         const textarea = document.getElementById('csv-code-textarea');
         textarea.value = text;
+        
+        textarea.readOnly = isCloud;
+        if (isCloud) {
+            textarea.classList.add('opacity-70', 'cursor-not-allowed');
+            textarea.title = "Cloud data cannot be edited directly. Use checkboxes to exclude rows.";
+        } else {
+            textarea.classList.remove('opacity-70', 'cursor-not-allowed');
+            textarea.removeAttribute('title');
+        }
         
         csvLineExclusions = [];
         let physicalLine = 0;
@@ -12320,10 +12367,52 @@ Object.values(pluginsData).forEach(p => {
         updateCSVGutter();
     }
 
+    // function saveCSVEditor() {
+    //     if (!activeCSVId) return;
+    //     const text = document.getElementById('csv-code-textarea').value;
+    //     const data = parseCSV(text);
+        
+    //     const excludedRows = {};
+    //     let physicalLine = 0;
+        
+    //     for (let i = 0; i < data.length; i++) {
+    //         if (csvLineExclusions[physicalLine]) {
+    //             excludedRows[i] = true;
+    //         }
+            
+    //         const rowStr = data[i].map(cell => {
+    //             let cellStr = cell !== undefined && cell !== null ? String(cell) : "";
+    //             if (/[",\n\r]/.test(cellStr)) cellStr = '"' + cellStr.replace(/"/g, '""') + '"';
+    //             return cellStr;
+    //         }).join(",");
+    //         const newlines = (rowStr.match(/\n/g) || []).length;
+    //         physicalLine += newlines + 1;
+    //     }
+        
+    //     mergeSources[activeCSVId].data = data;
+    //     mergeSources[activeCSVId].excludedRows = excludedRows;
+
+    //     isNewCSVBeingCreated = false;
+        
+    //     renderDataSourcesList();
+    //     recomputeAllMergeData();
+    //     if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+    //         renderImageBankItems();
+    //     }
+    //     updateImageBankMergeUI();
+    //     saveState();
+    //     closeCSVEditor();
+    //     showToast("CSV Data Saved!");
+    // }
     function saveCSVEditor() {
         if (!activeCSVId) return;
+        const src = mergeSources[activeCSVId];
+        const isCloud = !!src.syncUrl;
+        
         const text = document.getElementById('csv-code-textarea').value;
-        const data = parseCSV(text);
+        
+        // SAFETY BYPASS: Do not parse the textarea if it is a cloud source!
+        const data = isCloud ? src.data : parseCSV(text); 
         
         const excludedRows = {};
         let physicalLine = 0;
@@ -12355,7 +12444,7 @@ Object.values(pluginsData).forEach(p => {
         updateImageBankMergeUI();
         saveState();
         closeCSVEditor();
-        showToast("CSV Data Saved!");
+        showToast(isCloud ? "Row Exclusions Saved!" : "CSV Data Saved!");
     }
 
     /* --- DATA BANK ENGINE --- */
@@ -12578,18 +12667,19 @@ ${p.description ? `
                         <input type="text" value="${src.filename.replace(/"/g, '&quot;')}" onchange="renameMergeSource('${id}', this.value)" class="text-xs font-bold text-gray-700 truncate bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none rounded px-1 py-0.5 w-full transition-all cursor-text" title="Rename Source">
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        ${isCloud ? `
-                        <button onclick="syncCloudData('${id}')" class="text-sky-400 hover:text-sky-600 p-1 bg-sky-50 hover:bg-sky-100 rounded transition-colors" title="Refresh Cloud Data">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        </button>
-                        ` : `
-                        <button onclick="openCSVEditor('${id}')" class="text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100 rounded transition-colors" title="Edit Data">
+                        <button onclick="openCSVEditor('${id}')" class="${isCloud ? 'text-sky-400 hover:text-sky-600 p-1 bg-sky-50 hover:bg-sky-100' : 'text-green-400 hover:text-green-600 p-1 bg-green-50 hover:bg-green-100'} rounded transition-colors" title="${isCloud ? 'View Data & Exclude Rows' : 'Edit Data'}">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
-                        `}
                         <button onclick="exportDataSource('${id}')" class="text-indigo-400 hover:text-indigo-600 p-1 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors" title="Export CSV">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         </button>
+                        ${isCloud ? `
+                        <button onclick="syncCloudData('${id}')" class="text-sky-400 hover:text-sky-600 p-1 bg-sky-50 hover:bg-sky-100 rounded transition-colors" title="Refresh Cloud Data">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+    </svg>
+                        </button>
+                        ` : ''}
                         <button onclick="triggerDataReplace('${id}')" class="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded transition-colors" title="Replace Data">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         </button>
@@ -14679,7 +14769,7 @@ pageContent += generateMarksSVG(cols, rows, printStartX, printStartY, totalCardW
                         const val = data[index] !== undefined ? data[index] : ''; 
                         if (el.dataset.type === 'image') imagePromises.push(updateImageElementDisplay(el, val, true));
                         else {
-                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text');
+                            const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                             if (target && !target.hasAttribute('data-template-raw')) { parseMarkdownInElement(target, val); }
                         }
                     } catch(e){}
