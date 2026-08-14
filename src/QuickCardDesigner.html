@@ -685,6 +685,17 @@
             </div>
 
             <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
+
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
+                <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
+                    <option value="in">in</option>
+                    <option value="mm">mm</option>
+                </select>
+            </div>
+            
+            
+
+            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
                 <label class="flex items-center gap-1 text-xs font-medium text-gray-700 cursor-pointer">
                     <input type="checkbox" id="enable-custom-back" class="rounded text-blue-600 focus:ring-blue-500" onchange="toggleCustomBack()">
                     Custom Back
@@ -773,13 +784,18 @@
                 </details>
             </div>
 
-            <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit</span>
-                <select id="global-unit" class="text-xs border border-gray-300 rounded p-1 bg-white outline-none shadow-sm cursor-pointer" onchange="handleUnitChange(this.value)">
-                    <option value="in">in</option>
-                    <option value="mm">mm</option>
-                </select>
+                        <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
+
+            <div id="global-merge-scrubber" class="hidden items-center gap-1 bg-white rounded px-1.5 py-1 border border-gray-300 shadow-sm text-xs font-bold text-gray-700 h-[28px] mr-1 shrink-0">
+                <button onclick="scrubMergeData(-1);" class="p-1 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors flex items-center justify-center" title="Previous Record">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <span class="global-scrubber-status min-w-[36px] text-center font-mono text-[10px] leading-none flex items-center justify-center pt-px">1/1</span>
+                <button onclick="scrubMergeData(1);" class="p-1 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors flex items-center justify-center" title="Next Record">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
             </div>
+        </div>
             
         </div>
 
@@ -11979,6 +11995,19 @@ Object.values(pluginsData).forEach(p => {
             }
         }
 
+        const topScrubber = document.getElementById('global-merge-scrubber');
+        if (topScrubber) {
+            const absoluteMaxRows = Math.max(globalMaxRows, getGlobalMaxRows());
+            if (absoluteMaxRows > 1) {
+                topScrubber.classList.remove('hidden');
+                topScrubber.classList.add('flex');
+                topScrubber.querySelector('.global-scrubber-status').innerText = `${globalMergeIndex + 1} / ${absoluteMaxRows}`;
+            } else {
+                topScrubber.classList.add('hidden');
+                topScrubber.classList.remove('flex');
+            }
+        }
+
         // Abort here if no element is actively selected, saving us from errors below
         if (!activeElement) return;
 
@@ -16435,6 +16464,14 @@ document.querySelectorAll('style').forEach(s => {
     };
 
     </script>
+
+
+
+    <script id="help" src="src/help.js" inject>
+    </script>
+
+
+
 </body>
 
 </html>
