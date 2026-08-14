@@ -107,9 +107,9 @@
 
                     // Apply Visibility toggles safely using opacity!
                     if (rule.hideElement === true) {
-                        $el.css('opacity', '0').css('pointer-events', 'none');
+                        $el.css('opacity', '0');
                     } else if (rule.hideElement === false) {
-                        $el.css('opacity', '').css('pointer-events', '');
+                        $el.css('opacity', '');
                     }
                 }
                 
