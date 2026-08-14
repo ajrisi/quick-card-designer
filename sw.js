@@ -2,7 +2,8 @@ const CACHE_NAME = 'qcd-cache-v2';
 
 const URLS_TO_CACHE = [
     './',
-    './index.html' 
+    './index.html',
+    './libs/js/qrcode.js'
 ];
 
 const PLUGIN_REPO_BASE = './plugins/';

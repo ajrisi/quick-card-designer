@@ -8,8 +8,8 @@
     // =========================================================================
     const RULES = [
         {
-            // 1. What element are we targeting? (Set this via "Set Element ID" in the app)
-            targetName: "health_bar",
+            // 1. What element are we targeting? (Set this via "Set Tags" in the app)
+            targetTag: "health_bar",
             
             // 2. What condition must be met? 
             //    Use ctx.getCSVValue("filename.csv", "ColumnName")
@@ -33,7 +33,7 @@
             hideElement: false
         },
         {
-            targetName: "rare_gem_icon",
+            targetTag: "rare_gem_icon",
             condition: function(ctx) {
                 // Example: Check if the "Rarity" column equals "Legendary"
                 const rarity = ctx.getCSVValue("characters.csv", "Rarity");
@@ -43,7 +43,7 @@
             hideElement: false
         },
         {
-            targetName: "rare_gem_icon",
+            targetTag: "rare_gem_icon",
             condition: function(ctx) {
                 // If it is NOT Legendary, hide it!
                 const rarity = ctx.getCSVValue("characters.csv", "Rarity");
@@ -60,7 +60,7 @@
             return {
                 name: "ConditionalStyles",
                 description: "A rule-based engine to style, hide, or alter elements based on CSV data.",
-                doc: "### Conditional Style Engine\n\nEdit this plugin's script to define custom rules in the `RULES` array at the top of the file.\n\n**Features:**\n* **`targetName`**: Matches the Custom Name (Element ID) of an item on your canvas.\n* **`condition`**: A function that returns `true` or `false` based on your data.\n* **`applyStyle`**: A standard CSS object (e.g., `{ backgroundColor: 'red', fontSize: '24px' }`).\n* **`applyText`**: Instantly swaps out the text content if the condition is met.\n* **`hideElement`**: Set to `true` to completely hide the element for this specific card.",
+                doc: "### Conditional Style Engine\n\nEdit this plugin's script to define custom rules in the `RULES` array at the top of the file.\n\n**Features:**\n* **`targetTag`**: Matches a Tag you apply to an item on your canvas.\n* **`condition`**: A function that returns `true` or `false` based on your data.\n* **`applyStyle`**: A standard CSS object (e.g., `{ backgroundColor: 'red', fontSize: '24px' }`).\n* **`applyText`**: Instantly swaps out the text content if the condition is met.\n* **`hideElement`**: Set to `true` to completely hide the element for this specific card.",
                 minRecords: 0,
                 varnames: [],
                 images: []
@@ -80,7 +80,7 @@
                     try {
                         isMatch = rule.condition(context);
                     } catch(e) {
-                        console.warn(`[ConditionalStyles] Error evaluating rule for '${rule.targetName}':`, e);
+                        console.warn(`[ConditionalStyles] Error evaluating rule for '${rule.targetTag}':`, e);
                     }
                 } else {
                     // If no condition is provided, assume it always runs
@@ -88,10 +88,10 @@
                 }
 
                 // If the condition is met, apply the mutations
-                if (isMatch && rule.targetName) {
+                if (isMatch && rule.targetTag) {
                     
-                    // context.$() is a built-in helper that perfectly targets the element by ID/Name
-                    const $el = context.$(rule.targetName);
+                    // context.$() is our built-in helper that targets elements by their Tag
+                    const $el = context.$(rule.targetTag);
 
                     // Apply CSS Styles
                     if (rule.applyStyle) {
@@ -105,11 +105,11 @@
                         $el.text(rule.applyText);
                     }
 
-                    // Apply Visibility toggles
+                    // Apply Visibility toggles safely using opacity!
                     if (rule.hideElement === true) {
-                        $el.hide();
+                        $el.css('opacity', '0').css('pointer-events', 'none');
                     } else if (rule.hideElement === false) {
-                        $el.show();
+                        $el.css('opacity', '').css('pointer-events', '');
                     }
                 }
                 

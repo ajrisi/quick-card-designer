@@ -3,7 +3,7 @@
 (function() {
 
     // =========================================================================
-    // ⚙️ ICON DICTIONARY
+    // ICON DICTIONARY
     // Define your keywords and the image URLs they should be replaced with.
     // You can use standard web URLs (https://...), Base64 strings, or SVG Data URIs.
     // =========================================================================

@@ -7,7 +7,7 @@
             return {
                 name: "RandomTableFiller",
                 description: "Fills designated tables with random A-Z and 0-9 characters.",
-                doc: "### Random Alphanumeric Table Filler\n\nThis plugin searches the card for any tables with the Custom Name `random_alphanum` and fills every cell with a single, randomly generated alphanumeric character.\n\n**How to use:**\n1. Add a Table to your canvas.\n2. Select the table and click the **Set Element ID** (Tag) icon in the floating toolbar.\n3. Type `random_alphanum` into the input box.\n4. Ensure this plugin is loaded and active.",
+                doc: "### Random Alphanumeric Table Filler\n\nThis plugin searches the card for any tables with the `random_alphanum` tag and fills every cell with a single, randomly generated alphanumeric character.\n\n**How to use:**\n1. Add a Table to your canvas.\n2. Select the table and click the **Set Tags** icon in the floating toolbar.\n3. Type `random_alphanum` into the input box.\n4. Ensure this plugin is loaded and active.",
                 minRecords: 0, 
                 varnames: [],
                 images: []
@@ -17,7 +17,8 @@
         render: function(cardElement, context) {
             const root = cardElement || document;
             
-            const containers = root.querySelectorAll('[data-custom-name="random_alphanum"]');
+            // Updated to use the new Tags system
+            const containers = root.querySelectorAll('[data-tags*="random_alphanum"]');
             if (containers.length === 0) return;
 
             // Loop through every table that has the tag

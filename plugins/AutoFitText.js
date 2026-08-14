@@ -6,7 +6,7 @@
             return {
                 name: "AutoFitText",
                 description: "Automatically shrinks text to fit perfectly inside its bounding box.",
-                doc: "### Auto-Fit Text Engine\n\nPrevents long text from spilling out of its box by dynamically shrinking the font size. Perfect for dynamic CSV data where text lengths vary wildly!\n\n**Usage:**\n1. Select a Text Box, Title, or Table.\n2. Set its **Element ID** (Tag) so that it starts with `autofit` (e.g., `autofit`, `autofit_desc`, `autofit_title`).\n3. The plugin will automatically measure the text on every card. If the text is taller than the box, it will smoothly step down the font size until it fits perfectly.",
+                doc: "### Auto-Fit Text Engine\n\nPrevents long text from spilling out of its box by dynamically shrinking the font size. Perfect for dynamic CSV data where text lengths vary wildly!\n\n**Usage:**\n1. Select a Text Box, Title, or Table.\n2. Set its **Tags** in the top toolbar to include `autofit`.\n3. The plugin will automatically measure the text on every card. If the text is taller than the box, it will smoothly step down the font size until it fits perfectly.",
                 minRecords: 0,
                 varnames: [],
                 images: []
@@ -16,14 +16,13 @@
         render: function(cardElement, context) {
             const root = cardElement || document;
             
-            // Find any element whose custom name starts with 'autofit'
-            const targets = Array.from(root.querySelectorAll('[data-custom-name]')).filter(el => 
-                el.getAttribute('data-custom-name').toLowerCase().startsWith('autofit')
+            // Updated to use the new Tags system
+            const targets = Array.from(root.querySelectorAll('[data-tags]')).filter(el => 
+                el.getAttribute('data-tags').toLowerCase().includes('autofit')
             );
 
             if (targets.length === 0) return;
 
-            // CRITICAL EXPORT FIX: 
             // During export and grid generation, the app passes an offline, unattached DOM node.
             // Browsers refuse to calculate .scrollHeight or getComputedStyle() on unattached nodes!
             // We must temporarily mount the offline card to the live document inside a hidden box

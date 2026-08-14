@@ -252,6 +252,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             border: none !important;
             outline: none !important;
         }
+
+/* Force active elements to be visible and interactive even if hidden by a plugin */
+        .element-container.active {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
         
         /*body:not(.preview-z) .element-container:hover, 
         body:not(.preview-z) .element-container.active { z-index: 99999 !important; }*/
@@ -578,16 +585,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             </button>
 
             <!-- EXPORT MENU -->
-            <details class="relative group shrink-0">
+            <details class="relative group shrink-0" ontoggle="if(this.open && typeof updateExportSheetSelection === 'function') updateExportSheetSelection()">
                 <summary class="p-1.5 md:px-3 md:py-1.5 text-xs font-medium bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 rounded cursor-pointer flex items-center gap-1.5 hover:bg-fuchsia-100 hover:text-fuchsia-800 transition-colors [&::-webkit-details-marker]:hidden shadow-sm whitespace-nowrap" title="Export">
                     <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     <span class="hidden md:inline">Export</span>
                 </summary>
                 <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-lg z-50 w-72 p-4 text-gray-800 cursor-default hide-scrollbar">
-                    <!--<h3 class="flex items-center gap-1.5 text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2.5 bg-gray-100 p-1.5 rounded shadow-sm">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Raster Resolution & Export
-                    </h3>-->
+
                     <div class="mb-3">
                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Target DPI</label>
                         <input type="text" inputmode="numeric" pattern="[0-9]*" id="target-dpi" list="export-dpi-options" value="300" class="no-stepper w-full border-gray-300 border rounded p-1 text-sm outline-none shadow-sm bg-white" placeholder="Custom DPI..." onfocus="this.dataset.old = this.value; this.value = '';" onblur="if(!this.value) this.value = this.dataset.old;">
@@ -860,7 +864,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     <option value="mm">mm</option>
                 </select>
             </div>
-            
+
             
 
             <div class="flex items-center gap-2 ml-2 border-l border-gray-300 pl-4 shrink-0">
@@ -3920,6 +3924,7 @@ function updateBgSettings(side) {
         if (rows < 1) rows = Math.floor(paperH / totalCardHin);
         
         const cpp = Math.max(0, cols * rows);
+        window.qcdPrintCPP = Math.max(1, cpp); // Expose cleanly to the global scope
         
         const countEl = document.getElementById('cpp-count');
         const gridEl = document.getElementById('cpp-grid');
@@ -3943,7 +3948,6 @@ function updateBgSettings(side) {
 
         const sheetSelect = document.getElementById('export-sheet-num');
         if (sheetSelect) {
-            const currentVal = sheetSelect.value;
             sheetSelect.innerHTML = '';
             for (let i = 1; i <= Math.max(1, sheetsNeeded); i++) {
                 const opt = document.createElement('option');
@@ -3951,9 +3955,11 @@ function updateBgSettings(side) {
                 opt.innerText = `Sheet ${i}`;
                 sheetSelect.appendChild(opt);
             }
-            if (currentVal && currentVal <= sheetsNeeded) {
-                sheetSelect.value = currentVal;
-            }
+        }
+
+        // Always natively derive the correct sheet immediately after a layout rebuild
+        if (typeof updateExportSheetSelection === 'function') {
+            updateExportSheetSelection();
         }
 
         queueWorkspaceGridUpdate();
@@ -4078,28 +4084,28 @@ function updateBgSettings(side) {
         });
     }
 
-    // --- ELEMENT NAMING CONTROLS ---
-    window.toggleNameInput = function(event) {
+    // --- ELEMENT TAGGING CONTROLS ---
+    window.toggleTagInput = function(event) {
         if (event) event.stopPropagation();
         const ms = document.getElementById('multi-select-controls');
-        const input = ms.querySelector('.custom-name-input');
+        const input = ms.querySelector('.custom-tags-input');
         if (input.classList.contains('hidden')) {
             input.classList.remove('hidden');
-            ms.dataset.nameInputVisible = 'true';
+            ms.dataset.tagInputVisible = 'true';
             input.focus();
         } else {
             input.classList.add('hidden');
-            ms.dataset.nameInputVisible = 'false';
+            ms.dataset.tagInputVisible = 'false';
         }
     };
 
-    window.setElementName = function(val, event) {
+    window.setElementTags = function(val, event) {
         if (event) event.stopPropagation();
         activeElements.forEach(el => {
             if (val.trim()) {
-                el.dataset.customName = val.trim();
+                el.dataset.tags = val.trim();
             } else {
-                delete el.dataset.customName;
+                delete el.dataset.tags;
             }
         });
         saveState(true);
@@ -4296,10 +4302,10 @@ function updateUILayer() {
             <span class="control-btn z-btn" title="Send Backward" onclick="changeZIndexGlobal(-1); saveState()" onmouseenter="previewZIndex(true)" onmouseleave="previewZIndex(false)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </span>
-            <span class="control-btn id-btn" title="Set Element ID" onclick="toggleNameInput(event)">
+            <span class="control-btn tag-btn" title="Set Tags" onclick="toggleTagInput(event)">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
             </span>
-            <input type="text" class="custom-name-input border border-gray-300 bg-gray-50 text-gray-700 w-20 px-1.5 ml-1 rounded text-[10px] outline-none shadow-sm h-6" placeholder="Element ID..." spellcheck="false" oninput="setElementName(this.value, event)" onkeydown="if(event.key==='Enter')this.blur();" onclick="event.stopPropagation()">
+            <input type="text" class="custom-tags-input border border-gray-300 bg-gray-50 text-gray-700 w-32 px-1.5 ml-1 rounded text-[10px] outline-none shadow-sm h-6" placeholder="tag1, tag2..." spellcheck="false" oninput="setElementTags(this.value, event)" onkeydown="if(event.key==='Enter')this.blur();" onclick="event.stopPropagation()">
             <div class="merge-scrubber hidden items-center gap-1 bg-gray-100 rounded px-1 ml-1 border border-gray-200 text-[10px] font-bold text-gray-600 h-6">
                 <button onclick="scrubMergeData(-1); event.stopPropagation();" class="px-1 hover:text-blue-600 leading-none" title="Previous Record">&lt;</button>
                 <span class="scrubber-status min-w-[28px] text-center font-mono">1/1</span>
@@ -4335,16 +4341,16 @@ function updateUILayer() {
             }
         }
 
-        const nameInput = ms.querySelector('.custom-name-input');
-        if (nameInput) {
-            const customName = activeElements[0]?.dataset.customName || '';
-            if (document.activeElement !== nameInput) {
-                nameInput.value = customName;
+        const tagInput = ms.querySelector('.custom-tags-input');
+        if (tagInput) {
+            const currentTags = activeElements[0]?.dataset.tags || '';
+            if (document.activeElement !== tagInput) {
+                tagInput.value = currentTags;
             }
-            if (customName || ms.dataset.nameInputVisible === 'true') {
-                nameInput.classList.remove('hidden');
+            if (currentTags || ms.dataset.tagInputVisible === 'true') {
+                tagInput.classList.remove('hidden');
             } else {
-                nameInput.classList.add('hidden');
+                tagInput.classList.add('hidden');
             }
         }
 
@@ -9458,10 +9464,20 @@ function setActiveElement(el, multi = false) {
         // Force blur on any active input, textarea, select, or content editable if we click outside of it
         const active = document.activeElement;
         const targetIsInput = e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+        
+        // Define UI elements that should NOT steal focus when actively typing (Formatting & Floating Toolbars)
+        const targetIsUIBtn = e.target.closest('button, .control-btn, .merge-scrubber') && 
+                              e.target.closest('#secondary-toolbar, #element-settings, #multi-select-controls');
+
         if (active && (active.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName))) {
-            if (!targetIsInput) {
+            if (!targetIsInput && !targetIsUIBtn) {
                 active.blur();
             }
+        }
+
+        // Prevent native browser focus shift if clicking a formatting button while editing text
+        if (targetIsUIBtn && !targetIsInput && active && active.isContentEditable) {
+            e.preventDefault();
         }
 
         const isInteractiveControl = e.target.closest('.controls, .resizer, .rot-handle, .drag-handle, .popover-drag-handle, .col-resizer, .row-resizer');
@@ -11068,7 +11084,7 @@ function getPluginContext(activeRow, cardElement = null) {
             $: function(selector) {
                 if (!cardElement) return new QCDQuery([]);
                 let q = selector;
-                if (/^[a-zA-Z0-9_-]+$/.test(selector)) q = `[data-custom-name="${selector}"], #${selector}`; // Target by Name or strict ID
+                if (/^[a-zA-Z0-9_-]+$/.test(selector)) q = `[data-tags*="${selector}"], #${selector}`; // Target by Tag or strict ID
                 return new QCDQuery(cardElement.querySelectorAll(q));
             }
         };
@@ -11262,7 +11278,8 @@ function getPluginContext(activeRow, cardElement = null) {
         return maxRows;
     }
 
-    function evaluateTemplateExpression(inner, activeRow) {
+
+function evaluateTemplateExpression(inner, activeRow) {
         let inQuotesCond = false;
         let quoteCharCond = '';
         let questionMarkIdx = -1;
@@ -11283,20 +11300,71 @@ function getPluginContext(activeRow, cardElement = null) {
             let conditionExpr = inner.substring(0, questionMarkIdx).trim();
             let resultsExpr = inner.substring(questionMarkIdx + 1).trim();
             
-            // Evaluate the condition part
-            let conditionVal = evaluateTemplateExpression(conditionExpr, activeRow);
-            
-            // Strictly determine truthiness
             let isTrue = false;
-            
-            // If the condition didn't resolve as a variable, treat the raw expression itself as a literal!
-            let valToCheck = (conditionVal === `{{${conditionExpr}}}`) ? conditionExpr : conditionVal;
-            
-            if (valToCheck !== undefined && valToCheck !== null) {
-                let str = String(valToCheck).trim().toLowerCase();
-                // Catch common falsy values
-                if (str !== '' && str !== '0' && str !== 'false' && str !== 'f' && str !== 'null' && str !== 'undefined' && str !== 'nan' && str !== 'no' && str !== 'n') {
-                    isTrue = true;
+
+            // Safety catch: If the condition is completely empty (e.g. an inner template vanished), it's automatically falsy.
+            if (conditionExpr) {
+                // Check if condition contains comparison or logical operators
+                const binaryMatch = conditionExpr.match(/^(.+?)\s*(===|==|!==|!=|>=|<=|>|<)\s*(.+)$/);
+                
+                if (binaryMatch && !conditionExpr.includes('&&') && !conditionExpr.includes('||')) {
+                    // Simple binary comparison
+                    let left = binaryMatch[1].trim();
+                    let op = binaryMatch[2];
+                    let right = binaryMatch[3].trim();
+                    
+                    let leftVal = evaluateTemplateExpression(left, activeRow);
+                    if (leftVal === `{{${left}}}`) leftVal = left; // literal fallback
+                    
+                    let rightVal = evaluateTemplateExpression(right, activeRow);
+                    if (rightVal === `{{${right}}}`) rightVal = right; // literal fallback
+                    
+                    // Unquote string literals manually if they typed them
+                    if (/^['"].*['"]$/.test(leftVal)) leftVal = leftVal.slice(1, -1);
+                    if (/^['"].*['"]$/.test(rightVal)) rightVal = rightVal.slice(1, -1);
+
+                    // Convert to numbers if possible for numeric comparison
+                    let leftNum = Number(leftVal);
+                    let rightNum = Number(rightVal);
+                    let isNumComp = !isNaN(leftNum) && !isNaN(rightNum) && leftVal !== '' && rightVal !== '';
+
+                    if (isNumComp) {
+                        leftVal = leftNum;
+                        rightVal = rightNum;
+                    }
+
+                    switch (op) {
+                        case '==': case '===': isTrue = (leftVal == rightVal); break;
+                        case '!=': case '!==': isTrue = (leftVal != rightVal); break;
+                        case '>': isTrue = (leftVal > rightVal); break;
+                        case '<': isTrue = (leftVal < rightVal); break;
+                        case '>=': isTrue = (leftVal >= rightVal); break;
+                        case '<=': isTrue = (leftVal <= rightVal); break;
+                    }
+                } else if (/[=<>!]=|&&|\|\||[<>]/.test(conditionExpr)) {
+                    // Complex expression (eval) - requires [Variable] syntax for variable lookup
+                    let parsedQuery = conditionExpr.replace(/\[([^\]]+)\]/g, (match, varName) => {
+                        let val = evaluateTemplateExpression(varName.trim(), activeRow);
+                        if (val === `{{${varName.trim()}}}`) val = ""; // Not found
+                        return JSON.stringify(val);
+                    });
+                    
+                    try {
+                        isTrue = new Function(`return !!(${parsedQuery})`)();
+                    } catch(e) {
+                        isTrue = false;
+                    }
+                } else {
+                    // Standard truthiness check
+                    let conditionVal = evaluateTemplateExpression(conditionExpr, activeRow);
+                    let valToCheck = (conditionVal === `{{${conditionExpr}}}`) ? conditionExpr : conditionVal;
+                    
+                    if (valToCheck !== undefined && valToCheck !== null) {
+                        let str = String(valToCheck).trim().toLowerCase();
+                        if (str !== '' && str !== '0' && str !== 'false' && str !== 'f' && str !== 'null' && str !== 'undefined' && str !== 'nan' && str !== 'no' && str !== 'n') {
+                            isTrue = true;
+                        }
+                    }
                 }
             }
             
@@ -11458,6 +11526,204 @@ function getPluginContext(activeRow, cardElement = null) {
         
         return `{{${inner}}}`;
     }
+
+
+    // function evaluateTemplateExpression(inner, activeRow) {
+    //     let inQuotesCond = false;
+    //     let quoteCharCond = '';
+    //     let questionMarkIdx = -1;
+        
+    //     // Scan for the first unquoted question mark
+    //     for(let i=0; i<inner.length; i++) {
+    //         const char = inner[i];
+    //         if ((char === '"' || char === "'") && (i === 0 || inner[i-1] !== '\\')) {
+    //             if (inQuotesCond && quoteCharCond === char) inQuotesCond = false;
+    //             else if (!inQuotesCond) { inQuotesCond = true; quoteCharCond = char; }
+    //         } else if (char === '?' && !inQuotesCond) {
+    //             questionMarkIdx = i;
+    //             break;
+    //         }
+    //     }
+        
+    //     if (questionMarkIdx !== -1) {
+    //         let conditionExpr = inner.substring(0, questionMarkIdx).trim();
+    //         let resultsExpr = inner.substring(questionMarkIdx + 1).trim();
+            
+    //         // Evaluate the condition part
+    //         let conditionVal = evaluateTemplateExpression(conditionExpr, activeRow);
+            
+    //         // Strictly determine truthiness
+    //         let isTrue = false;
+            
+    //         // If the condition didn't resolve as a variable, treat the raw expression itself as a literal!
+    //         let valToCheck = (conditionVal === `{{${conditionExpr}}}`) ? conditionExpr : conditionVal;
+            
+    //         if (valToCheck !== undefined && valToCheck !== null) {
+    //             let str = String(valToCheck).trim().toLowerCase();
+    //             // Catch common falsy values
+    //             if (str !== '' && str !== '0' && str !== 'false' && str !== 'f' && str !== 'null' && str !== 'undefined' && str !== 'nan' && str !== 'no' && str !== 'n') {
+    //                 isTrue = true;
+    //             }
+    //         }
+            
+    //         // Parse the true, false results separated by comma
+    //         let commaIdx = -1;
+    //         let inQuotesRes = false;
+    //         let quoteCharRes = '';
+    //         for(let i=0; i<resultsExpr.length; i++) {
+    //             const char = resultsExpr[i];
+    //             if ((char === '"' || char === "'") && (i === 0 || resultsExpr[i-1] !== '\\')) {
+    //                 if (inQuotesRes && quoteCharRes === char) inQuotesRes = false;
+    //                 else if (!inQuotesRes) { inQuotesRes = true; quoteCharRes = char; }
+    //             } else if (char === ',' && !inQuotesRes) {
+    //                 commaIdx = i;
+    //                 break;
+    //             }
+    //         }
+            
+    //         let trueRes = "";
+    //         let falseRes = "";
+    //         if (commaIdx !== -1) {
+    //             trueRes = resultsExpr.substring(0, commaIdx).trim();
+    //             falseRes = resultsExpr.substring(commaIdx + 1).trim();
+    //         } else {
+    //             trueRes = resultsExpr.trim();
+    //         }
+            
+    //         let chosenRes = isTrue ? trueRes : falseRes;
+            
+    //         // Strip outer quotes if the user explicitly provided them to preserve spaces or empty strings
+    //         if ((chosenRes.startsWith('"') && chosenRes.endsWith('"')) || (chosenRes.startsWith("'") && chosenRes.endsWith("'"))) {
+    //             chosenRes = chosenRes.substring(1, chosenRes.length - 1);
+    //         }
+            
+    //         return chosenRes;
+    //     }
+        
+    //     const parts = [];
+    //     let current = '';
+    //     let inQuotes = false;
+    //     let quoteChar = '';
+        
+    //     for(let i=0; i<inner.length; i++) {
+    //         const char = inner[i];
+    //         if ((char === '"' || char === "'") && (i === 0 || inner[i-1] !== '\\')) {
+    //             if (inQuotes && quoteChar === char) {
+    //                 inQuotes = false;
+    //             } else if (!inQuotes) {
+    //                 inQuotes = true;
+    //                 quoteChar = char;
+    //             } else {
+    //                 current += char;
+    //             }
+    //         } else if (char === ',' && !inQuotes) { // CRITICAL FIX: Removed || char === ':'
+    //             parts.push(current.trim());
+    //             current = '';
+    //         } else {
+    //             if (char === '\\' && (inner[i+1] === '"' || inner[i+1] === "'")) {
+    //                 // skip adding backslash if it's escaping a quote
+    //             } else {
+    //                 current += char;
+    //             }
+    //         }
+    //     }
+    //     parts.push(current.trim());
+        
+    //     const prefix = parts[0];
+    //     if (!prefix) return `{{${inner}}}`;
+        
+    //     const activeSrcs = window.activeMergeSources || mergeSources;
+    //     let sourceId = null;
+        
+    //     for (let id in activeSrcs) {
+    //         if (activeSrcs[id].filename === prefix) {
+    //             sourceId = id;
+    //             break;
+    //         }
+    //     }
+        
+    //     let isShorthand = false;
+    //     if (!sourceId) {
+    //         let primaryId = Object.keys(activeSrcs).find(k => activeSrcs[k].isPrimary);
+    //         if (primaryId && activeSrcs[primaryId].hasHeader && activeSrcs[primaryId].data.length > 0) {
+    //             const colIdx = activeSrcs[primaryId].data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === prefix.replace(/^Images:\s*/i, ''));
+    //             if (colIdx !== -1) {
+    //                 sourceId = primaryId;
+    //                 isShorthand = true;
+    //             }
+    //         }
+    //     }
+        
+    //     if (sourceId) {
+    //         const source = activeSrcs[sourceId];
+    //         let colName = "";
+    //         let rowReq = null;
+            
+    //         if (isShorthand) {
+    //             colName = prefix;
+    //             rowReq = parts[1] ? parseInt(parts[1]) : null;
+    //         } else {
+    //             colName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+    //             rowReq = parts[2] ? parseInt(parts[2]) : null;
+    //         }
+            
+    //         let colIdx = -1;
+    //         if (source.hasHeader && source.data.length > 0) {
+    //             colIdx = source.data[0].findIndex(h => h && String(h).trim().replace(/^Images:\s*/i, '') === colName.replace(/^Images:\s*/i, ''));
+    //         }
+    //         if (colIdx === -1 && !isNaN(parseInt(colName))) {
+    //             colIdx = parseInt(colName);
+    //         }
+            
+    //         if (colIdx !== -1) {
+    //             let activeCount = 0;
+    //             let startIndex = source.hasHeader ? 1 : 0;
+    //             let targetCount = (rowReq !== null && !isNaN(rowReq)) ? rowReq : activeRow;
+    //             let actualRowIndex = -1;
+    //             let headers = source.hasHeader ? source.data[0] : null;
+                
+    //             for (let i = startIndex; i < source.data.length; i++) {
+    //                 if (source.excludedRows && source.excludedRows[i]) continue;
+    //                 if (source.isPrimary && source.primaryFilter && !evaluateQuery(source.primaryFilter, source.data[i], headers)) continue;
+                    
+    //                 if (activeCount === targetCount) {
+    //                     actualRowIndex = i;
+    //                     break;
+    //                 }
+    //                 activeCount++;
+    //             }
+    //             if (actualRowIndex !== -1 && source.data[actualRowIndex]) {
+    //                 let val = source.data[actualRowIndex][colIdx];
+    //                 return val !== undefined && val !== null ? String(val).trim() : '';
+    //             }
+    //         }
+    //         return `{{${inner}}}`;
+    //     }
+        
+    //     let pluginInstance = null;
+    //     for (let id in pluginsData) {
+    //         if (pluginsData[id].name === prefix) {
+    //             pluginInstance = pluginInstances[id];
+    //             break;
+    //         }
+    //     }
+        
+    //     if (pluginInstance && typeof pluginInstance.text === 'function') {
+    //         try {
+    //             const varName = parts[1] ? parts[1].replace(/^['"]+|['"]+$/g, '') : "";
+    //             const args = parts.slice(2).map(a => a.replace(/^['"]+|['"]+$/g, ''));
+    //             const context = getPluginContext(activeRow);
+                
+    //             const res = pluginInstance.text(varName, context, ...args);
+    //             return res !== undefined ? res : `{{${inner}}}`;
+    //         } catch(e) {
+    //             console.error("Plugin template error", e);
+    //             return `<span style="color:red;">[Error]</span>`;
+    //         }
+    //     }
+        
+    //     return `{{${inner}}}`;
+    // }
 
     function renderTemplateString(rawHtml, targetRowIndex = null) {
         let activeRow = targetRowIndex !== null ? targetRowIndex : globalMergeIndex;
@@ -12070,6 +12336,7 @@ window.showPluginHelp = function(id) {
 
         applyMergePreview();
         updateMergeUI();
+        if (typeof updatePrintStats === 'function') updatePrintStats();
         clearVirtualGridCache();
     }
 
@@ -12136,6 +12403,23 @@ window.showPluginHelp = function(id) {
         queueWorkspaceGridUpdate();
     }
 
+    window.updateExportSheetSelection = function() {
+        const sheetSelect = document.getElementById('export-sheet-num');
+        if (sheetSelect) {
+            // Decouple from DOM text parsing, rely on the clean global variable updated by the engine
+            const cpp = window.qcdPrintCPP || 1;
+            let targetSheet = Math.floor(globalMergeIndex / Math.max(1, cpp)) + 1;
+            
+            // Clamp to ensure we never try to select a sheet out of bounds
+            if (targetSheet > sheetSelect.options.length) {
+                targetSheet = Math.max(1, sheetSelect.options.length);
+            }
+            
+            // Force string assignment to guarantee DOM update
+            sheetSelect.value = targetSheet.toString();
+        }
+    };
+
     function updateMergeUI() {
         let globalMaxRows = 0;
         document.getElementById('card-content').querySelectorAll('.element-container').forEach(el => {
@@ -12162,6 +12446,11 @@ Object.values(pluginsData).forEach(p => {
                 globalScrubber.classList.remove('flex');
             }
         }
+
+        const exportDetails = document.querySelector('summary[title="Export"]')?.parentElement;
+        //if (exportDetails && exportDetails.open && typeof updateExportSheetSelection === 'function') {
+            updateExportSheetSelection();
+        //}
 
         const topScrubber = document.getElementById('global-merge-scrubber');
         if (topScrubber) {
@@ -12976,7 +13265,7 @@ Object.values(pluginsData).forEach(p => {
                     <div class="flex items-center gap-1.5 overflow-hidden flex-1">
                         <svg class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
                         <input type="text" value="${p.filename.replace(/"/g, '&quot;')}" onchange="renamePlugin('${id}', this.value)" class="text-xs font-bold text-gray-700 truncate bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none rounded px-1 py-0.5 w-full transition-all cursor-text" title="Rename Plugin File">
-                        <span class="text-gray-400 font-normal ml-1 text-xs shrink-0" title="Internal Template Key">(${p.name})</span>
+                        <span class="text-gray-400 font-normal ml-1 text-xs shrink-0" title="Internal Template Key" style="display: none;">(${p.name})</span>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                         <button onclick="openPluginEditor('${id}')" class="text-gray-400 hover:text-gray-600 p-1 bg-gray-50 hover:bg-gray-100 rounded transition-colors" title="Edit Script">
@@ -14916,7 +15205,7 @@ document.querySelectorAll('style').forEach(s => {
             return;
         }
 
-const tempFront = document.createElement('div');
+        const tempFront = document.createElement('div');
         tempFront.innerHTML = frontContentHTML;
         const tempBack = document.createElement('div');
         tempBack.innerHTML = (hasCustomBack ? backContentHTML : frontContentHTML);
@@ -16851,7 +17140,7 @@ document.querySelectorAll('style').forEach(s => {
                                     <li><strong>Math in Inputs:</strong> You can type math equations directly into any size/position input field (e.g., type <code class="bg-gray-100 px-1 rounded border border-gray-200 font-mono">2.5 * 3</code> and it will evaluate to <code class="bg-gray-100 px-1 rounded border border-gray-200 font-mono">7.5</code>).</li>
                                     <li><strong>Scroll Wheel Adjustments:</strong> Hover over any number input field and use your mouse scroll wheel to adjust the value up or down. Hold <kbd class="help-kbd">Shift</kbd> to jump by 10x!</li>
                                     <li><strong>Snap Toolbar:</strong> Press <kbd class="help-kbd">T</kbd> to instantly snap the floating toolbar directly to your cursor's current location.</li>
-                                    <li><strong>Element Naming:</strong> Click the <code class="bg-gray-100 px-1 rounded font-bold border border-gray-200">ID</code> button on the floating toolbar to give an element a custom name. This is extremely useful for Plugins!</li>
+                                    <li><strong>Element Tagging:</strong> Click the <code class="bg-gray-100 px-1 rounded font-bold border border-gray-200">Tags</code> button on the floating toolbar to assign comma-separated tags to an element. This is extremely useful for Plugins!</li>
                                 </ul>
                             </div>
                         </div>
@@ -16919,14 +17208,18 @@ document.querySelectorAll('style').forEach(s => {
                             <div class="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
                                 <h4 class="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                     <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">Logic</span>
-                                    Conditionals (If/Else)
+                                    Conditionals & Comparisons
                                 </h4>
-                                <p class="text-sm text-gray-600 mb-3">You can use a question mark <code class="bg-gray-100 px-1 rounded text-red-500 font-semibold">?</code> to render different text based on whether a variable exists or is true.</p>
-                                <div class="bg-gray-900 rounded-lg p-3 text-sm font-mono text-gray-300">
-                                    <span class="text-gray-500">// Syntax: {{Condition ? True Output, False Output}}</span><br>
-                                    <span class="text-orange-300">{{IsBoss ? "Warning: Boss Level!", "Standard Enemy"}}</span>
+                                <p class="text-sm text-gray-600 mb-3">Use a question mark <code class="bg-gray-100 px-1 rounded text-red-500 font-semibold">?</code> to render different text based on conditionals. You can check for simple existence, or use full JS comparisons (<code class="bg-gray-100 px-1 rounded text-gray-700 font-semibold">===</code>, <code class="bg-gray-100 px-1 rounded text-gray-700 font-semibold">&gt;</code>, <code class="bg-gray-100 px-1 rounded text-gray-700 font-semibold">&lt;</code>).</p>
+                                <div class="bg-gray-900 rounded-lg p-3 text-sm font-mono text-gray-300 space-y-2">
+                                    <div><span class="text-gray-500">// Simple Truthiness:</span></div>
+                                    <div class="text-orange-300">{{IsBoss ? "Warning: Boss Level!", "Standard Enemy"}}</div>
+                                    <div class="mt-2"><span class="text-gray-500">// Math / Comparisons:</span></div>
+                                    <div class="text-orange-300">{{HP &lt; 5 ? "Low Health!", "Healthy"}}</div>
+                                    <div class="text-orange-300">{{Type === "Fire" ? "Super Effective", "Normal"}}</div>
+                                    <div class="mt-2"><span class="text-gray-500">// Complex JS (Wrap variables in brackets!):</span></div>
+                                    <div class="text-orange-300">{{[HP] > 0 && [Status] !== "Poison" ? "Safe", "Danger"}}</div>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-3">Note: A condition is "false" if it's empty, 0, "false", "no", or missing.</p>
                             </div>
                         </div>
                     </div>
@@ -17227,6 +17520,9 @@ document.querySelectorAll('style').forEach(s => {
         // Hijack the existing info button securely without deleting it
         const infoBtn = document.getElementById('info-btn');
         if (infoBtn) {
+            // Swap the "i" icon for a "?" icon
+            infoBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            
             // Strip out any inline onclick handlers that might exist
             infoBtn.removeAttribute('onclick');
             

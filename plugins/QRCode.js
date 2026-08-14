@@ -2,7 +2,7 @@
 (function() {
     if (!window.QRCode) {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        script.src = 'libs/js/qrcode.js';
         script.onload = () => {
             if (typeof updateAllCanvasImages === 'function') updateAllCanvasImages();
             if (typeof queueWorkspaceGridUpdate === 'function') queueWorkspaceGridUpdate();
