@@ -1903,7 +1903,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         </div>
 
         <div id="ui-bleed" class="absolute hidden border border-red-500 border-dashed bg-red-500/10 pointer-events-none z-0"></div>
-        <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0; will-change: transform;">
+        <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0;">
             <div id="workspace-bg-grid" class="absolute top-0 left-0 w-full h-full pointer-events-none z-[-1]"></div>
             <div id="card-canvas" class="bg-blank">
                 <div id="ghost-layer" class="absolute inset-0 pointer-events-none hidden z-20" style="opacity: 0.2; transform: scaleX(-1); transform-origin: center;"></div>
@@ -5435,15 +5435,18 @@ function updateUILayer(skipGhostSync = false) {
             panY = mouseY - (targetY * newScale);
             canvasScale = newScale;
 
-            // Decouple the heavy DOM updates from the immediate wheel event
+            
+
             if (!isZoomScheduled) {
                 isZoomScheduled = true;
+
                 requestAnimationFrame(() => {
                     applyCanvasTransform();
                     saveState(true);
                     isZoomScheduled = false;
                 });
             }
+
         }, { passive: false });
     };
 
@@ -5921,7 +5924,7 @@ function restoreState(state) {
 
             const wrapper = document.createElement('div');
             wrapper.className = `absolute inset-0 pointer-events-none ${otherBg}`;
-            wrapper.style.cssText = `opacity: ${opacity}; transform: ${transform}; transform-origin: center;`;
+            wrapper.style.cssText = `opacity: ${opacity}; transform: ${transform} translateZ(0); transform-origin: center; isolation: isolate; will-change: transform;`;
             wrapper.innerHTML = `<div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${contentHTML}</div>`;
             ghostLayer.appendChild(wrapper);
         }
@@ -5980,6 +5983,7 @@ function restoreState(state) {
                                 const posY = el.dataset.objectPositionY || 'center';
                                 const scale = el.dataset.imageScale || '1';
 
+                                const renderedVals = new Set();
                                 for (let i = 0; i < loopMax; i += step) {
                                     if (i === globalMergeIndex) continue; // CRITICAL FIX: Prevent shadow doubling on active card
 
@@ -6005,13 +6009,14 @@ function restoreState(state) {
                                         displayVal = displayVal.trim();
                                         if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
                                     }
-                                    if (!displayVal) continue;
+                                    if (!displayVal || renderedVals.has(displayVal)) continue;
+                                    renderedVals.add(displayVal);
 
                                     if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
                                         const imgSrc = imageAssets[displayVal] || displayVal;
                                         const ghostImg = document.createElement('img');
                                         
-                                        ghostImg.style.cssText = `position: absolute; top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; opacity: ${effectiveImgOpacity}; pointer-events: none; display: block;`;
+                                        ghostImg.style.cssText = `position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: scale(${scale}); transform-origin: center; opacity: ${effectiveImgOpacity}; pointer-events: none; display: block; image-rendering: high-quality;`;
                                         
                                         ghostImg.onerror = () => ghostImg.remove();
                                         
@@ -6026,6 +6031,7 @@ function restoreState(state) {
                                     }
                                 }
                             } else {
+                                const renderedVals = new Set();
                                 for (let i = 0; i < loopMax; i += step) {
                                     if (i === globalMergeIndex) continue; // CRITICAL FIX: Prevent shadow doubling on active card
 
@@ -6036,7 +6042,8 @@ function restoreState(state) {
                                         val = data[i] !== undefined ? data[i] : '';
                                     }
 
-                                    if (!val.trim()) continue;
+                                    if (!val.trim() || renderedVals.has(val)) continue;
+                                    renderedVals.add(val);
                                     
                                     const ghostDiv = document.createElement('div');
                                     ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${effectiveTextOpacity}; pointer-events: none; word-break: break-word;`;
@@ -6054,6 +6061,9 @@ function restoreState(state) {
 
             const wrapper = document.createElement('div');
             wrapper.className = 'absolute inset-0 pointer-events-none data-ghost-wrapper';
+            wrapper.style.isolation = 'isolate';
+            wrapper.style.transform = 'translateZ(0)';
+            wrapper.style.willChange = 'transform';
             wrapper.style.opacity = '1';
             
             const inner = document.createElement('div');
@@ -14056,7 +14066,7 @@ function renameBankImage(oldName, newName) {
                 <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
             </div>
-            <img src="${dataUrl}" onerror="this.style.display='none'; if(this.previousElementSibling) { this.previousElementSibling.style.display='flex'; }" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}) translateZ(0); transform-origin: center; display: ${hasUrl ? 'block' : 'none'}; will-change: transform; backface-visibility: hidden;" />
+            <img src="${dataUrl}" onerror="this.style.display='none'; if(this.previousElementSibling) { this.previousElementSibling.style.display='flex'; }" class="pointer-events-none absolute z-10" style="top: 0; left: 0; right: 0; bottom: 0; margin: auto; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: scale(${scale}); transform-origin: center; display: ${hasUrl ? 'block' : 'none'}; image-rendering: high-quality;" />
         </div>`;
     }
 
@@ -14084,10 +14094,21 @@ function renameBankImage(oldName, newName) {
         img.style.width = `calc(100% / ${scale})`;
         img.style.height = `calc(100% / ${scale})`;
         img.style.maxWidth = 'none'; 
-        img.style.top = '50%';
-        img.style.left = '50%';
-        img.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        //img.style.top = '50%';
+        //img.style.left = '50%';
+        //img.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        img.style.top = '0';
+        img.style.left = '0';
+        img.style.right = '0';
+        img.style.bottom = '0';
+        img.style.margin = 'auto';
+        img.style.transform = `scale(${scale})`;
+        img.style.backfaceVisibility = '';
+        //img.style.outline = '1px solid transparent';
+        //img.style.isolation = 'isolate';
+        //img.style.filter = 'opacity(1)';
         img.style.transformOrigin = 'center';
+        img.style.imageRendering = 'high-quality';
         img.style.position = 'absolute';
 
         img.classList.remove('w-full', 'h-full', 'inset-0', 'top-0', 'left-0', 'absolute');
@@ -14429,10 +14450,21 @@ function renameBankImage(oldName, newName) {
                     img.style.width = `calc(100% / ${val})`;
                     img.style.height = `calc(100% / ${val})`;
                     img.style.maxWidth = 'none'; // Override Tailwind's default restriction!
-                    img.style.top = '50%';
-                    img.style.left = '50%';
-                    img.style.transform = `translate(-50%, -50%) scale(${val})`;
+                    //img.style.top = '50%';
+                    //img.style.left = '50%';
+                    //img.style.transform = `translate(-50%, -50%) scale(${val})`;
+                    img.style.backfaceVisibility = '';
+                    img.style.top = '0';
+                    img.style.left = '0';
+                    img.style.right = '0';
+                    img.style.bottom = '0';
+                    img.style.margin = 'auto';
+                    img.style.transform = `scale(${val})`;
+                    //img.style.outline = '1px solid transparent';
+                    //img.style.isolation = 'isolate';
+                    //img.style.filter = 'opacity(1)';
                     img.style.transformOrigin = 'center';
+                    img.style.imageRendering = 'high-quality';
                 }
             }
         });
