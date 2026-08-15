@@ -191,6 +191,10 @@
         .element-container[data-plugin-image-id] .image-placeholder,
         .element-container[data-image-bank-key] .image-placeholder { display: none !important; }
 
+        /* Hide all image placeholders when Data Ghosting is active */
+        body.data-ghosting-active .image-placeholder { display: none !important; }
+
+
         td div[contenteditable="true"], th div[contenteditable="true"] { min-height: 0 !important; }
         
         .card-divider { width: 100%; height: 2px; background-color: #374151; }
@@ -773,7 +777,14 @@
                                 <span class="text-[9px] font-bold text-gray-500 uppercase">Data Opacity</span>
                                 <input type="range" id="data-ghost-opacity" min="0.02" max="0.5" step="0.005" value="0.04" class="w-20 accent-blue-600" oninput="updateGhostLayer()">
                             </div>
+                            <div class="items-center justify-between gap-2 hidden" id="ghost-limit-group">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase" title="Max layers to render">Layer Limit</span>
+                                <input type="range" id="data-ghost-limit" min="250" max="250" step="1" value="250" class="w-16 accent-blue-600" oninput="document.getElementById('ghost-limit-val').innerText = this.value; updateGhostLayer();">
+                                <span id="ghost-limit-val" class="text-[9px] font-mono text-gray-500 w-6 text-right">250</span>
+                            </div>
                         </div>
+
+                        
 
                         <div class="border-t border-gray-200 my-3"></div>
 
@@ -1724,7 +1735,7 @@
         </div>
 
         <div id="ui-bleed" class="absolute hidden border border-red-500 border-dashed bg-red-500/10 pointer-events-none z-0"></div>
-        <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0;">
+        <div id="canvas-wrapper" style="transform-origin: 0 0; width: max-content; position: absolute; left: 0; top: 0; will-change: transform;">
             <div id="workspace-bg-grid" class="absolute top-0 left-0 w-full h-full pointer-events-none z-[-1]"></div>
             <div id="card-canvas" class="bg-blank">
                 <div id="ghost-layer" class="absolute inset-0 pointer-events-none hidden z-20" style="opacity: 0.2; transform: scaleX(-1); transform-origin: center;"></div>
@@ -2582,19 +2593,11 @@
                 el.dataset.c2aEnabled = enabled;
                 el.dataset.c2aColor = color;
                 el.dataset.c2aTol = tol;
-                
-                let val = '';
-                if (el.dataset.mergeData) {
-                    try {
-                        const data = JSON.parse(el.dataset.mergeData);
-                        val = data[globalMergeIndex] !== undefined ? data[globalMergeIndex] : '';
-                    } catch(e) {}
-                } else if (el.dataset.imageBankKey) {
-                    val = el.dataset.imageBankKey;
-                }
-                updateImageElementDisplay(el, val);
             }
         });
+        
+        // Pass off to the global engine to reliably extract the image source for Path Templates/Plugins
+        updateAllCanvasImages(); 
         saveState(true);
     }
 
@@ -3305,66 +3308,23 @@ function updateBgSettings(side) {
         };
     }
 
-    function processVirtualContent(rawHtml, cardIndex) {
+    async function processVirtualContent(rawHtml, cardIndex) {
         let activeContent = getCleanPrintHTML(rawHtml);
         const temp = document.createElement('div');
         temp.innerHTML = activeContent;
 
-        temp.querySelectorAll('.ui-control, .controls, .rot-handle, .resizer, .col-resizer, .row-resizer').forEach(el => el.remove());
-        
+        const imagePromises = [];
         temp.querySelectorAll('.element-container').forEach(el => {
             if (el.dataset.customImageTemplate && el.dataset.type === 'image') {
                 const val = renderTemplateString(el.dataset.customImageTemplate, cardIndex);
-                const img = el.querySelector('img');
-                const placeholder = el.querySelector('.image-placeholder');
-                
-                let displayVal = val;
-                if (typeof displayVal === 'string') {
-                    displayVal = displayVal.trim();
-                    if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
-                }
-
-                if (!displayVal) {
-                    if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
-                    if (placeholder) placeholder.style.display = 'flex';
-                } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
-                    if (img) {
-                        img.src = imageAssets[displayVal] || displayVal;
-                        img.style.display = 'block';
-                    }
-                    if (placeholder) placeholder.style.display = 'none';
-                } else {
-                    if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
-                    if (placeholder) placeholder.style.display = 'flex';
-                }
+                imagePromises.push(updateImageElementDisplay(el, val, true));
             } else if (el.dataset.mergeData) {
                 try {
                     const data = JSON.parse(el.dataset.mergeData);
                     const val = data[cardIndex] !== undefined ? data[cardIndex] : ''; 
                     
                     if (el.dataset.type === 'image') {
-                        const img = el.querySelector('img');
-                        const placeholder = el.querySelector('.image-placeholder');
-                        
-                        let displayVal = val;
-                        if (typeof displayVal === 'string') {
-                            displayVal = displayVal.trim();
-                            if (displayVal.match(/^\.[a-zA-Z0-9]+$/)) displayVal = '';
-                        }
-
-                        if (!displayVal) {
-                            if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
-                            if (placeholder) placeholder.style.display = 'flex';
-                        } else if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
-                            if (img) {
-                                img.src = imageAssets[displayVal] || displayVal;
-                                img.style.display = 'block';
-                            }
-                            if (placeholder) placeholder.style.display = 'none';
-                        } else {
-                            if (img) { img.style.display = 'none'; img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; }
-                            if (placeholder) placeholder.style.display = 'flex';
-                        }
+                        imagePromises.push(updateImageElementDisplay(el, val, true));
                     } else {
                         const target = el.querySelector('div[contenteditable="true"], .qcd-text-format-target') || el.querySelector('.cell-text') || el.querySelector('.resizable');
                         if (target && !target.hasAttribute('data-template-raw')) {
@@ -3381,24 +3341,13 @@ function updateBgSettings(side) {
                         const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
                         let val = pImg || '';
                         if (val.trim().startsWith('<')) val = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(val);
-                        
-                        const img = el.querySelector('img');
-                        const placeholder = el.querySelector('.image-placeholder');
-                        
-                        if (val) {
-                            if (img) {
-                                img.src = val;
-                                img.style.display = 'block';
-                            }
-                            if (placeholder) placeholder.style.display = 'none';
-                        } else {
-                            if (img) { img.style.display = 'none'; img.removeAttribute('src'); }
-                            if (placeholder) placeholder.style.display = 'flex';
-                        }
+                        imagePromises.push(updateImageElementDisplay(el, val, true));
                     } catch(e) {}
                 }
             }
         });
+        
+        await Promise.all(imagePromises); // Safely await all C2A filters to render before serializing HTML!
         
         temp.querySelectorAll('[data-template-raw]').forEach(el => {
             const rendered = renderTemplateString(el.getAttribute('data-template-raw'), cardIndex);
@@ -3416,15 +3365,15 @@ function updateBgSettings(side) {
         return temp.innerHTML;
     }
 
-    function renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, cardIndex, ghostParams = null) {
+    async function renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, cardIndex, ghostParams = null) {
         const pxPerUnit = getPxPerUnit();
         const bgStyleVars = `--bg-color: ${activeBgConfig.color}; --bg-thick: ${activeBgConfig.thick}px; --bg-grid-sz: ${activeBgConfig.gridSz * pxPerUnit}px; --bg-rule-sp: ${activeBgConfig.ruleSp * pxPerUnit}px; --bg-rule-top: ${activeBgConfig.ruleSkip * activeBgConfig.ruleSp * pxPerUnit}px;`;
 
-        const mainContent = processVirtualContent(rawHtml, cardIndex);
+        const mainContent = await processVirtualContent(rawHtml, cardIndex);
 
         let ghostLayerHtml = '';
         if (ghostParams && ghostParams.enabled) {
-            let ghostContent = processVirtualContent(ghostParams.rawHtml, cardIndex);
+            let ghostContent = await processVirtualContent(ghostParams.rawHtml, cardIndex);
             if (!ghostContent.trim() || !ghostContent.includes('element-container')) {
                 ghostContent = `
                     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -3674,22 +3623,28 @@ function updateBgSettings(side) {
             if (templateChanged || node.dataset.queued === "true") {
                 if (templateChanged) node.dataset.queued = "true"; // Ensure new templates trigger a full pass
 
-                const renderTask = () => {
+                const renderTask = async () => {
                     // Check if it's still visible before doing the heavy work
                     if (!node.isConnected) return;
                     
                     if (isOOB) {
-                        node.innerHTML = `<div class="bg-white w-full h-full flex items-center justify-center text-gray-300 text-2xl font-bold uppercase tracking-widest border border-dashed border-gray-300" style="background: repeating-linear-gradient(45deg, #f9fafb, #f9fafb 10px, #f3f4f6 10px, #f3f4f6 20px);">Empty</div>`;
+                        const emptyHtml = `<div class="bg-white w-full h-full flex items-center justify-center text-gray-300 text-2xl font-bold uppercase tracking-widest border border-dashed border-gray-300" style="background: repeating-linear-gradient(45deg, #f9fafb, #f9fafb 10px, #f3f4f6 10px, #f3f4f6 20px);">Empty</div>`;
+                        if (node.innerHTML !== emptyHtml) node.innerHTML = emptyHtml; // Prevent DOM thrashing!
                     } else {
                         if (!virtualHtmlCache.has(i)) {
                             try {
-                                virtualHtmlCache.set(i, renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, i, ghostParams));
+                                const html = await renderVirtualCard(rawHtml, activeBgClass, activeBgConfig, i, ghostParams);
+                                virtualHtmlCache.set(i, html);
                             } catch (e) {
                                 console.error("Render failed for card", i, e);
                                 virtualHtmlCache.set(i, '<div class="text-red-500 font-bold p-4 bg-red-50 w-full h-full flex items-center justify-center border border-red-500">Render Error</div>');
                             }
                         }
-                        node.innerHTML = virtualHtmlCache.get(i);
+                        const cachedHtml = virtualHtmlCache.get(i);
+                        // CRITICAL FIX: Only overwrite innerHTML if it has genuinely changed. This prevents "doubling" flicker artifacts on zoom!
+                        if (node.innerHTML !== cachedHtml) {
+                            node.innerHTML = cachedHtml;
+                        }
                     }
                     node.dataset.queued = "false";
                     node.dataset.taskActive = "false";
@@ -3699,7 +3654,7 @@ function updateBgSettings(side) {
                 if (!isOOB && virtualHtmlCache.has(i)) {
                     renderTask();
                 } else if (node.dataset.taskActive !== "true") {
-                    // CRITICAL FIX: Deduplicate! Prevent massive queue flooding on rapid zoom out
+                    // Deduplicate! Prevent massive queue flooding on rapid zoom out
                     node.dataset.taskActive = "true";
                     renderQueue.push(renderTask);
                 }
@@ -3944,7 +3899,7 @@ function updateBgSettings(side) {
     };
 
 
-function updateUILayer() {
+function updateUILayer(skipGhostSync = false) {
     const uiLayer = document.getElementById('ui-layer');
     if (!uiLayer) return;
 
@@ -4215,7 +4170,8 @@ function updateUILayer() {
     
     if (typeof updateLasers === 'function') updateLasers();
     if (typeof updateMergeUI === 'function') updateMergeUI();
-    syncGhostLive();
+    // Only sync ghost boundaries if elements are physically being moved, not when the camera pans
+    if (!skipGhostSync) syncGhostLive();
 }
 
     function applyCanvasTransform() {
@@ -4225,7 +4181,7 @@ function updateUILayer() {
         const canvas = document.getElementById('card-canvas');
         if (canvas) canvas.style.setProperty('--inverse-scale', 1 / canvasScale);
 
-        updateUILayer();
+        updateUILayer(true);
         queueWorkspaceGridUpdate();
     }
 
@@ -5725,13 +5681,32 @@ function restoreState(state) {
         saveState();
     }
 
+
+
+    let ghostLayerDebounce = null;
+
     function updateGhostLayer() {
+        // Debounce slider dragging so the UI thread doesn't freeze
+        if (ghostLayerDebounce) clearTimeout(ghostLayerDebounce);
+        ghostLayerDebounce = setTimeout(() => {
+            executeGhostLayerUpdate();
+        }, 50);
+    }
+
+    function executeGhostLayerUpdate() {
         const enableGhost = document.getElementById('enable-ghost')?.checked;
         const enableDataGhost = document.getElementById('enable-data-ghost')?.checked;
         
         const reverseGhostControls = document.getElementById('reverse-ghost-controls');
         const dataGhostControls = document.getElementById('data-ghost-controls');
         const ghostLayer = document.getElementById('ghost-layer');
+
+        // Toggle global body class to hide placeholders on the live canvas
+        if (enableDataGhost) {
+            document.body.classList.add('data-ghosting-active');
+        } else {
+            document.body.classList.remove('data-ghosting-active');
+        }
 
         if (!ghostLayer) return;
 
@@ -5745,22 +5720,21 @@ function restoreState(state) {
 
         ghostLayer.classList.remove('hidden');
 
-        // Manage Reverse Controls
         if (hasCustomBack && enableGhost) {
             if (reverseGhostControls) reverseGhostControls.classList.remove('opacity-50', 'pointer-events-none');
         } else {
             if (reverseGhostControls) reverseGhostControls.classList.add('opacity-50', 'pointer-events-none');
         }
 
-        // Manage Data Controls
         if (enableDataGhost) {
             if (dataGhostControls) dataGhostControls.classList.remove('opacity-50', 'pointer-events-none');
         } else {
             if (dataGhostControls) dataGhostControls.classList.add('opacity-50', 'pointer-events-none');
         }
 
-        let finalHTML = '';
+        ghostLayer.innerHTML = ''; // Start clean
 
+        // 1. Generate Reverse Ghost DOM
         if (hasCustomBack && enableGhost) {
             const otherHTML = editingSide === 'front' ? backContentHTML : frontContentHTML;
             const otherBg = editingSide === 'front' ? backBgClass : frontBgClass;
@@ -5777,11 +5751,14 @@ function restoreState(state) {
             const opacity = document.getElementById('ghost-opacity') ? document.getElementById('ghost-opacity').value : 0.2;
             const transform = document.getElementById('ghost-flip') ? document.getElementById('ghost-flip').value : 'scaleX(-1)';
 
-            finalHTML += `<div class="absolute inset-0 pointer-events-none ${otherBg}" style="opacity: ${opacity}; transform: ${transform}; transform-origin: center;">
-                    <div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${contentHTML}</div>
-                </div>`;
+            const wrapper = document.createElement('div');
+            wrapper.className = `absolute inset-0 pointer-events-none ${otherBg}`;
+            wrapper.style.cssText = `opacity: ${opacity}; transform: ${transform}; transform-origin: center;`;
+            wrapper.innerHTML = `<div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${contentHTML}</div>`;
+            ghostLayer.appendChild(wrapper);
         }
 
+        // 2. Generate Data Ghost DOM
         if (enableDataGhost) {
             document.querySelectorAll('#card-content .element-container').forEach((el, i) => {
                 if (!el.id) el.id = 'el_' + Date.now() + '_' + i;
@@ -5790,11 +5767,13 @@ function restoreState(state) {
             const currentHTML = editingSide === 'front' ? frontContentHTML : backContentHTML;
             let dataHTML = getCleanPrintHTML(currentHTML);
             
-            // Get the specific opacity for Data items
-            const dataOpacity = document.getElementById('data-ghost-opacity') ? document.getElementById('data-ghost-opacity').value : 0.1;
-
-            // Calculate global max rows for templates that aren't strictly array-bound
-            let maxGhostRows = Math.min(Math.max(1, getGlobalMaxRows()), 100);
+            const rawDataOpacity = parseFloat(document.getElementById('data-ghost-opacity')?.value || 0.1);
+            const imgOpacity = Math.min(1, rawDataOpacity * 4); 
+            
+            let maxGhostRows = getGlobalMaxRows();
+            const ghostLimitSlider = document.getElementById('data-ghost-limit');
+            const customLimit = ghostLimitSlider ? parseInt(ghostLimitSlider.value) : 250;
+            const activeLimit = maxGhostRows > 250 ? customLimit : maxGhostRows;
 
             const temp = document.createElement('div');
             temp.innerHTML = dataHTML;
@@ -5811,11 +5790,21 @@ function restoreState(state) {
                         let data = [];
                         if (hasData) data = JSON.parse(el.dataset.mergeData);
                         
-                        const loopMax = hasTemplate ? maxGhostRows : Math.min(data.length, 100);
+                        const loopMax = Math.min(hasTemplate ? maxGhostRows : data.length, activeLimit);
+                        
+                        // --- DISTRIBUTED SAMPLING ---
+                        // Visually simulates thousands of rows by stepping through the array evenly
+                        const step = 1; //Math.max(1, Math.floor(loopMax / MAX_GHOST_LAYERS));
+                        const effectiveImgOpacity = imgOpacity; // Math.min(1, imgOpacity * step);
+                        const effectiveTextOpacity = rawDataOpacity; //Math.min(1, rawDataOpacity * step);
 
                         if (target) {
                             target.innerHTML = '';
                             target.style.position = 'relative';
+                            
+                            // --- DOCUMENT FRAGMENT ---
+                            // Pre-assembles DOM nodes in memory for lightning fast insertion
+                            const fragment = document.createDocumentFragment();
                             
                             if (el.dataset.type === 'image') {
                                 const fit = el.dataset.objectFit || 'contain';
@@ -5823,10 +5812,23 @@ function restoreState(state) {
                                 const posY = el.dataset.objectPositionY || 'center';
                                 const scale = el.dataset.imageScale || '1';
 
-                                for (let i = 0; i < loopMax; i++) {
+                                for (let i = 0; i < loopMax; i += step) {
+                                    if (i === globalMergeIndex) continue; // CRITICAL FIX: Prevent shadow doubling on active card
+
                                     let displayVal = '';
                                     if (el.dataset.customImageTemplate) {
                                         displayVal = renderTemplateString(el.dataset.customImageTemplate, i);
+                                    } else if (el.dataset.pluginImageId) {
+                                        const inst = pluginInstances[el.dataset.pluginImageId];
+                                        if (inst && typeof inst.image === 'function') {
+                                            try {
+                                                const ctx = getPluginContext(i);
+                                                const pArgs = el.dataset.pluginImageArgs ? [el.dataset.pluginImageArgs] : [];
+                                                const pImg = inst.image(el.dataset.pluginImageName, ctx, ...pArgs);
+                                                if (pImg && pImg.trim().startsWith('<')) displayVal = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pImg);
+                                                else displayVal = pImg || '';
+                                            } catch(e) {}
+                                        }
                                     } else if (hasData) {
                                         displayVal = data[i] !== undefined ? data[i] : '';
                                     }
@@ -5840,14 +5842,25 @@ function restoreState(state) {
                                     if (imageAssets[displayVal] || displayVal.startsWith('http') || displayVal.startsWith('data:')) {
                                         const imgSrc = imageAssets[displayVal] || displayVal;
                                         const ghostImg = document.createElement('img');
-                                        ghostImg.src = imgSrc;
-                                        ghostImg.style.cssText = `position: absolute; top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; opacity: ${dataOpacity}; pointer-events: none; display: block;`;
-                                        target.appendChild(ghostImg);
+                                        
+                                        ghostImg.style.cssText = `position: absolute; top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; opacity: ${effectiveImgOpacity}; pointer-events: none; display: block;`;
+                                        
+                                        ghostImg.onerror = () => ghostImg.remove();
+                                        
+                                        if (el.dataset.c2aEnabled === 'true') {
+                                            processColorToAlpha(imgSrc, el.dataset.c2aColor || '#ffffff', el.dataset.c2aTol || '0.1').then(res => {
+                                                ghostImg.src = res;
+                                            });
+                                        } else {
+                                            ghostImg.src = imgSrc;
+                                        }
+                                        fragment.appendChild(ghostImg);
                                     }
                                 }
                             } else {
-                                // Standard text ghosting logic
-                                for (let i = 0; i < loopMax; i++) {
+                                for (let i = 0; i < loopMax; i += step) {
+                                    if (i === globalMergeIndex) continue; // CRITICAL FIX: Prevent shadow doubling on active card
+
                                     let val = '';
                                     if (origTemplate !== null) {
                                         val = renderTemplateString(origTemplate, i);
@@ -5858,13 +5871,12 @@ function restoreState(state) {
                                     if (!val.trim()) continue;
                                     
                                     const ghostDiv = document.createElement('div');
-                                    ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${dataOpacity}; pointer-events: none; word-break: break-word;`;
-                                    
-                                    // Parse Markdown properly!
+                                    ghostDiv.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: auto; opacity: ${effectiveTextOpacity}; pointer-events: none; word-break: break-word;`;
                                     parseMarkdownInElement(ghostDiv, val);
-                                    target.appendChild(ghostDiv);
+                                    fragment.appendChild(ghostDiv);
                                 }
                             }
+                            target.appendChild(fragment);
                         }
                     } catch (e) {}
                 } else {
@@ -5872,12 +5884,21 @@ function restoreState(state) {
                 }
             });
 
-            finalHTML += `<div class="absolute inset-0 pointer-events-none data-ghost-wrapper" style="opacity: 1;">
-                    <div class="w-full h-full relative" style="font-family: system-ui, sans-serif; font-size: 16px;">${temp.innerHTML}</div>
-                </div>`;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'absolute inset-0 pointer-events-none data-ghost-wrapper';
+            wrapper.style.opacity = '1';
+            
+            const inner = document.createElement('div');
+            inner.className = 'w-full h-full relative';
+            inner.style.cssText = 'font-family: system-ui, sans-serif; font-size: 16px;';
+            
+            // Transplant elements directly into the live DOM wrapper to avoid massive base64 string serialization bottlenecks
+            while(temp.firstChild) {
+                inner.appendChild(temp.firstChild);
+            }
+            wrapper.appendChild(inner);
+            ghostLayer.appendChild(wrapper);
         }
-
-        ghostLayer.innerHTML = finalHTML;
 
         ghostLayer.querySelectorAll('.element-container').forEach(el => {
             el.style.outlineColor = 'transparent';
@@ -5885,12 +5906,12 @@ function restoreState(state) {
             if (res) res.style.resize = 'none';
         });
 
-        // Ensure the ghost layer wrapper is always fully visible (1), since inner items dictate transparency
         ghostLayer.className = 'absolute inset-0 pointer-events-none z-20';
         ghostLayer.style.opacity = '1';
         ghostLayer.style.transform = 'none';
         ghostLayer.style.backgroundColor = 'transparent';
     }
+
 
     function saveCurrentSideState() {
         if (editingSide === 'front') {
@@ -12263,9 +12284,28 @@ window.showPluginHelp = function(id) {
             }
         });
 
-Object.values(pluginsData).forEach(p => { 
+        Object.values(pluginsData).forEach(p => { 
             if (p.minRecords && p.minRecords > globalMaxRows) globalMaxRows = p.minRecords; 
         });
+
+        const ghostLimitGroup = document.getElementById('ghost-limit-group');
+        const ghostLimitSlider = document.getElementById('data-ghost-limit');
+        const ghostLimitVal = document.getElementById('ghost-limit-val');
+        
+        if (ghostLimitGroup && ghostLimitSlider && ghostLimitVal) {
+            if (globalMaxRows > 250) {
+                ghostLimitGroup.classList.remove('hidden');
+                ghostLimitGroup.classList.add('flex');
+                ghostLimitSlider.max = globalMaxRows;
+                if (parseInt(ghostLimitSlider.value) > globalMaxRows) {
+                    ghostLimitSlider.value = globalMaxRows;
+                }
+                ghostLimitVal.innerText = ghostLimitSlider.value;
+            } else {
+                ghostLimitGroup.classList.add('hidden');
+                ghostLimitGroup.classList.remove('flex');
+            }
+        }
 
         const globalScrubber = document.querySelector('#multi-select-controls .merge-scrubber');
         if (globalScrubber) {
@@ -13848,7 +13888,7 @@ function renameBankImage(oldName, newName) {
                 <svg class="w-6 h-6 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <span class="text-[9px] font-bold truncate w-full placeholder-text pointer-events-none">${missingText}</span>
             </div>
-            <img src="${dataUrl}" onerror="this.style.display='none'; if(this.previousElementSibling) { this.previousElementSibling.style.display='flex'; }" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}); transform-origin: center; display: ${hasUrl ? 'block' : 'none'};" />
+            <img src="${dataUrl}" onerror="this.style.display='none'; if(this.previousElementSibling) { this.previousElementSibling.style.display='flex'; }" class="pointer-events-none absolute z-10" style="top: 50%; left: 50%; width: calc(100% / ${scale}); height: calc(100% / ${scale}); max-width: none; object-fit: ${fit}; object-position: ${posX} ${posY}; transform: translate(-50%, -50%) scale(${scale}) translateZ(0); transform-origin: center; display: ${hasUrl ? 'block' : 'none'}; will-change: transform; backface-visibility: hidden;" />
         </div>`;
     }
 
