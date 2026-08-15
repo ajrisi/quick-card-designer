@@ -1729,7 +1729,7 @@
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <div>
                     <h2 class="text-lg font-bold text-gray-800">Drop to Add to Canvas</h2>
-                    <p class="text-xs text-gray-500">Supports Images, Data (.csv), and Fonts (.ttf, .otf, .woff)</p>
+                    <p class="text-xs text-gray-500">Supports Images, Data, Fonts, and .ZIP Archives</p>
                 </div>
             </div>
         </div>
@@ -1797,7 +1797,7 @@
                         <button onpointerup="importImageFromURL(); closeImageMenu();" class="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded transition-colors">Import Cloud URL</button>
                     </div>
                 </div>
-                <input type="file" id="bank-upload-input" accept="image/*,.svg" multiple class="hidden" onchange="handleBankUpload(event)">
+                <input type="file" id="bank-upload-input" accept="image/*,.svg,.zip" multiple class="hidden" onchange="handleBankUpload(event)">
                 <input type="file" id="bank-replace-input" accept="image/*,.svg" class="hidden" onchange="handleBankReplace(event)">
                 <input type="file" id="bank-fulfill-input" accept="image/*,.svg" class="hidden" onchange="handleBankFulfill(event)">
             </div>
@@ -5099,7 +5099,7 @@ function updateUILayer(skipGhostSync = false) {
             e.preventDefault(); // Necessary to allow dropping
         });
 
-        document.addEventListener('drop', (e) => {
+        document.addEventListener('drop', async (e) => {
             e.preventDefault();
             dragCounter = 0;
             if (dropOverlay) {
@@ -5117,7 +5117,40 @@ function updateUILayer(skipGhostSync = false) {
             const dropX = (e.clientX - containerRect.left - panX) / canvasScale;
             const dropY = (e.clientY - containerRect.top - panY) / canvasScale;
 
-            const files = Array.from(e.dataTransfer.files);
+let files = Array.from(e.dataTransfer.files);
+            
+            let unpackedFiles = [];
+            let hasZip = false;
+            for (let file of files) {
+                if (file.name.toLowerCase().endsWith('.zip') && window.JSZip) {
+                    hasZip = true;
+                    try {
+                        const zip = await JSZip.loadAsync(file);
+                        for (const [filename, zipEntry] of Object.entries(zip.files)) {
+                            if (zipEntry.dir || filename.includes('__MACOSX') || filename.split('/').pop().startsWith('._') || filename.endsWith('.DS_Store')) continue;
+                            const ext = filename.split('.').pop().toLowerCase();
+                            
+                            if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ttf', 'otf', 'woff', 'woff2', 'csv', 'txt', 'json'].includes(ext)) {
+                                const blob = await zipEntry.async("blob");
+                                const mimeMap = {
+                                    'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'svg': 'image/svg+xml', 'webp': 'image/webp',
+                                    'ttf': 'font/ttf', 'otf': 'font/otf', 'woff': 'font/woff', 'woff2': 'font/woff2',
+                                    'csv': 'text/csv', 'txt': 'text/plain', 'json': 'application/json'
+                                };
+                                const unzippedFile = new File([blob], filename.split('/').pop(), { type: mimeMap[ext] || 'application/octet-stream' });
+                                unzippedFile._isFromZip = true;
+                                unpackedFiles.push(unzippedFile);
+                            }
+                        }
+                    } catch (err) {
+                        showToast(`Failed to unpack ${file.name}`, true);
+                    }
+                } else {
+                    unpackedFiles.push(file);
+                }
+            }
+            if (hasZip) showToast("Unpacked contents from ZIP");
+            files = unpackedFiles;
             let imageIndex = 0;
             
             files.forEach(file => {
@@ -5129,6 +5162,15 @@ function updateUILayer(skipGhostSync = false) {
                     reader.onload = (ev) => {
                         const dataUrl = ev.target.result;
                         imageAssets[file.name] = dataUrl;
+
+                        if (file._isFromZip) {
+                            if (!document.getElementById('image-bank-modal').classList.contains('hidden')) {
+                                renderImageBankItems();
+                            }
+                            updateAllCanvasImages(); // Wake up any placeholders waiting for this image
+                            saveState(true);
+                            return;
+                        }
                         
                         const p = (val) => Math.round(val * (PX_PER_IN / 100));
                         const tempImg = new Image();
@@ -13613,30 +13655,59 @@ ${p.description ? `
         container.innerHTML = html;
     }
 
-    function handleBankUpload(event) {
+    async function handleBankUpload(event) {
         const fileList = event.target.files;
         if (!fileList || fileList.length === 0) return;
         
-        // 1. Lock the total files count so it cannot be mutated
-        const totalFiles = fileList.length;
-        // 2. Convert FileList to a static Array so the file objects aren't lost
-        const files = Array.from(fileList);
+        let files = Array.from(fileList);
+        let unpackedFiles = [];
+        let hasZip = false;
+
+        for (let file of files) {
+            if (file.name.toLowerCase().endsWith('.zip') && window.JSZip) {
+                hasZip = true;
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    for (const [filename, zipEntry] of Object.entries(zip.files)) {
+                        if (zipEntry.dir || filename.includes('__MACOSX') || filename.split('/').pop().startsWith('._') || filename.endsWith('.DS_Store')) continue;
+                        const ext = filename.split('.').pop().toLowerCase();
+                        if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+                            const blob = await zipEntry.async("blob");
+                            const mimeMap = { 'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'svg': 'image/svg+xml', 'webp': 'image/webp' };
+                            const unzippedFile = new File([blob], filename.split('/').pop(), { type: mimeMap[ext] || 'image/png' });
+                            unpackedFiles.push(unzippedFile);
+                        }
+                    }
+                } catch (err) {
+                    showToast(`Failed to unpack ${file.name}`, true);
+                }
+            } else {
+                unpackedFiles.push(file);
+            }
+        }
+         
+        if (hasZip) showToast("Unpacked images from ZIP");
         
-        let loaded = 0;
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        const totalFiles = unpackedFiles.length;
+        if (totalFiles === 0) {
+            event.target.value = '';
+            return;
+        }
+
+       
+       let loaded = 0;
+       for (let i = 0; i < unpackedFiles.length; i++) {
+            const file = unpackedFiles[i];
             const reader = new FileReader();
             reader.onload = (e) => {
                 imageAssets[file.name] = e.target.result;
                 loaded++;
-                // 3. Compare against our locked total
                 if (loaded === totalFiles) {
                     showToast(`Added ${totalFiles} images to Image Bank!`);
                     renderImageBankItems();
                     applyMergePreview();
                     updateAllCanvasImages();
                     saveState();
-                    // 4. Safely clear the input ONLY after everything is done
                     event.target.value = '';
                 }
             };
